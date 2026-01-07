@@ -4,19 +4,20 @@ True track My Money is a solution to help the tracking of the personal finances,
 Follow bellow some of the requirements of the solution:
 
 Functional requirements
-- Identificar se as contas bancárias estão em risco de ficarem negativas (pagar juros)
-- Identificar quanto foi recebido e gasto em cada período, e se houve "lucro" (receita menos despesa)
-  * Projetar as entradas e saídas do mês, baseado em expectativas de receitas e despesas
-- Identificar quanto de dinheiro foi investido no período
-- Identificar quanto vai ser a fatura do cartão para saber se haverá dinheiro que chega para pagar a conta
-- Identificar onde/com o que está sendo gasto o dinheiro (podem estar havendo excessos)
-- Identificar quanto os investimentos estão rendendo
+- Identify if bank accounts are at risk of going negative (paying interest)
+- Identify how much was received and spent in each period, and if there was a "profit" (revenue minus expenses)
+* Project the month's income and expenses, based on revenue and expense expectations
+- Identify how much money was invested in the period
+- Identify the credit card bill amount to know if there will be enough money to pay the bill
+- Identify where/on what the money is being spent (there may be excesses)
+- Identify how much the investments are yielding
 
-Segue abaixo algumas técnicas/estruturas utilizadas para alcançar os objetivos acima:
+Below are some techniques/structures used to achieve the above objectives:
 
-* Todos as despesas e receitas são registradas como lançamentos, atribuídos a "Categorias de Receita/Despesa", e também a "Contas de movimentação" (que podem ser contas bancárias, cartões de créditos, carteiras de bolso, ou mesmo contas transitórias). Os lançamentos também podem ser atribuídos à "Tags", que são uma forma de agrupar determinados lançamentos para futura gestão/observação.
-Por fim, os lançamentos também são identificados com as datas em que ocorreram, e também datas em que foram efetivamente liquidados (pagos/recebidos).
+* All expenses and revenues are recorded as entries, assigned to "Revenue/Expense Categories", and also to "Transaction Accounts" (which can be bank accounts, credit cards, personal wallets, or even transit accounts). Transactions can also be assigned to "Tags," which are a way to group specific transactions for future management/monitoring.
 
-* As contas do tipo "Cartão de crédito" precisam ser zeradas mensalmente contra alguma outra conta de movimento (que significa o pagamento da fatura do cartão).
+Finally, transactions are also identified by the dates they occurred and the dates they were actually settled (paid/received).
 
-* Periodicamente deverão ser efetuadas conciliaçÕes dos extratos bancários (das contas do tipo contas bancárias), e também das faturas dos cartões de crédito.
+* Credit card accounts need to be zeroed out monthly against another transaction account (meaning payment of the credit card bill).
+
+* Bank statements (bank account type accounts) and credit card bills should be reconciled periodically.
