@@ -1,0 +1,19 @@
+{
+    "preset": "laravel",
+    "rules": {
+        "simplified_null_return": true,
+        "braces": false,
+        "new_with_braces": {
+            "anonymous_class": true,
+            "named_class": true
+        },
+        "return_type_declaration": {
+            "space_before": "none"
+        }
+    },
+    "exclude": [
+        "bootstrap",
+        "storage",
+        "vendor"
+    ]
+}

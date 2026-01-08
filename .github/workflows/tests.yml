@@ -1,0 +1,139 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  tests:
+    name: Run Tests & Quality Checks
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: sail
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: testing
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, pdo_pgsql, bcmath, intl, gd, exif, iconv
+          coverage: xdebug
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: workspace/package-lock.json
+
+      - name: Copy .env
+        run: |
+          cd workspace
+          php -r "file_exists('.env') || copy('.env.example', '.env');"
+
+      - name: Install Composer dependencies
+        run: |
+          cd workspace
+          composer install --prefer-dist --no-interaction --no-progress --optimize-autoloader
+
+      - name: Generate application key
+        run: |
+          cd workspace
+          php artisan key:generate
+
+      - name: Set permissions
+        run: |
+          cd workspace
+          chmod -R 777 storage bootstrap/cache
+
+      - name: Install NPM dependencies
+        run: |
+          cd workspace
+          npm ci
+
+      - name: Build frontend assets
+        run: |
+          cd workspace
+          npm run build
+
+      - name: Run migrations
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_DATABASE: testing
+          DB_USERNAME: sail
+          DB_PASSWORD: password
+        run: |
+          cd workspace
+          php artisan migrate --force
+
+      - name: Run Laravel Pint (Code Style)
+        run: |
+          cd workspace
+          ./vendor/bin/pint --test
+
+      - name: Run PHPStan (Static Analysis)
+        run: |
+          cd workspace
+          ./vendor/bin/phpstan analyse --memory-limit=512M --error-format=github
+
+      - name: Run PHPUnit (Backend Tests)
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_DATABASE: testing
+          DB_USERNAME: sail
+          DB_PASSWORD: password
+        run: |
+          cd workspace
+          php artisan test --coverage --min=70
+
+      - name: Run Jest (Frontend Tests)
+        run: |
+          cd workspace
+          npm test -- --coverage --coverageReporters=text-summary
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: |
+            workspace/coverage/
+          retention-days: 7
+
+  quality-gate:
+    name: Quality Gate Check
+    needs: tests
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Check test results
+        run: |
+          if [ "${{ needs.tests.result }}" != "success" ]; then
+            echo "::warning::Quality checks failed. Manual review required for merge."
+            echo "You can bypass this check with manual approval if necessary."
+            exit 1
+          fi
+          echo "✅ All quality checks passed!"
