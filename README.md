@@ -55,18 +55,18 @@ docker compose up -d
 
 3. **Install dependencies** (already done during first build)
 ```bash
-docker compose exec laravel.test composer install
-docker compose exec laravel.test npm install
+docker compose exec truetrack composer install
+docker compose exec truetrack npm install
 ```
 
 4. **Run migrations**
 ```bash
-docker compose exec laravel.test php artisan migrate
+docker compose exec truetrack php artisan migrate
 ```
 
 5. **Build frontend assets**
 ```bash
-docker compose exec laravel.test npm run build
+docker compose exec truetrack npm run build
 ```
 
 6. **Access the application**
@@ -82,33 +82,33 @@ docker compose exec laravel.test npm run build
 docker compose up -d
 
 # Watch frontend changes
-docker compose exec laravel.test npm run dev
+docker compose exec truetrack npm run dev
 ```
 
 ### Code Quality Tools
 
 ```bash
 # Fix code style
-docker compose exec laravel.test ./vendor/bin/pint
+docker compose exec truetrack ./vendor/bin/pint
 
 # Run static analysis
-docker compose exec laravel.test ./vendor/bin/phpstan analyse
+docker compose exec truetrack ./vendor/bin/phpstan analyse
 
 # Run backend tests
-docker compose exec laravel.test php artisan test
+docker compose exec truetrack php artisan test
 
 # Run frontend tests
-docker compose exec laravel.test npm test
+docker compose exec truetrack npm test
 ```
 
 ### Running Tests with Coverage
 
 ```bash
 # Backend tests with coverage (70% minimum)
-docker compose exec laravel.test php artisan test --coverage --min=70
+docker compose exec truetrack php artisan test --coverage --min=70
 
 # Frontend tests with coverage
-docker compose exec laravel.test npm test -- --coverage
+docker compose exec truetrack npm test -- --coverage
 ```
 
 ## API Documentation
