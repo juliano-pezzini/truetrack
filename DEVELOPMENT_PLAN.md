@@ -46,7 +46,7 @@ All Pull Requests must pass:
 - First PR with all quality gates passing
 
 **Key Files**:
-- `docker-compose.yml` (Sail)
+- `compose.yaml` (Docker Compose configuration)
 - `.github/workflows/tests.yml`
 - `routes/api.php` (v1 routes)
 - `phpunit.xml`
@@ -419,28 +419,27 @@ All Pull Requests must pass:
 ```bash
 # Clone repository
 git clone <repo-url>
-cd truetrack
+cd truetrack/workspace
 
-# Install Laravel
-composer create-project laravel/laravel . --prefer-dist
+# Install dependencies
+docker compose run --rm truetrack composer install
+docker compose run --rm truetrack npm install
 
-# Install Sail
-php artisan sail:install --with=pgsql
+# Start Docker containers
+docker compose up -d
 
-# Start Sail
-./vendor/bin/sail up -d
-
-# Install Breeze with Inertia/React
-./vendor/bin/sail composer require laravel/breeze --dev
-./vendor/bin/sail artisan breeze:install react
-./vendor/bin/sail npm install
-./vendor/bin/sail npm run dev
+# Set up environment
+cp .env.example .env
+docker compose exec truetrack php artisan key:generate
 
 # Run migrations
-./vendor/bin/sail artisan migrate
+docker compose exec truetrack php artisan migrate
 
-# Install testing tools
-./vendor/bin/sail composer require --dev laravel/pint phpstan/phpstan nunomaduro/larastan
+# Build frontend assets
+docker compose exec truetrack npm run build
+
+# For development, watch frontend changes
+docker compose exec truetrack npm run dev
 
 # Configure GitHub Actions
 # (See Phase 1 deliverables)
