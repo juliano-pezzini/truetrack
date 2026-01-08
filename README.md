@@ -1,18 +1,201 @@
-# truetrack
-True track My Money is a solution to help the tracking of the personal finances, using accounting techniches to bring the accurate insights about the spendings. 
+# TrueTrack
 
-Follow bellow some of the requirements of the solution:
+[![Tests](https://github.com/YOUR_USERNAME/truetrack/workflows/Tests/badge.svg)](https://github.com/YOUR_USERNAME/truetrack/actions)
 
-Functional requirements
-- Identify if bank accounts are at risk of going negative (paying interest)
-- Identify how much was received and spent in each period, and if there was a "profit" (revenue minus expenses)
-* Project the month's income and expenses, based on revenue and expense expectations
-- Identify how much money was invested in the period
-- Identify the credit card bill amount to know if there will be enough money to pay the bill
-- Identify where/on what the money is being spent (there may be excesses)
-- Identify how much the investments are yielding
+True Track My Money is a cloud-based personal finance management solution that uses double-entry accounting principles to provide accurate insights about your finances.
 
-Below are some techniques/structures used to achieve the above objectives:
+## Features
+
+### Core Capabilities
+- 💰 **Account Management** - Track bank accounts, credit cards, wallets, and transitional accounts
+- 📊 **Financial Insights** - Revenue vs expenses analysis with profit/loss reporting
+- 🔮 **Cash Flow Projection** - Monthly income and expense forecasting
+- 💳 **Credit Card Management** - Track bills and ensure sufficient funds for payment
+- 📈 **Investment Tracking** - Monitor investment returns and performance
+- 🏷️ **Flexible Organization** - Categorize transactions and use tags for custom grouping
+- ⚖️ **Bank Reconciliation** - Verify transactions against statements
+- 🔒 **API-First Architecture** - RESTful API with token authentication for web and future mobile apps
+
+### Technical Highlights
+- Double-entry accounting principles
+- Transaction and settlement date tracking
+- Hierarchical category structure (revenue/expense)
+- Automatic balance calculations
+- Monthly credit card closure workflows
+
+## Tech Stack
+
+- **Backend**: PHP 8.4, Laravel 12.x
+- **Database**: PostgreSQL 18 (Alpine)
+- **Frontend**: React 18, Inertia.js, TailwindCSS
+- **Authentication**: Laravel Breeze (web), Sanctum (API)
+- **Development**: Docker (Laravel Sail)
+- **Testing**: PHPUnit, Jest
+- **Quality**: Laravel Pint, PHPStan/Larastan
+- **CI/CD**: GitHub Actions
+
+## Getting Started
+
+### Prerequisites
+- Docker Desktop
+- Git
+
+### Installation
+
+1. **Clone the repository**
+```bash
+git clone https://github.com/YOUR_USERNAME/truetrack.git
+cd truetrack/workspace
+```
+
+2. **Start Docker containers**
+```bash
+docker compose up -d
+```
+
+3. **Install dependencies** (already done during first build)
+```bash
+docker compose exec laravel.test composer install
+docker compose exec laravel.test npm install
+```
+
+4. **Run migrations**
+```bash
+docker compose exec laravel.test php artisan migrate
+```
+
+5. **Build frontend assets**
+```bash
+docker compose exec laravel.test npm run build
+```
+
+6. **Access the application**
+- Web: http://localhost
+- API: http://localhost/api/v1
+
+## Development
+
+### Running in Development Mode
+
+```bash
+# Start Sail containers
+docker compose up -d
+
+# Watch frontend changes
+docker compose exec laravel.test npm run dev
+```
+
+### Code Quality Tools
+
+```bash
+# Fix code style
+docker compose exec laravel.test ./vendor/bin/pint
+
+# Run static analysis
+docker compose exec laravel.test ./vendor/bin/phpstan analyse
+
+# Run backend tests
+docker compose exec laravel.test php artisan test
+
+# Run frontend tests
+docker compose exec laravel.test npm test
+```
+
+### Running Tests with Coverage
+
+```bash
+# Backend tests with coverage (70% minimum)
+docker compose exec laravel.test php artisan test --coverage --min=70
+
+# Frontend tests with coverage
+docker compose exec laravel.test npm test -- --coverage
+```
+
+## API Documentation
+
+### Authentication Endpoints
+
+**Register**
+```bash
+POST /api/v1/register
+Content-Type: application/json
+
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "password123",
+  "password_confirmation": "password123"
+}
+```
+
+**Login**
+```bash
+POST /api/v1/login
+Content-Type: application/json
+
+{
+  "email": "john@example.com",
+  "password": "password123"
+}
+```
+
+**Get User** (Protected)
+```bash
+GET /api/v1/user
+Authorization: Bearer YOUR_TOKEN_HERE
+```
+
+**Logout** (Protected)
+```bash
+POST /api/v1/logout
+Authorization: Bearer YOUR_TOKEN_HERE
+```
+
+## Project Structure
+
+```
+truetrack/
+├── .github/
+│   └── workflows/
+│       └── tests.yml          # CI/CD pipeline
+├── workspace/                  # Laravel application root
+│   ├── app/
+│   │   ├── Http/
+│   │   │   └── Controllers/
+│   │   │       └── Api/V1/    # API v1 controllers
+│   │   └── Models/
+│   ├── database/
+│   ├── resources/
+│   │   └── js/                # React components
+│   ├── routes/
+│   │   ├── api.php            # API routes (/api/v1)
+│   │   └── web.php            # Web routes
+│   ├── tests/
+│   ├── compose.yaml           # Docker Compose config
+│   ├── phpunit.xml            # PHPUnit config
+│   ├── phpstan.neon           # PHPStan config
+│   ├── pint.json              # Pint config
+│   └── jest.config.js         # Jest config
+└── DEVELOPMENT_PLAN.md        # Detailed development phases
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'feat: Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+**All PRs must pass:**
+- ✅ Code style (Pint)
+- ✅ Static analysis (PHPStan)
+- ✅ Backend tests (PHPUnit - 70% coverage)
+- ✅ Frontend tests (Jest)
+
+## Functional Requirements
+
+Below are the techniques/structures used to achieve the objectives:
 
 * All expenses and revenues are recorded as entries, assigned to "Revenue/Expense Categories", and also to "Transaction Accounts" (which can be bank accounts, credit cards, personal wallets, or even transit accounts). Transactions can also be assigned to "Tags," which are a way to group specific transactions for future management/monitoring.
 

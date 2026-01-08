@@ -1,0 +1,29 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - app/
+        - database/
+
+    # Level of rule enforcement (0-9)
+    level: 5
+
+    # Ignore specific errors or paths
+    ignoreErrors:
+        - '#Parameter \#1 \$user of class Illuminate\\Auth\\Events\\Verified#'
+        - '#array<model property of App\\Models\\User, mixed>#'
+
+    # Laravel specific
+    checkModelProperties: true
+    checkOctaneCompatibility: true
+
+    # Exclude directories
+    excludePaths:
+        - database/migrations/*
+        - bootstrap/cache/*
+        - storage/*
+
+    # Enable parallel processing
+    parallel:
+        maximumNumberOfProcesses: 4
