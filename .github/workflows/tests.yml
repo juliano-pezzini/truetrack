@@ -111,7 +111,7 @@ jobs:
       - name: Run Jest (Frontend Tests)
         run: |
           cd workspace
-          npm test -- --coverage --coverageReporters=text-summary
+          npm run test:coverage -- --coverageReporters=text-summary
 
       - name: Upload coverage reports
         if: always()
