@@ -22,5 +22,15 @@ Route::prefix('v1')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [App\Http\Controllers\Api\V1\AuthController::class, 'logout']);
         Route::get('/user', fn (Request $request) => $request->user());
+
+        // Account management
+        Route::apiResource('accounts', App\Http\Controllers\Api\V1\AccountController::class)
+            ->names([
+                'index' => 'api.accounts.index',
+                'store' => 'api.accounts.store',
+                'show' => 'api.accounts.show',
+                'update' => 'api.accounts.update',
+                'destroy' => 'api.accounts.destroy',
+            ]);
     });
 });

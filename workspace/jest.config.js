@@ -15,6 +15,11 @@ export default {
     '^.+\\.(js|jsx)$': ['babel-jest', { configFile: './babel.config.cjs' }],
   },
 
+  // Transform ESM modules
+  transformIgnorePatterns: [
+    'node_modules/(?!(@inertiajs|lodash-es|laravel-precognition)/)',
+  ],
+
   // Test match patterns
   testMatch: [
     '<rootDir>/resources/js/**/__tests__/**/*.{js,jsx}',
