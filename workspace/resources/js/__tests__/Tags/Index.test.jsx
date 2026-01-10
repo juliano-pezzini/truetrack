@@ -52,7 +52,8 @@ describe('Tags Index', () => {
         links: [
             { url: null, label: '&laquo; Previous', active: false },
             { url: 'http://localhost/tags?page=1', label: '1', active: true },
-            { url: null, label: 'Next &raquo;', active: false },
+            { url: 'http://localhost/tags?page=2', label: '2', active: false },
+            { url: 'http://localhost/tags?page=2', label: 'Next &raquo;', active: false },
         ],
         meta: {
             current_page: 1,
@@ -126,9 +127,14 @@ describe('Tags Index', () => {
         render(<Index auth={mockAuth} tags={mockTags} filters={{}} />);
 
         expect(screen.getByText(/Showing/i)).toBeInTheDocument();
-        expect(screen.getByText(/1/i)).toBeInTheDocument();
-        expect(screen.getByText(/2/i)).toBeInTheDocument();
         expect(screen.getByText(/results/i)).toBeInTheDocument();
+
+        // Check that pagination shows complete text
+        const paginationElements = screen.getAllByText((content, element) => {
+            return element?.tagName === 'P' && element?.textContent?.includes('Showing') && element?.textContent?.includes('results');
+        });
+        expect(paginationElements.length).toBeGreaterThan(0);
+        expect(paginationElements[0]).toHaveTextContent('Showing 1 to 2 of 2 results');
     });
 
     test('displays color indicators', () => {
