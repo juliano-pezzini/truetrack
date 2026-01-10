@@ -32,5 +32,15 @@ Route::prefix('v1')->group(function () {
                 'update' => 'api.accounts.update',
                 'destroy' => 'api.accounts.destroy',
             ]);
+
+        // Tag management
+        Route::apiResource('tags', App\Http\Controllers\Api\V1\TagController::class)
+            ->names([
+                'index' => 'api.tags.index',
+                'store' => 'api.tags.store',
+                'show' => 'api.tags.show',
+                'update' => 'api.tags.update',
+                'destroy' => 'api.tags.destroy',
+            ]);
     });
 });
