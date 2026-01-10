@@ -12,6 +12,57 @@ TrueTrack is a cloud-based personal finance management system built with **Larav
 - **Authentication**: Laravel Breeze with Sanctum for API
 - **Testing**: PHPUnit (backend), Jest (React)
 - **Code Quality**: Laravel Pint, PHPStan/Larastan
+- **Development Environment**: Docker Compose
+
+## Docker/Sail Container Usage
+
+**CRITICAL**: TrueTrack runs in Docker containers. All Laravel-related commands (artisan, composer, PHPUnit, Pint, PHPStan, etc.) MUST be executed inside the Docker container.
+
+### Running Commands in Containers
+
+1. **Always navigate to the `workspace` directory first** before running Docker commands
+2. **Command Format**: `docker compose exec truetrack <command>`
+3. **Instance Name**: The application container is named `truetrack`
+
+### Common Command Examples
+
+```bash
+# Navigate to workspace directory
+cd workspace
+
+# Run artisan commands
+docker compose exec truetrack php artisan migrate
+docker compose exec truetrack php artisan db:seed
+docker compose exec truetrack php artisan make:controller AccountController
+
+# Run composer commands
+docker compose exec truetrack composer install
+docker compose exec truetrack composer update
+docker compose exec truetrack composer require package/name
+
+# Run tests
+docker compose exec truetrack php artisan test
+docker compose exec truetrack ./vendor/bin/phpunit
+
+# Run code quality tools
+docker compose exec truetrack ./vendor/bin/pint
+docker compose exec truetrack ./vendor/bin/phpstan analyse
+
+# Database commands
+docker compose exec truetrack php artisan migrate:fresh --seed
+docker compose exec truetrack php artisan migrate:rollback
+
+# Access PHP container shell
+docker compose exec truetrack bash
+```
+
+### Important Notes
+
+- **NEVER** run Laravel/PHP commands directly on the host system
+- **ALWAYS** prefix commands with `docker compose exec truetrack`
+- **Frontend/Node commands** (npm, jest) can run on the host or in containers as needed
+- When in doubt, run the command through Docker
+- Ensure Docker containers are running before executing commands: `docker compose up -d`
 
 ## Code Style & Conventions
 
