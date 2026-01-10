@@ -25,6 +25,9 @@ Route::middleware('auth')->group(function () {
 
     // Account management
     Route::resource('accounts', App\Http\Controllers\AccountController::class);
+
+    // Tag management
+    Route::resource('tags', App\Http\Controllers\TagController::class);
 });
 
 require __DIR__.'/auth.php';
