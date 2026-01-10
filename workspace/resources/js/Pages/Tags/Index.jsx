@@ -180,10 +180,10 @@ export default function Index({ auth, tags, filters }) {
                                         <div>
                                             <p className="text-sm text-gray-700">
                                                 Showing{' '}
-                                                <span className="font-medium">{tags.from || 0}</span>{' '}
-                                                to <span className="font-medium">{tags.to || 0}</span>{' '}
+                                                <span className="font-medium">{tags.meta?.from || 0}</span>{' '}
+                                                to <span className="font-medium">{tags.meta?.to || 0}</span>{' '}
                                                 of{' '}
-                                                <span className="font-medium">{tags.total || 0}</span>{' '}
+                                                <span className="font-medium">{tags.meta?.total || 0}</span>{' '}
                                                 results
                                             </p>
                                         </div>
