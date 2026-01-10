@@ -13,6 +13,7 @@ parameters:
     ignoreErrors:
         - '#Parameter \#1 \$user of class Illuminate\\Auth\\Events\\Verified#'
         - '#array<model property of App\\Models\\User, mixed>#'
+        - '#array<model property of App\\Models\\Category, mixed>#'
 
     # Laravel specific
     checkModelProperties: true

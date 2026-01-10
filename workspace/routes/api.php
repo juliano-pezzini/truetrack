@@ -33,6 +33,16 @@ Route::prefix('v1')->group(function () {
                 'destroy' => 'api.accounts.destroy',
             ]);
 
+        // Category management
+        Route::apiResource('categories', App\Http\Controllers\Api\V1\CategoryController::class)
+            ->names([
+                'index' => 'api.categories.index',
+                'store' => 'api.categories.store',
+                'show' => 'api.categories.show',
+                'update' => 'api.categories.update',
+                'destroy' => 'api.categories.destroy',
+            ]);
+
         // Tag management
         Route::apiResource('tags', App\Http\Controllers\Api\V1\TagController::class)
             ->names([
