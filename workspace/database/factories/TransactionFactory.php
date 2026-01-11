@@ -18,7 +18,9 @@ class TransactionFactory extends Factory
     /**
      * Define the model's default state.
      *
-     * @return array<string, mixed>
+     * @return array<model-property, mixed>
+     *
+     * @phpstan-ignore method.childReturnType
      */
     public function definition(): array
     {

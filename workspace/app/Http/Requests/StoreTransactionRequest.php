@@ -31,7 +31,7 @@ class StoreTransactionRequest extends FormRequest
             'category_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('user_id', $this->user()->id)],
             'amount' => ['required', 'numeric', 'min:0.01', 'max:999999999999.99'],
             'description' => ['nullable', 'string', 'max:5000'],
-            'transaction_date' => ['required', 'date', 'before_or_equal:today'],
+            'transaction_date' => ['required', 'date', 'before_or_equal:'.now()->toDateString()],
             'settled_date' => ['nullable', 'date', 'after_or_equal:transaction_date'],
             'type' => ['required', Rule::enum(TransactionType::class)],
             'tag_ids' => ['nullable', 'array'],

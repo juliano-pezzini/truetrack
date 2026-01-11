@@ -30,7 +30,7 @@ class UpdateTransactionRequest extends FormRequest
             'category_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('user_id', $this->user()->id)],
             'amount' => ['sometimes', 'numeric', 'min:0.01', 'max:999999999999.99'],
             'description' => ['nullable', 'string', 'max:5000'],
-            'transaction_date' => ['sometimes', 'date', 'before_or_equal:today'],
+            'transaction_date' => ['sometimes', 'date', 'before_or_equal:'.now()->toDateString()],
             'settled_date' => ['nullable', 'date', 'after_or_equal:transaction_date'],
             'type' => ['sometimes', Rule::enum(TransactionType::class)],
             'tag_ids' => ['nullable', 'array'],
