@@ -58,8 +58,8 @@ class TransactionController extends Controller
         }
 
         // Filter by settlement status
-        if ($request->filled('filter.settled')) {
-            if ($request->boolean('filter.settled')) {
+        if ($request->filled('filter.is_settled')) {
+            if ($request->boolean('filter.is_settled')) {
                 $query->settled();
             } else {
                 $query->unsettled();
