@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\CategoryType;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -67,7 +68,7 @@ class Category extends Model
     /**
      * Scope a query to only include active categories.
      */
-    public function scopeActive($query)
+    public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
     }
@@ -75,7 +76,7 @@ class Category extends Model
     /**
      * Scope a query to filter by category type.
      */
-    public function scopeByType($query, CategoryType|string $type)
+    public function scopeByType(Builder $query, CategoryType|string $type): Builder
     {
         if ($type instanceof CategoryType) {
             $type = $type->value;
@@ -87,7 +88,7 @@ class Category extends Model
     /**
      * Scope a query to only include parent categories (no parent_id).
      */
-    public function scopeParents($query)
+    public function scopeParents(Builder $query): Builder
     {
         return $query->whereNull('parent_id');
     }
@@ -95,7 +96,7 @@ class Category extends Model
     /**
      * Scope a query to only include subcategories (has parent_id).
      */
-    public function scopeSubcategories($query)
+    public function scopeSubcategories(Builder $query): Builder
     {
         return $query->whereNotNull('parent_id');
     }

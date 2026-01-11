@@ -28,7 +28,7 @@ export default function Create({ auth, categoryTypes, parentCategories }) {
                 setData('parent_id', '');
             }
         }
-    }, [data.type]);
+    }, [data.type, data.parent_id, parentCategories, setData]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
