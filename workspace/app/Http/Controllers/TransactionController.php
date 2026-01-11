@@ -73,8 +73,27 @@ class TransactionController extends Controller
 
         $transactions = $query->paginate(15)->withQueryString();
 
+        // Get accounts, categories, and tags for filters
+        $accounts = Account::query()
+            ->where('user_id', $request->user()->id)
+            ->orderBy('name')
+            ->get(['id', 'name', 'type']);
+
+        $categories = Category::query()
+            ->where('user_id', $request->user()->id)
+            ->orderBy('name')
+            ->get(['id', 'name', 'type']);
+
+        $tags = Tag::query()
+            ->where('user_id', $request->user()->id)
+            ->orderBy('name')
+            ->get(['id', 'name', 'color']);
+
         return Inertia::render('Transactions/Index', [
             'transactions' => $transactions,
+            'accounts' => ['data' => $accounts],
+            'categories' => ['data' => $categories],
+            'tags' => ['data' => $tags],
             'filters' => $request->only(['filter', 'sort']),
         ]);
     }
@@ -101,9 +120,9 @@ class TransactionController extends Controller
             ->get(['id', 'name', 'color']);
 
         return Inertia::render('Transactions/Create', [
-            'accounts' => $accounts,
-            'categories' => $categories,
-            'tags' => $tags,
+            'accounts' => ['data' => $accounts],
+            'categories' => ['data' => $categories],
+            'tags' => ['data' => $tags],
         ]);
     }
 
@@ -159,9 +178,9 @@ class TransactionController extends Controller
 
         return Inertia::render('Transactions/Edit', [
             'transaction' => $transaction,
-            'accounts' => $accounts,
-            'categories' => $categories,
-            'tags' => $tags,
+            'accounts' => ['data' => $accounts],
+            'categories' => ['data' => $categories],
+            'tags' => ['data' => $tags],
         ]);
     }
 
