@@ -26,6 +26,9 @@ Route::middleware('auth')->group(function () {
     // Account management
     Route::resource('accounts', App\Http\Controllers\AccountController::class);
 
+    // Category management
+    Route::resource('categories', App\Http\Controllers\CategoryController::class);
+
     // Tag management
     Route::resource('tags', App\Http\Controllers\TagController::class);
 });
