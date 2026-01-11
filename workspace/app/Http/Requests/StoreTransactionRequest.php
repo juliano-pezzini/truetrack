@@ -26,7 +26,7 @@ class StoreTransactionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'user_id' => ['required', 'integer', 'exists:users,id'],
+            'user_id' => ['required', 'integer', Rule::in([$this->user()->id])],
             'account_id' => ['required', 'integer', Rule::exists('accounts', 'id')->where('user_id', $this->user()->id)],
             'category_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('user_id', $this->user()->id)],
             'amount' => ['required', 'numeric', 'min:0.01', 'max:999999999999.99'],

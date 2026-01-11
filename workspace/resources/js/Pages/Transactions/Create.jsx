@@ -39,11 +39,16 @@ export default function Create({ auth, accounts, categories, tags }) {
         setData('tag_ids', newSelectedTags);
     };
 
-    const getTagStyle = (color) => ({
-        backgroundColor: color + '20',
-        borderColor: color,
-        color: color,
-    });
+    const getTagStyle = (color) => {
+        const isSixDigitHex = typeof color === 'string' && /^#[0-9a-fA-F]{6}$/.test(color);
+        const backgroundColor = isSixDigitHex ? `${color}20` : color;
+
+        return {
+            backgroundColor,
+            borderColor: color,
+            color: color,
+        };
+    };
 
     return (
         <AuthenticatedLayout

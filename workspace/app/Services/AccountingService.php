@@ -206,13 +206,8 @@ class AccountingService
     protected function calculateBalanceChange(Account $account, Transaction $transaction): float
     {
         $amount = (float) $transaction->amount;
-        $type = $transaction->type;
-
-        // Ensure type is cast to enum (handles both string and enum inputs)
-        // @phpstan-ignore instanceof.alwaysFalse
-        if (! $type instanceof TransactionType) {
-            $type = TransactionType::from((string) $type);
-        }
+        /** @var TransactionType $type */
+        $type = $transaction->type; // Already cast to TransactionType by model
 
         return match ($account->type) {
             AccountType::BANK, AccountType::WALLET, AccountType::TRANSITIONAL => match ($type) {
@@ -239,13 +234,8 @@ class AccountingService
         $credits = 0;
 
         foreach ($transactions as $transaction) {
-            $type = $transaction->type;
-
-            // Ensure type is cast to enum (handles both string and enum inputs)
-            // @phpstan-ignore instanceof.alwaysFalse
-            if (! $type instanceof TransactionType) {
-                $type = TransactionType::from((string) $type);
-            }
+            /** @var TransactionType $type */
+            $type = $transaction->type; // Already cast to TransactionType by model
 
             if ($type === TransactionType::DEBIT) {
                 $debits += (float) $transaction->amount;

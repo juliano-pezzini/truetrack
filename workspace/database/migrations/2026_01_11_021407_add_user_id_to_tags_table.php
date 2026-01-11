@@ -13,15 +13,16 @@ return new class() extends Migration
     public function up(): void
     {
         Schema::table('tags', function (Blueprint $table) {
-            $table->foreignId('user_id')->nullable()->after('id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->nullable()->after('id');
         });
 
         // Update existing tags to belong to first user (if any exist)
         DB::statement('UPDATE tags SET user_id = (SELECT id FROM users ORDER BY id LIMIT 1) WHERE user_id IS NULL');
 
-        // Make user_id non-nullable now that all rows have a value
+        // Make user_id non-nullable and add foreign key constraint
         Schema::table('tags', function (Blueprint $table) {
-            $table->foreignId('user_id')->nullable(false)->change();
+            $table->unsignedBigInteger('user_id')->nullable(false)->change();
+            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
         });
     }
 
