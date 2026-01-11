@@ -6,6 +6,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Tag extends Model
@@ -18,6 +20,7 @@ class Tag extends Model
      * @var list<string>
      */
     protected $fillable = [
+        'user_id',
         'name',
         'color',
     ];
@@ -32,4 +35,20 @@ class Tag extends Model
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
     ];
+
+    /**
+     * Get the user that owns the tag.
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the transactions for the tag.
+     */
+    public function transactions(): BelongsToMany
+    {
+        return $this->belongsToMany(Transaction::class)->withTimestamps();
+    }
 }

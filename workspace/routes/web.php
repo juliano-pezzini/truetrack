@@ -31,6 +31,9 @@ Route::middleware('auth')->group(function () {
 
     // Tag management
     Route::resource('tags', App\Http\Controllers\TagController::class);
+
+    // Transaction management
+    Route::resource('transactions', App\Http\Controllers\TransactionController::class);
 });
 
 require __DIR__.'/auth.php';
