@@ -34,7 +34,7 @@ export default function Edit({ auth, transaction, accounts, categories, tags }) 
         const newSelectedTags = selectedTags.includes(tagId)
             ? selectedTags.filter(id => id !== tagId)
             : [...selectedTags, tagId];
-        
+
         setSelectedTags(newSelectedTags);
         setData('tag_ids', newSelectedTags);
     };

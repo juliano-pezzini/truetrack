@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace Tests\Feature\Api;
 
 use App\Enums\AccountType;
-use App\Enums\TransactionType;
 use App\Models\Account;
 use App\Models\Category;
-use App\Models\Tag;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -73,7 +71,7 @@ class TransactionControllerTest extends TestCase
         Transaction::factory()->for($user)->forAccount($account2)->count(2)->create();
 
         $response = $this->actingAs($user, 'sanctum')
-            ->getJson('/api/v1/transactions?filter[account_id]=' . $account1->id);
+            ->getJson('/api/v1/transactions?filter[account_id]='.$account1->id);
 
         $response->assertStatus(200);
         $data = $response->json('data');
@@ -87,7 +85,7 @@ class TransactionControllerTest extends TestCase
         $transaction = Transaction::factory()->for($user)->forAccount($account)->create();
 
         $response = $this->actingAs($user, 'sanctum')
-            ->getJson('/api/v1/transactions/' . $transaction->id);
+            ->getJson('/api/v1/transactions/'.$transaction->id);
 
         $response->assertStatus(200)
             ->assertJsonPath('data.id', $transaction->id);
@@ -101,7 +99,7 @@ class TransactionControllerTest extends TestCase
         $transaction = Transaction::factory()->for($otherUser)->forAccount($account)->create();
 
         $response = $this->actingAs($user, 'sanctum')
-            ->getJson('/api/v1/transactions/' . $transaction->id);
+            ->getJson('/api/v1/transactions/'.$transaction->id);
 
         $response->assertStatus(403);
     }
@@ -118,7 +116,7 @@ class TransactionControllerTest extends TestCase
         ]);
 
         $response = $this->actingAs($user, 'sanctum')
-            ->putJson('/api/v1/transactions/' . $transaction->id, [
+            ->putJson('/api/v1/transactions/'.$transaction->id, [
                 'amount' => 150.00,
             ]);
 
@@ -136,7 +134,7 @@ class TransactionControllerTest extends TestCase
         $transaction = Transaction::factory()->for($user)->forAccount($account)->create();
 
         $response = $this->actingAs($user, 'sanctum')
-            ->deleteJson('/api/v1/transactions/' . $transaction->id);
+            ->deleteJson('/api/v1/transactions/'.$transaction->id);
 
         $response->assertStatus(204);
         $this->assertSoftDeleted($transaction);

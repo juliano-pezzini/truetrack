@@ -16,7 +16,8 @@ class AccountingService
     /**
      * Record a new transaction and update account balance.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
+     *
      * @throws InvalidArgumentException
      */
     public function recordTransaction(array $data): Transaction
@@ -56,7 +57,8 @@ class AccountingService
     /**
      * Update a transaction and adjust account balance.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
+     *
      * @throws InvalidArgumentException
      */
     public function updateTransaction(Transaction $transaction, array $data): Transaction
@@ -151,24 +153,25 @@ class AccountingService
     /**
      * Validate transaction data.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
+     *
      * @throws InvalidArgumentException
      */
     protected function validateTransactionData(array $data): void
     {
-        if (!isset($data['account_id'])) {
+        if (! isset($data['account_id'])) {
             throw new InvalidArgumentException('Account ID is required');
         }
 
-        if (!isset($data['amount']) || $data['amount'] <= 0) {
+        if (! isset($data['amount']) || $data['amount'] <= 0) {
             throw new InvalidArgumentException('Amount must be greater than zero');
         }
 
-        if (!isset($data['type'])) {
+        if (! isset($data['type'])) {
             throw new InvalidArgumentException('Transaction type is required');
         }
 
-        if (!isset($data['transaction_date'])) {
+        if (! isset($data['transaction_date'])) {
             throw new InvalidArgumentException('Transaction date is required');
         }
     }
@@ -203,13 +206,17 @@ class AccountingService
     protected function calculateBalanceChange(Account $account, Transaction $transaction): float
     {
         $amount = (float) $transaction->amount;
+        /** @var TransactionType $type */
+        $type = $transaction->type instanceof TransactionType
+            ? $transaction->type
+            : TransactionType::from($transaction->type);
 
         return match ($account->type) {
-            AccountType::BANK, AccountType::WALLET, AccountType::TRANSITIONAL => match ($transaction->type) {
+            AccountType::BANK, AccountType::WALLET, AccountType::TRANSITIONAL => match ($type) {
                 TransactionType::DEBIT => $amount,
                 TransactionType::CREDIT => -$amount,
             },
-            AccountType::CREDIT_CARD => match ($transaction->type) {
+            AccountType::CREDIT_CARD => match ($type) {
                 TransactionType::DEBIT => -$amount, // Payment reduces balance (reduces debt)
                 TransactionType::CREDIT => $amount,  // Charge increases balance (increases debt)
             },
@@ -219,7 +226,8 @@ class AccountingService
     /**
      * Validate double-entry integrity for a set of transactions.
      *
-     * @param array<int, Transaction> $transactions
+     * @param  array<int, Transaction>  $transactions
+     *
      * @throws InvalidArgumentException
      */
     public function validateDoubleEntry(array $transactions): bool
@@ -228,7 +236,12 @@ class AccountingService
         $credits = 0;
 
         foreach ($transactions as $transaction) {
-            if ($transaction->type === TransactionType::DEBIT) {
+            /** @var TransactionType $type */
+            $type = $transaction->type instanceof TransactionType
+                ? $transaction->type
+                : TransactionType::from($transaction->type);
+
+            if ($type === TransactionType::DEBIT) {
                 $debits += (float) $transaction->amount;
             } else {
                 $credits += (float) $transaction->amount;
