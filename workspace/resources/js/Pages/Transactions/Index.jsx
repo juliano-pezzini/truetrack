@@ -366,19 +366,26 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
                             {transactions?.links && transactions.links.length > 3 && (
                                 <div className="mt-6 flex justify-center">
                                     <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                                        {transactions.links.map((link, index) => (
-                                            <Link
-                                                key={index}
-                                                href={link.url || '#'}
-                                                disabled={!link.url}
-                                                className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                                                    link.active
-                                                        ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
-                                                        : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                                                } ${!link.url ? 'cursor-not-allowed opacity-50' : ''}`}
-                                                dangerouslySetInnerHTML={{ __html: link.label }}
-                                            />
-                                        ))}
+                                        {transactions.links.map((link, index) =>
+                                            link.url ? (
+                                                <Link
+                                                    key={index}
+                                                    href={link.url}
+                                                    className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                                                        link.active
+                                                            ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
+                                                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                                                    }`}
+                                                    dangerouslySetInnerHTML={{ __html: link.label }}
+                                                />
+                                            ) : (
+                                                <span
+                                                    key={index}
+                                                    className="relative inline-flex items-center px-4 py-2 border text-sm font-medium bg-white border-gray-300 text-gray-500 cursor-not-allowed opacity-50"
+                                                    dangerouslySetInnerHTML={{ __html: link.label }}
+                                                />
+                                            ),
+                                        )}
                                     </nav>
                                 </div>
                             )}

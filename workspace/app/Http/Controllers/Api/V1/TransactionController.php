@@ -64,14 +64,36 @@ class TransactionController extends Controller
             }
         }
 
-        // Filter by tags
-        if ($request->filled('filter.tags')) {
-            $tagIds = is_array($request->input('filter.tags'))
-                ? $request->input('filter.tags')
-                : explode(',', $request->input('filter.tags'));
-            $query->whereHas('tags', function ($q) use ($tagIds) {
-                $q->whereIn('tags.id', $tagIds);
-            });
+        // Filter by tags (support both tag IDs and tag names)
+        if ($request->filled('filter.tags') || $request->filled('filter.tag')) {
+            if ($request->filled('filter.tags')) {
+                // Support filtering by tag IDs (array or comma-separated list)
+                $tagIds = is_array($request->input('filter.tags'))
+                    ? $request->input('filter.tags')
+                    : explode(',', $request->input('filter.tags'));
+                $tagIds = array_values(array_filter(array_map('trim', $tagIds), static fn ($value) => $value !== ''));
+
+                if (! empty($tagIds)) {
+                    $query->whereHas('tags', function ($q) use ($tagIds) {
+                        $q->whereIn('tags.id', $tagIds);
+                    });
+                }
+            } elseif ($request->filled('filter.tag')) {
+                // Support filtering by tag names (string, array, or comma-separated list)
+                $tagNames = $request->input('filter.tag');
+
+                if (! is_array($tagNames)) {
+                    $tagNames = explode(',', (string) $tagNames);
+                }
+
+                $tagNames = array_values(array_filter(array_map('trim', $tagNames), static fn ($value) => $value !== ''));
+
+                if (! empty($tagNames)) {
+                    $query->whereHas('tags', function ($q) use ($tagNames) {
+                        $q->whereIn('tags.name', $tagNames);
+                    });
+                }
+            }
         }
 
         // Sorting

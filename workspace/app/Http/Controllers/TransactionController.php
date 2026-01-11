@@ -50,10 +50,10 @@ class TransactionController extends Controller
         }
 
         // Filter by date range
-        if ($request->filled('filter.start_date') && $request->filled('filter.end_date')) {
+        if ($request->filled('filter.date_from') && $request->filled('filter.date_to')) {
             $query->betweenDates(
-                $request->input('filter.start_date'),
-                $request->input('filter.end_date')
+                $request->input('filter.date_from'),
+                $request->input('filter.date_to')
             );
         }
 
