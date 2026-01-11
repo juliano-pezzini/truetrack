@@ -33,6 +33,7 @@ class TagFactory extends Factory
         ];
 
         return [
+            'user_id' => \App\Models\User::factory(),
             'name' => fake()->unique()->word(),
             'color' => fake()->randomElement($colors),
         ];

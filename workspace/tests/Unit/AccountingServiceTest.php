@@ -164,8 +164,13 @@ class AccountingServiceTest extends TestCase
             'type' => AccountType::BANK,
             'balance' => 1000.00,
         ]);
-        $transaction = Transaction::factory()->for($user)->forAccount($account)->create([
+
+        // Create transaction via service to update balance
+        $transaction = $this->service->recordTransaction([
+            'user_id' => $user->id,
+            'account_id' => $account->id,
             'amount' => 100.00,
+            'transaction_date' => now()->format('Y-m-d'),
             'type' => TransactionType::DEBIT,
         ]);
 
@@ -188,8 +193,13 @@ class AccountingServiceTest extends TestCase
             'type' => AccountType::BANK,
             'balance' => 1000.00,
         ]);
-        $transaction = Transaction::factory()->for($user)->forAccount($account)->create([
+
+        // Create transaction via service to update balance
+        $transaction = $this->service->recordTransaction([
+            'user_id' => $user->id,
+            'account_id' => $account->id,
             'amount' => 100.00,
+            'transaction_date' => now()->format('Y-m-d'),
             'type' => TransactionType::DEBIT,
         ]);
 
@@ -216,8 +226,13 @@ class AccountingServiceTest extends TestCase
             'type' => AccountType::BANK,
             'balance' => 500.00,
         ]);
-        $transaction = Transaction::factory()->for($user)->forAccount($account1)->create([
+
+        // Create transaction via service to update balance
+        $transaction = $this->service->recordTransaction([
+            'user_id' => $user->id,
+            'account_id' => $account1->id,
             'amount' => 100.00,
+            'transaction_date' => now()->format('Y-m-d'),
             'type' => TransactionType::DEBIT,
         ]);
 
@@ -242,8 +257,13 @@ class AccountingServiceTest extends TestCase
             'type' => AccountType::BANK,
             'balance' => 1000.00,
         ]);
-        $transaction = Transaction::factory()->for($user)->forAccount($account)->create([
+
+        // Create transaction via service to update balance
+        $transaction = $this->service->recordTransaction([
+            'user_id' => $user->id,
+            'account_id' => $account->id,
             'amount' => 100.00,
+            'transaction_date' => now()->format('Y-m-d'),
             'type' => TransactionType::DEBIT,
         ]);
 
