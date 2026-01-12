@@ -8,6 +8,7 @@ use App\Enums\AccountType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Account extends Model
@@ -25,7 +26,7 @@ class Account extends Model
         'name',
         'type',
         'description',
-        'balance',
+        'initial_balance',
         'is_active',
     ];
 
@@ -36,7 +37,7 @@ class Account extends Model
      */
     protected $casts = [
         'type' => AccountType::class,
-        'balance' => 'decimal:2',
+        'initial_balance' => 'decimal:2',
         'is_active' => 'boolean',
     ];
 
@@ -46,6 +47,22 @@ class Account extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the balance snapshots for this account.
+     */
+    public function balances(): HasMany
+    {
+        return $this->hasMany(AccountBalance::class);
+    }
+
+    /**
+     * Get the transactions for this account.
+     */
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(Transaction::class);
     }
 
     /**

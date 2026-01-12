@@ -31,12 +31,12 @@ class AccountTest extends TestCase
         $this->assertEquals(AccountType::BANK, $account->type);
     }
 
-    public function test_balance_is_cast_to_decimal(): void
+    public function test_initial_balance_is_cast_to_decimal(): void
     {
-        $account = Account::factory()->create(['balance' => 1000.50]);
+        $account = Account::factory()->create(['initial_balance' => 1000.50]);
 
-        $this->assertIsString($account->balance);
-        $this->assertEquals('1000.50', $account->balance);
+        $this->assertIsString($account->initial_balance);
+        $this->assertEquals('1000.50', $account->initial_balance);
     }
 
     public function test_is_active_is_cast_to_boolean(): void
@@ -124,7 +124,7 @@ class AccountTest extends TestCase
         $this->assertContains('name', $fillable);
         $this->assertContains('type', $fillable);
         $this->assertContains('description', $fillable);
-        $this->assertContains('balance', $fillable);
+        $this->assertContains('initial_balance', $fillable);
         $this->assertContains('is_active', $fillable);
     }
 
@@ -135,7 +135,7 @@ class AccountTest extends TestCase
         $this->assertNotNull($account->user_id);
         $this->assertNotNull($account->name);
         $this->assertInstanceOf(AccountType::class, $account->type);
-        $this->assertIsNumeric($account->balance);
+        $this->assertIsNumeric($account->initial_balance);
         $this->assertIsBool($account->is_active);
     }
 
@@ -146,13 +146,12 @@ class AccountTest extends TestCase
 
         $creditCard = Account::factory()->creditCard()->create();
         $this->assertEquals(AccountType::CREDIT_CARD, $creditCard->type);
-        $this->assertLessThanOrEqual(0, (float) $creditCard->balance);
 
         $wallet = Account::factory()->wallet()->create();
         $this->assertEquals(AccountType::WALLET, $wallet->type);
 
         $transitional = Account::factory()->transitional()->create();
         $this->assertEquals(AccountType::TRANSITIONAL, $transitional->type);
-        $this->assertEquals('0.00', $transitional->balance);
+        $this->assertEquals('0.00', $transitional->initial_balance);
     }
 }

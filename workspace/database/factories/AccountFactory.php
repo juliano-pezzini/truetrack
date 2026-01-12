@@ -28,7 +28,7 @@ class AccountFactory extends Factory
             'name' => fake()->words(2, true).' Account',
             'type' => fake()->randomElement(AccountType::values()),
             'description' => fake()->optional()->sentence(),
-            'balance' => fake()->randomFloat(2, 0, 10000),
+            'initial_balance' => fake()->randomFloat(2, 0, 10000),
             'is_active' => fake()->boolean(90), // 90% chance of being active
         ];
     }
@@ -50,7 +50,7 @@ class AccountFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'type' => AccountType::CREDIT_CARD->value,
-            'balance' => fake()->randomFloat(2, -5000, 0), // Credit cards typically have negative balance
+            'initial_balance' => fake()->randomFloat(2, -5000, 0), // Credit cards typically have negative balance
         ]);
     }
 
@@ -61,7 +61,7 @@ class AccountFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'type' => AccountType::WALLET->value,
-            'balance' => fake()->randomFloat(2, 0, 1000),
+            'initial_balance' => fake()->randomFloat(2, 0, 1000),
         ]);
     }
 
@@ -72,7 +72,7 @@ class AccountFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'type' => AccountType::TRANSITIONAL->value,
-            'balance' => 0,
+            'initial_balance' => 0,
         ]);
     }
 

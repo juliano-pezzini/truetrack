@@ -103,7 +103,7 @@ class AccountApiTest extends TestCase
             'name' => 'Test Account',
             'type' => AccountType::BANK->value,
             'description' => 'Test description',
-            'balance' => 1000.50,
+            'initial_balance' => 1000.50,
             'is_active' => true,
         ];
 
@@ -137,7 +137,7 @@ class AccountApiTest extends TestCase
             ->postJson('/api/v1/accounts', []);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['name', 'type', 'balance']);
+            ->assertJsonValidationErrors(['name', 'type', 'initial_balance']);
     }
 
     public function test_validates_account_type(): void
@@ -146,7 +146,7 @@ class AccountApiTest extends TestCase
             ->postJson('/api/v1/accounts', [
                 'name' => 'Test Account',
                 'type' => 'invalid_type',
-                'balance' => 100,
+                'initial_balance' => 100,
             ]);
 
         $response->assertStatus(422)
@@ -185,7 +185,7 @@ class AccountApiTest extends TestCase
         $response = $this->actingAs($this->user)
             ->putJson("/api/v1/accounts/{$account->id}", [
                 'name' => 'Updated Name',
-                'balance' => 2000.00,
+                'initial_balance' => 2000.00,
             ]);
 
         $response->assertStatus(200)
@@ -262,7 +262,7 @@ class AccountApiTest extends TestCase
             ->postJson('/api/v1/accounts', [
                 'name' => 'Credit Card',
                 'type' => AccountType::CREDIT_CARD->value,
-                'balance' => -500.00,
+                'initial_balance' => -500.00,
                 'is_active' => true,
             ]);
 

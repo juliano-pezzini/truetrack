@@ -40,7 +40,7 @@ class TransactionControllerTest extends TestCase
         $user = User::factory()->create();
         $account = Account::factory()->for($user)->create([
             'type' => AccountType::BANK,
-            'balance' => 1000.00,
+            'initial_balance' => 1000.00,
         ]);
         $category = Category::factory()->for($user)->create();
 
@@ -109,7 +109,7 @@ class TransactionControllerTest extends TestCase
         $user = User::factory()->create();
         $account = Account::factory()->for($user)->create([
             'type' => AccountType::BANK,
-            'balance' => 1000.00,
+            'initial_balance' => 1000.00,
         ]);
         $transaction = Transaction::factory()->for($user)->forAccount($account)->create([
             'amount' => 100.00,
@@ -129,7 +129,7 @@ class TransactionControllerTest extends TestCase
         $user = User::factory()->create();
         $account = Account::factory()->for($user)->create([
             'type' => AccountType::BANK,
-            'balance' => 1000.00,
+            'initial_balance' => 1000.00,
         ]);
         $transaction = Transaction::factory()->for($user)->forAccount($account)->create();
 

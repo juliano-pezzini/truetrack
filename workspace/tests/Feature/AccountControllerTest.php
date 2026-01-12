@@ -44,7 +44,7 @@ class AccountControllerTest extends TestCase
             'name' => 'Test Account',
             'type' => AccountType::BANK->value,
             'description' => 'Test description',
-            'balance' => 1000.00,
+            'initial_balance' => 1000.00,
             'is_active' => true,
         ];
 
@@ -65,7 +65,7 @@ class AccountControllerTest extends TestCase
         $response = $this->actingAs($this->user)
             ->post(route('accounts.store'), []);
 
-        $response->assertSessionHasErrors(['name', 'type', 'balance']);
+        $response->assertSessionHasErrors(['name', 'type', 'initial_balance']);
     }
 
     public function test_edit_page_displays_account_form(): void
@@ -99,7 +99,7 @@ class AccountControllerTest extends TestCase
             ->put(route('accounts.update', $account), [
                 'name' => 'Updated Name',
                 'type' => $account->type->value,
-                'balance' => 2000.00,
+                'initial_balance' => 2000.00,
             ]);
 
         $response->assertRedirect(route('accounts.index'));

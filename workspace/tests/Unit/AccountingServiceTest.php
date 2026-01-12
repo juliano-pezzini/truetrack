@@ -12,6 +12,7 @@ use App\Models\Tag;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Services\AccountingService;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -32,7 +33,7 @@ class AccountingServiceTest extends TestCase
         $user = User::factory()->create();
         $account = Account::factory()->for($user)->create([
             'type' => AccountType::BANK,
-            'balance' => 1000.00,
+            'initial_balance' => 1000.00,
         ]);
         $category = Category::factory()->for($user)->create();
 
@@ -43,22 +44,25 @@ class AccountingServiceTest extends TestCase
             'amount' => 100.00,
             'description' => 'Test transaction',
             'transaction_date' => now()->format('Y-m-d'),
-            'type' => TransactionType::DEBIT,
+            'type' => TransactionType::CREDIT,
         ];
 
         $transaction = $this->service->recordTransaction($data);
 
         $this->assertInstanceOf(Transaction::class, $transaction);
         $this->assertEquals(100.00, $transaction->amount);
-        $this->assertEquals(1100.00, $account->fresh()->balance);
+
+        // Calculate balance: initial 1000 + credit 100 = 1100
+        $balance = $this->service->calculateBalance($account, Carbon::now());
+        $this->assertEquals(1100.00, $balance);
     }
 
-    public function test_debit_increases_bank_balance(): void
+    public function test_credit_increases_bank_balance(): void
     {
         $user = User::factory()->create();
         $account = Account::factory()->for($user)->create([
             'type' => AccountType::BANK,
-            'balance' => 1000.00,
+            'initial_balance' => 1000.00,
         ]);
 
         $data = [
@@ -66,20 +70,21 @@ class AccountingServiceTest extends TestCase
             'account_id' => $account->id,
             'amount' => 500.00,
             'transaction_date' => now()->format('Y-m-d'),
-            'type' => TransactionType::DEBIT,
+            'type' => TransactionType::CREDIT,
         ];
 
         $this->service->recordTransaction($data);
 
-        $this->assertEquals(1500.00, $account->fresh()->balance);
+        $balance = $this->service->calculateBalance($account, Carbon::now());
+        $this->assertEquals(1500.00, $balance);
     }
 
-    public function test_credit_decreases_bank_balance(): void
+    public function test_debit_decreases_bank_balance(): void
     {
         $user = User::factory()->create();
         $account = Account::factory()->for($user)->create([
             'type' => AccountType::BANK,
-            'balance' => 1000.00,
+            'initial_balance' => 1000.00,
         ]);
 
         $data = [
@@ -87,33 +92,13 @@ class AccountingServiceTest extends TestCase
             'account_id' => $account->id,
             'amount' => 300.00,
             'transaction_date' => now()->format('Y-m-d'),
-            'type' => TransactionType::CREDIT,
+            'type' => TransactionType::DEBIT,
         ];
 
         $this->service->recordTransaction($data);
 
-        $this->assertEquals(700.00, $account->fresh()->balance);
-    }
-
-    public function test_debit_decreases_credit_card_balance(): void
-    {
-        $user = User::factory()->create();
-        $account = Account::factory()->for($user)->create([
-            'type' => AccountType::CREDIT_CARD,
-            'balance' => 500.00, // Debt amount
-        ]);
-
-        $data = [
-            'user_id' => $user->id,
-            'account_id' => $account->id,
-            'amount' => 200.00,
-            'transaction_date' => now()->format('Y-m-d'),
-            'type' => TransactionType::DEBIT, // Payment
-        ];
-
-        $this->service->recordTransaction($data);
-
-        $this->assertEquals(300.00, $account->fresh()->balance); // Debt reduced
+        $balance = $this->service->calculateBalance($account, Carbon::now());
+        $this->assertEquals(700.00, $balance);
     }
 
     public function test_credit_increases_credit_card_balance(): void
@@ -121,7 +106,29 @@ class AccountingServiceTest extends TestCase
         $user = User::factory()->create();
         $account = Account::factory()->for($user)->create([
             'type' => AccountType::CREDIT_CARD,
-            'balance' => 500.00,
+            'initial_balance' => -500.00, // Owes $500
+        ]);
+
+        $data = [
+            'user_id' => $user->id,
+            'account_id' => $account->id,
+            'amount' => 200.00,
+            'transaction_date' => now()->format('Y-m-d'),
+            'type' => TransactionType::CREDIT, // Payment
+        ];
+
+        $this->service->recordTransaction($data);
+
+        $balance = $this->service->calculateBalance($account, Carbon::now());
+        $this->assertEquals(-300.00, $balance); // Debt reduced
+    }
+
+    public function test_debit_decreases_credit_card_balance(): void
+    {
+        $user = User::factory()->create();
+        $account = Account::factory()->for($user)->create([
+            'type' => AccountType::CREDIT_CARD,
+            'initial_balance' => -500.00,
         ]);
 
         $data = [
@@ -129,12 +136,13 @@ class AccountingServiceTest extends TestCase
             'account_id' => $account->id,
             'amount' => 150.00,
             'transaction_date' => now()->format('Y-m-d'),
-            'type' => TransactionType::CREDIT, // New charge
+            'type' => TransactionType::DEBIT, // New charge
         ];
 
         $this->service->recordTransaction($data);
 
-        $this->assertEquals(650.00, $account->fresh()->balance); // Debt increased
+        $balance = $this->service->calculateBalance($account, Carbon::now());
+        $this->assertEquals(-650.00, $balance); // Debt increased
     }
 
     public function test_can_attach_tags_to_transaction(): void
@@ -148,7 +156,7 @@ class AccountingServiceTest extends TestCase
             'account_id' => $account->id,
             'amount' => 100.00,
             'transaction_date' => now()->format('Y-m-d'),
-            'type' => TransactionType::DEBIT,
+            'type' => TransactionType::CREDIT,
             'tag_ids' => $tags->pluck('id')->toArray(),
         ];
 
@@ -162,7 +170,7 @@ class AccountingServiceTest extends TestCase
         $user = User::factory()->create();
         $account = Account::factory()->for($user)->create([
             'type' => AccountType::BANK,
-            'balance' => 1000.00,
+            'initial_balance' => 1000.00,
         ]);
 
         // Create transaction via service to update balance
@@ -171,11 +179,12 @@ class AccountingServiceTest extends TestCase
             'account_id' => $account->id,
             'amount' => 100.00,
             'transaction_date' => now()->format('Y-m-d'),
-            'type' => TransactionType::DEBIT,
+            'type' => TransactionType::CREDIT,
         ]);
 
         // Balance should be 1100 after initial transaction
-        $this->assertEquals(1100.00, $account->fresh()->balance);
+        $balance = $this->service->calculateBalance($account, Carbon::now());
+        $this->assertEquals(1100.00, $balance);
 
         // Update amount to 200
         $this->service->updateTransaction($transaction, [
@@ -183,7 +192,8 @@ class AccountingServiceTest extends TestCase
         ]);
 
         // Balance should be 1200 (reverted 100, added 200)
-        $this->assertEquals(1200.00, $account->fresh()->balance);
+        $balance = $this->service->calculateBalance($account->fresh(), Carbon::now());
+        $this->assertEquals(1200.00, $balance);
     }
 
     public function test_can_update_transaction_type(): void
@@ -191,7 +201,7 @@ class AccountingServiceTest extends TestCase
         $user = User::factory()->create();
         $account = Account::factory()->for($user)->create([
             'type' => AccountType::BANK,
-            'balance' => 1000.00,
+            'initial_balance' => 1000.00,
         ]);
 
         // Create transaction via service to update balance
@@ -200,19 +210,21 @@ class AccountingServiceTest extends TestCase
             'account_id' => $account->id,
             'amount' => 100.00,
             'transaction_date' => now()->format('Y-m-d'),
-            'type' => TransactionType::DEBIT,
-        ]);
-
-        // Balance should be 1100
-        $this->assertEquals(1100.00, $account->fresh()->balance);
-
-        // Change to credit
-        $this->service->updateTransaction($transaction, [
             'type' => TransactionType::CREDIT,
         ]);
 
+        // Balance should be 1100
+        $balance = $this->service->calculateBalance($account, Carbon::now());
+        $this->assertEquals(1100.00, $balance);
+
+        // Change to debit
+        $this->service->updateTransaction($transaction, [
+            'type' => TransactionType::DEBIT,
+        ]);
+
         // Balance should be 900 (reverted +100, applied -100)
-        $this->assertEquals(900.00, $account->fresh()->balance);
+        $balance = $this->service->calculateBalance($account->fresh(), Carbon::now());
+        $this->assertEquals(900.00, $balance);
     }
 
     public function test_can_move_transaction_to_different_account(): void
@@ -220,11 +232,11 @@ class AccountingServiceTest extends TestCase
         $user = User::factory()->create();
         $account1 = Account::factory()->for($user)->create([
             'type' => AccountType::BANK,
-            'balance' => 1000.00,
+            'initial_balance' => 1000.00,
         ]);
         $account2 = Account::factory()->for($user)->create([
             'type' => AccountType::BANK,
-            'balance' => 500.00,
+            'initial_balance' => 500.00,
         ]);
 
         // Create transaction via service to update balance
@@ -233,12 +245,14 @@ class AccountingServiceTest extends TestCase
             'account_id' => $account1->id,
             'amount' => 100.00,
             'transaction_date' => now()->format('Y-m-d'),
-            'type' => TransactionType::DEBIT,
+            'type' => TransactionType::CREDIT,
         ]);
 
         // Initial balances: account1=1100, account2=500
-        $this->assertEquals(1100.00, $account1->fresh()->balance);
-        $this->assertEquals(500.00, $account2->fresh()->balance);
+        $balance1 = $this->service->calculateBalance($account1, Carbon::now());
+        $balance2 = $this->service->calculateBalance($account2, Carbon::now());
+        $this->assertEquals(1100.00, $balance1);
+        $this->assertEquals(500.00, $balance2);
 
         // Move transaction to account2
         $this->service->updateTransaction($transaction, [
@@ -246,8 +260,10 @@ class AccountingServiceTest extends TestCase
         ]);
 
         // Final balances: account1=1000, account2=600
-        $this->assertEquals(1000.00, $account1->fresh()->balance);
-        $this->assertEquals(600.00, $account2->fresh()->balance);
+        $balance1 = $this->service->calculateBalance($account1->fresh(), Carbon::now());
+        $balance2 = $this->service->calculateBalance($account2->fresh(), Carbon::now());
+        $this->assertEquals(1000.00, $balance1);
+        $this->assertEquals(600.00, $balance2);
     }
 
     public function test_can_delete_transaction(): void
@@ -255,7 +271,7 @@ class AccountingServiceTest extends TestCase
         $user = User::factory()->create();
         $account = Account::factory()->for($user)->create([
             'type' => AccountType::BANK,
-            'balance' => 1000.00,
+            'initial_balance' => 1000.00,
         ]);
 
         // Create transaction via service to update balance
@@ -264,17 +280,19 @@ class AccountingServiceTest extends TestCase
             'account_id' => $account->id,
             'amount' => 100.00,
             'transaction_date' => now()->format('Y-m-d'),
-            'type' => TransactionType::DEBIT,
+            'type' => TransactionType::CREDIT,
         ]);
 
         // Balance should be 1100
-        $this->assertEquals(1100.00, $account->fresh()->balance);
+        $balance = $this->service->calculateBalance($account, Carbon::now());
+        $this->assertEquals(1100.00, $balance);
 
         // Delete transaction
         $this->service->deleteTransaction($transaction);
 
         // Balance should be back to 1000
-        $this->assertEquals(1000.00, $account->fresh()->balance);
+        $balance = $this->service->calculateBalance($account->fresh(), Carbon::now());
+        $this->assertEquals(1000.00, $balance);
         $this->assertSoftDeleted($transaction);
     }
 
