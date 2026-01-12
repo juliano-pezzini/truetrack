@@ -62,5 +62,19 @@ Route::prefix('v1')->group(function () {
                 'update' => 'api.transactions.update',
                 'destroy' => 'api.transactions.destroy',
             ]);
+
+        // Reports and Analytics
+        Route::prefix('reports')->name('api.reports.')->group(function () {
+            Route::get('/period-summary', [App\Http\Controllers\Api\V1\ReportController::class, 'periodSummary'])
+                ->name('period-summary');
+            Route::get('/cash-flow-projection', [App\Http\Controllers\Api\V1\ReportController::class, 'cashFlowProjection'])
+                ->name('cash-flow-projection');
+            Route::get('/spending-by-category', [App\Http\Controllers\Api\V1\ReportController::class, 'spendingByCategory'])
+                ->name('spending-by-category');
+            Route::get('/investment-returns', [App\Http\Controllers\Api\V1\ReportController::class, 'investmentReturns'])
+                ->name('investment-returns');
+            Route::get('/alerts', [App\Http\Controllers\Api\V1\ReportController::class, 'alerts'])
+                ->name('alerts');
+        });
     });
 });

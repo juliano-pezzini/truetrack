@@ -14,6 +14,7 @@ parameters:
         - '#Parameter \#1 \$user of class Illuminate\\Auth\\Events\\Verified#'
         - '#array<model property of App\\Models\\User, mixed>#'
         - '#array<model property of App\\Models\\Category, mixed>#'
+        - '#Access to an undefined property .+::\$(category_id|category_name|total_spent|transaction_count)#'
 
     # Laravel specific
     checkModelProperties: true
