@@ -63,10 +63,20 @@ All Pull Requests must pass:
 - `Account` model with attributes:
   - `type` enum: bank, credit_card, wallet, transitional
   - `name`, `description`
-  - `balance` (decimal)
+  - `initial_balance` (decimal) - Starting balance, never modified
   - `is_active` (boolean)
   - Timestamps, soft deletes
-- Database migration with indexes
+- `AccountBalance` model for monthly snapshots:
+  - `account_id` (foreign key)
+  - `year` (integer)
+  - `month` (integer)
+  - `closing_balance` (decimal) - Balance at end of month
+  - Timestamps
+  - Unique index on (account_id, year, month)
+- Database migrations:
+  - `accounts` table with `initial_balance` column
+  - `account_balances` table for monthly snapshots
+  - Indexes on foreign keys and (account_id, year, month)
 - API Controller (`Api\V1\AccountController`) with:
   - Pagination support
   - Filtering (by type, active status)
@@ -129,13 +139,22 @@ All Pull Requests must pass:
   - `description`
   - `transaction_date` (date)
   - `settled_date` (date, nullable)
-  - `type` enum: debit, credit
+  - `type` enum: credit, debit
   - Timestamps, soft deletes
 - `AccountingService`:
-  - Validate double-entry rules (debit = credit)
-  - Update account balances
+  - Apply personal finance logic (credit increases balance, debit decreases balance)
+  - Update current month's balance snapshot
+  - Calculate balances efficiently using monthly snapshots
   - Handle transaction reversals
   - Unit tests for business logic
+  - **Balance Calculation Logic**:
+    - Credits (income, deposits, refunds) INCREASE account balance
+    - Debits (expenses, withdrawals, payments) DECREASE account balance
+    - Credit card accounts remain "in debit" (negative balance = amount owed)
+    - To calculate balance for any date:
+      1. Get the most recent monthly snapshot before the date
+      2. Sum all transactions from that snapshot date to target date
+      3. Formula: `balance = snapshot_balance + sum(credits) - sum(debits)`
 - API endpoints with pagination/filtering:
   - By date range
   - By account
@@ -247,10 +266,11 @@ All Pull Requests must pass:
 
 ### Core Tables
 - `users` - User accounts (from Breeze)
-- `accounts` - Financial accounts (bank, credit card, wallet, transitional)
+- `accounts` - Financial accounts (bank, credit card, wallet, transitional) with initial_balance
+- `account_balances` - Monthly balance snapshots for performance optimization
 - `categories` - Revenue/Expense categories (hierarchical)
 - `tags` - Flexible transaction grouping
-- `transactions` - Financial entries with double-entry support
+- `transactions` - Financial entries with personal finance logic (credits increase, debits decrease)
 - `reconciliations` - Bank/credit card statement reconciliation records
 
 ### Pivot Tables

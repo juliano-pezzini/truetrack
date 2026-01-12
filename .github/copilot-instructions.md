@@ -278,30 +278,57 @@ docker compose exec truetrack bash
    - Don't test purely presentational components
    - Test custom hooks thoroughly
 
-## Business Logic: Double-Entry Accounting
+## Business Logic: Personal Finance Balance Management
 
 ### Core Principles
 
-1. **Every transaction must have matching debits and credits**
-2. **Account balance updates must be atomic**
-3. **Transaction reversals must be properly handled**
+1. **Account balance updates must be atomic**
+2. **Transaction reversals must be properly handled**
+3. **Monthly balance snapshots optimize performance**
+4. **Initial balance is preserved separately from current balance**
 
-### Accounting Rules
+### Balance Calculation Rules (Personal Finance Approach)
 
-1. **Account Types**:
-   - `bank`: Standard checking/savings accounts
-   - `credit_card`: Credit card accounts (negative balance = debt)
-   - `wallet`: Cash on hand
+**CRITICAL**: This system uses personal finance logic, NOT traditional accounting logic.
+
+1. **Transaction Types**:
+   - `credit`: Income, deposits, refunds → INCREASES account balance
+   - `debit`: Expenses, withdrawals, payments → DECREASES account balance
+
+2. **Account Types**:
+   - `bank`: Standard checking/savings accounts (usually positive balance)
+   - `credit_card`: Credit card accounts (usually negative balance = amount owed)
+   - `wallet`: Cash on hand (positive balance)
    - `transitional`: Temporary accounts for transfers
 
-2. **Transaction Types**:
-   - `debit`: Increases bank/wallet, decreases credit card debt
-   - `credit`: Decreases bank/wallet, increases credit card debt
+3. **Credit Card Behavior**:
+   - Credit card accounts remain "in debit" (negative balance) most of the time
+   - Negative balance = amount you owe to the credit card company
+   - When you make a payment FROM your bank account TO credit card (credit transaction on CC account), the balance increases (less owed): -$500 + $100 = -$400
+   - When you make a purchase (debit transaction on CC account), the balance decreases (more owed): -$400 - $50 = -$450
+   - Only when bills are fully paid does the balance reach zero
+   - Note: Payment transfers are recorded as debit on bank account (decreases bank balance) and credit on credit card account (increases/reduces debt)
 
-3. **Balance Calculations**:
+4. **Balance Storage Architecture**:
+   - `accounts` table stores `initial_balance` (never modified after creation)
+   - `account_balances` table stores monthly balance snapshots:
+     - One record per account per month
+     - `closing_balance` = balance at end of month
+     - Unique index on (account_id, year, month)
+   - Benefits:
+     - Fast retrieval for monthly graphs
+     - Efficient balance calculation for any date
+     - Historical balance tracking
+
+5. **Balance Calculations**:
+   - To calculate balance for any date:
+     1. Get the most recent `account_balances` record before target date
+     2. If no snapshot exists, use `initial_balance` from `accounts` table
+     3. Sum all transactions from snapshot date to target date
+     4. Formula: `balance = base_balance + sum(credits) - sum(debits)`
    - Always use database transactions for balance updates
-   - Lock affected account rows during updates
-   - Validate balance integrity before committing
+   - Lock affected rows during updates
+   - Update current month's balance snapshot after each transaction
 
 ### Service Layer Pattern
 
@@ -313,14 +340,11 @@ class AccountingService
         DB::beginTransaction();
         
         try {
-            // Validate double-entry rules
-            $this->validateDoubleEntry($data);
-            
             // Create transaction
             $transaction = Transaction::create($data);
             
-            // Update account balances
-            $this->updateAccountBalance($transaction);
+            // Update monthly balance snapshot
+            $this->updateMonthlyBalance($transaction);
             
             DB::commit();
             
@@ -329,6 +353,38 @@ class AccountingService
             DB::rollBack();
             throw $e;
         }
+    }
+    
+    public function calculateBalance(Account $account, Carbon $date): float
+    {
+        // Get most recent monthly snapshot before target date
+        $snapshot = AccountBalance::where('account_id', $account->id)
+            ->where(fn($q) => $q->whereYear('year', '<', $date->year)
+                ->orWhere(fn($q) => $q->whereYear('year', $date->year)
+                    ->whereMonth('month', '<=', $date->month)))
+            ->orderByDesc('year')
+            ->orderByDesc('month')
+            ->first();
+        
+        // Base balance: snapshot or initial balance
+        $baseBalance = $snapshot ? $snapshot->closing_balance : $account->initial_balance;
+        
+        // Calculate from snapshot/initial to target date
+        $startDate = $snapshot 
+            ? Carbon::create($snapshot->year, $snapshot->month, 1)->endOfMonth()
+            : $account->created_at;
+        
+        // Sum transactions: credits increase, debits decrease
+        $transactions = $account->transactions()
+            ->whereBetween('transaction_date', [$startDate, $date])
+            ->get();
+        
+        $balance = $baseBalance;
+        foreach ($transactions as $txn) {
+            $balance += ($txn->type === 'credit') ? $txn->amount : -$txn->amount;
+        }
+        
+        return $balance;
     }
 }
 ```
