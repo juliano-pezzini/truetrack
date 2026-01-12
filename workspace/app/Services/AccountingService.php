@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Enums\AccountType;
 use App\Enums\TransactionType;
 use App\Models\Account;
+use App\Models\AccountBalance;
 use App\Models\Transaction;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -42,8 +43,9 @@ class AccountingService
                 $transaction->tags()->attach($data['tag_ids']);
             }
 
-            // Update account balance
-            $this->updateAccountBalance($account, $transaction);
+            // Recalculate monthly balance snapshot
+            $transactionDate = Carbon::parse($data['transaction_date']);
+            $this->recalculateMonthlyBalance($account, $transactionDate);
 
             DB::commit();
 
@@ -66,9 +68,10 @@ class AccountingService
         DB::beginTransaction();
 
         try {
-            $oldAmount = $transaction->amount;
-            $oldType = $transaction->type;
             $oldAccountId = $transaction->account_id;
+            $transactionDate = isset($data['transaction_date'])
+                ? Carbon::parse($data['transaction_date'])
+                : Carbon::parse($transaction->transaction_date);
 
             // If account changed, lock both accounts
             if (isset($data['account_id']) && $data['account_id'] !== $oldAccountId) {
@@ -82,14 +85,12 @@ class AccountingService
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                // Reverse old transaction
-                $this->reverseAccountBalance($oldAccount, $transaction);
-
                 // Update transaction
                 $transaction->update($data);
 
-                // Apply new transaction
-                $this->updateAccountBalance($newAccount, $transaction);
+                // Recalculate balances for both accounts
+                $this->recalculateMonthlyBalance($oldAccount, $transactionDate);
+                $this->recalculateMonthlyBalance($newAccount, $transactionDate);
             } else {
                 // Same account - lock it
                 $account = Account::query()
@@ -97,14 +98,11 @@ class AccountingService
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                // Reverse old transaction
-                $this->reverseAccountBalance($account, $transaction);
-
                 // Update transaction
                 $transaction->update($data);
 
-                // Apply new transaction
-                $this->updateAccountBalance($account, $transaction);
+                // Recalculate balance for this month
+                $this->recalculateMonthlyBalance($account, $transactionDate);
             }
 
             // Update tags if provided
@@ -122,7 +120,7 @@ class AccountingService
     }
 
     /**
-     * Delete a transaction and reverse account balance.
+     * Delete a transaction and recalculate account balance.
      */
     public function deleteTransaction(Transaction $transaction): bool
     {
@@ -135,11 +133,13 @@ class AccountingService
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            // Reverse balance change
-            $this->reverseAccountBalance($account, $transaction);
+            $transactionDate = Carbon::parse($transaction->transaction_date);
 
             // Delete transaction (soft delete)
             $transaction->delete();
+
+            // Recalculate balance for this month
+            $this->recalculateMonthlyBalance($account, $transactionDate);
 
             DB::commit();
 
@@ -177,48 +177,79 @@ class AccountingService
     }
 
     /**
-     * Update account balance based on transaction.
+     * Recalculate monthly balance snapshot for an account.
+     * This method recalculates the balance based on all transactions in the month.
      */
-    protected function updateAccountBalance(Account $account, Transaction $transaction): void
+    protected function recalculateMonthlyBalance(Account $account, Carbon $date): void
     {
-        $balanceChange = $this->calculateBalanceChange($account, $transaction);
-        $account->balance += $balanceChange;
-        $account->save();
+        $year = $date->year;
+        $month = $date->month;
+
+        // Calculate balance at end of this month
+        $endOfMonth = Carbon::create($year, $month, 1)->endOfMonth();
+        $balance = $this->calculateBalance($account, $endOfMonth);
+
+        // Update or create balance snapshot
+        AccountBalance::updateOrCreate(
+            [
+                'account_id' => $account->id,
+                'year' => $year,
+                'month' => $month,
+            ],
+            [
+                'closing_balance' => $balance,
+            ]
+        );
     }
 
     /**
-     * Reverse account balance from a transaction.
-     */
-    protected function reverseAccountBalance(Account $account, Transaction $transaction): void
-    {
-        $balanceChange = $this->calculateBalanceChange($account, $transaction);
-        $account->balance -= $balanceChange;
-        $account->save();
-    }
-
-    /**
-     * Calculate balance change for an account based on transaction type.
+     * Calculate account balance at a specific date.
      *
-     * Rules:
-     * - Bank/Wallet: DEBIT increases balance, CREDIT decreases
-     * - Credit Card: DEBIT decreases balance (payment), CREDIT increases (charge)
+     * Uses personal finance logic:
+     * - Credits INCREASE balance (income, deposits, refunds)
+     * - Debits DECREASE balance (expenses, withdrawals, payments)
      */
-    protected function calculateBalanceChange(Account $account, Transaction $transaction): float
+    public function calculateBalance(Account $account, Carbon $date): float
     {
-        $amount = (float) $transaction->amount;
-        /** @var TransactionType $type */
-        $type = $transaction->type; // Already cast to TransactionType by model
+        // Get most recent monthly snapshot BEFORE target month
+        $snapshot = AccountBalance::where('account_id', $account->id)
+            ->where(function ($q) use ($date) {
+                $q->where('year', '<', $date->year)
+                    ->orWhere(function ($q) use ($date) {
+                        $q->where('year', $date->year)
+                            ->where('month', '<', $date->month);
+                    });
+            })
+            ->orderByDesc('year')
+            ->orderByDesc('month')
+            ->first();
 
-        return match ($account->type) {
-            AccountType::BANK, AccountType::WALLET, AccountType::TRANSITIONAL => match ($type) {
-                TransactionType::DEBIT => $amount,
-                TransactionType::CREDIT => -$amount,
-            },
-            AccountType::CREDIT_CARD => match ($type) {
-                TransactionType::DEBIT => -$amount, // Payment reduces balance (reduces debt)
-                TransactionType::CREDIT => $amount,  // Charge increases balance (increases debt)
-            },
-        };
+        // Base balance: snapshot or initial balance
+        $baseBalance = $snapshot ? (float) $snapshot->closing_balance : (float) $account->initial_balance;
+
+        // Calculate from snapshot/initial to target date
+        $startDate = $snapshot
+            ? Carbon::create($snapshot->year, $snapshot->month, 1)->endOfMonth()->addSecond()
+            : $account->created_at;
+
+        // Sum transactions: credits increase, debits decrease
+        $transactions = $account->transactions()
+            ->where('transaction_date', '>=', $startDate)
+            ->where('transaction_date', '<=', $date)
+            ->get();
+
+        $balance = $baseBalance;
+        /** @var Transaction $txn */
+        foreach ($transactions as $txn) {
+            // @phpstan-ignore-next-line The type property is cast to TransactionType enum by the model
+            if ($txn->type === TransactionType::CREDIT) {
+                $balance += (float) $txn->amount;
+            } else {
+                $balance -= (float) $txn->amount;
+            }
+        }
+
+        return $balance;
     }
 
     /**

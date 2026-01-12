@@ -29,7 +29,7 @@ class UpdateAccountRequest extends FormRequest
             'name' => ['sometimes', 'string', 'max:255'],
             'type' => ['sometimes', 'string', Rule::in(AccountType::values())],
             'description' => ['nullable', 'string', 'max:1000'],
-            'balance' => ['sometimes', 'numeric', 'decimal:0,2'],
+            'initial_balance' => ['sometimes', 'numeric', 'decimal:0,2'],
             'is_active' => ['sometimes', 'boolean'],
         ];
     }
@@ -44,8 +44,8 @@ class UpdateAccountRequest extends FormRequest
         return [
             'name.max' => 'The account name must not exceed 255 characters.',
             'type.in' => 'The selected account type is invalid.',
-            'balance.numeric' => 'The balance must be a valid number.',
-            'balance.decimal' => 'The balance must have at most 2 decimal places.',
+            'initial_balance.numeric' => 'The balance must be a valid number.',
+            'initial_balance.decimal' => 'The balance must have at most 2 decimal places.',
             'description.max' => 'The description must not exceed 1000 characters.',
         ];
     }
