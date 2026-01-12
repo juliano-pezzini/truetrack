@@ -52,5 +52,15 @@ Route::prefix('v1')->group(function () {
                 'update' => 'api.tags.update',
                 'destroy' => 'api.tags.destroy',
             ]);
+
+        // Transaction management
+        Route::apiResource('transactions', App\Http\Controllers\Api\V1\TransactionController::class)
+            ->names([
+                'index' => 'api.transactions.index',
+                'store' => 'api.transactions.store',
+                'show' => 'api.transactions.show',
+                'update' => 'api.transactions.update',
+                'destroy' => 'api.transactions.destroy',
+            ]);
     });
 });

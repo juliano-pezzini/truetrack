@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Models;
 
 use App\Models\Tag;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -72,7 +73,10 @@ class TagTest extends TestCase
 
     public function test_color_defaults_to_blue(): void
     {
+        $user = User::factory()->create();
+
         $tag = new Tag();
+        $tag->user_id = $user->id;
         $tag->name = 'Test Tag';
         $tag->save();
 
