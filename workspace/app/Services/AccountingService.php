@@ -241,7 +241,7 @@ class AccountingService
         $balance = $baseBalance;
         /** @var Transaction $txn */
         foreach ($transactions as $txn) {
-            // @phpstan-ignore-next-line The type property is cast to TransactionType enum by the model
+            // @phpstan-ignore-next-line Transaction::$type is cast to TransactionType enum via $casts property, but PHPStan cannot infer this
             if ($txn->type === TransactionType::CREDIT) {
                 $balance += (float) $txn->amount;
             } else {
