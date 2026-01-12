@@ -29,7 +29,7 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
         if (filterAccount) params['filter[account_id]'] = filterAccount;
         if (filterCategory) params['filter[category_id]'] = filterCategory;
         if (filterType) params['filter[type]'] = filterType;
-        if (filterSettled !== '') params['filter[is_settled]'] = filterSettled;
+        if (filterSettled !== '') params['filter[settled]'] = filterSettled;
         if (filterDateFrom) params['filter[date_from]'] = filterDateFrom;
         if (filterDateTo) params['filter[date_to]'] = filterDateTo;
         if (filterTag) params['filter[tag]'] = filterTag;
