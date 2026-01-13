@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Enums\AccountType;
 use App\Enums\CategoryType;
 use App\Enums\TransactionType;
 use App\Models\Account;
@@ -85,7 +86,7 @@ class ReportingService
             ->whereHas('category', function ($q) {
                 $q->where('type', CategoryType::REVENUE);
             })
-            ->avg(DB::raw('amount'));
+            ->avg('amount');
 
         // Average monthly expenses
         $avgExpenses = (float) $query->clone()
@@ -93,18 +94,36 @@ class ReportingService
             ->whereHas('category', function ($q) {
                 $q->where('type', CategoryType::EXPENSE);
             })
-            ->avg(DB::raw('amount'));
+            ->avg('amount');
+
+        // Get current total balance across all active accounts
+        $accountsQuery = Account::query()
+            ->where('is_active', true);
+
+        if ($userId) {
+            $accountsQuery->where('user_id', $userId);
+        }
+
+        $accounts = $accountsQuery->get();
+        $runningBalance = 0;
+
+        foreach ($accounts as $account) {
+            $runningBalance += app(AccountingService::class)->calculateBalance($account, Carbon::now());
+        }
 
         // Project forward
         for ($i = 1; $i <= $monthsAhead; $i++) {
             $month = Carbon::now()->addMonths($i);
+            $netCashFlow = $avgRevenue - $avgExpenses;
+            $runningBalance += $netCashFlow;
 
             $projections->push([
                 'month' => $month->format('Y-m'),
                 'month_name' => $month->format('F Y'),
                 'projected_income' => round($avgRevenue, 2),
                 'projected_expenses' => round($avgExpenses, 2),
-                'net_cash_flow' => round($avgRevenue - $avgExpenses, 2),
+                'net_cash_flow' => round($netCashFlow, 2),
+                'projected_balance' => round($runningBalance, 2),
             ]);
         }
 
@@ -204,7 +223,7 @@ class ReportingService
     {
         $accountsQuery = Account::query()
             ->where('is_active', true)
-            ->where('type', '!=', 'credit_card'); // Credit cards are expected to be negative
+            ->where('type', '!=', AccountType::CREDIT_CARD); // Credit cards are expected to be negative
 
         if ($userId) {
             $accountsQuery->where('user_id', $userId);
@@ -240,7 +259,7 @@ class ReportingService
         // Get credit card accounts
         $creditCardsQuery = Account::query()
             ->where('is_active', true)
-            ->where('type', 'credit_card');
+            ->where('type', AccountType::CREDIT_CARD);
 
         if ($userId) {
             $creditCardsQuery->where('user_id', $userId);
@@ -251,7 +270,7 @@ class ReportingService
         // Get available funds from bank and wallet accounts
         $availableFundsQuery = Account::query()
             ->where('is_active', true)
-            ->whereIn('type', ['bank', 'wallet']);
+            ->whereIn('type', [AccountType::BANK, AccountType::WALLET]);
 
         if ($userId) {
             $availableFundsQuery->where('user_id', $userId);

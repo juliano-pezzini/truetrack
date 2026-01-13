@@ -57,6 +57,7 @@ class AccountController extends Controller
         $accountingService = app(\App\Services\AccountingService::class);
         $accounts->getCollection()->transform(function ($account) use ($accountingService) {
             $account->balance = $accountingService->calculateBalance($account, \Carbon\Carbon::now());
+
             return $account;
         });
 
