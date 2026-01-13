@@ -1,9 +1,10 @@
 export default function PeriodSummaryCard({ period, summary }) {
     const formatCurrency = (amount) => {
+        const numValue = parseFloat(amount) || 0;
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: 'USD',
-        }).format(amount);
+        }).format(numValue);
     };
 
     const formatDate = (dateString) => {
@@ -14,7 +15,9 @@ export default function PeriodSummaryCard({ period, summary }) {
         });
     };
 
-    const profitLoss = summary.total_income - summary.total_expenses;
+    const totalIncome = parseFloat(summary?.total_income) || 0;
+    const totalExpenses = parseFloat(summary?.total_expenses) || 0;
+    const profitLoss = totalIncome - totalExpenses;
     const isProfitable = profitLoss >= 0;
 
     return (
@@ -32,7 +35,7 @@ export default function PeriodSummaryCard({ period, summary }) {
                     <div className="rounded-lg bg-green-50 p-4">
                         <div className="text-sm font-medium text-green-600">Total Income</div>
                         <div className="mt-2 text-2xl font-bold text-green-900">
-                            {formatCurrency(summary.total_income)}
+                            {formatCurrency(totalIncome)}
                         </div>
                     </div>
 
@@ -40,7 +43,7 @@ export default function PeriodSummaryCard({ period, summary }) {
                     <div className="rounded-lg bg-red-50 p-4">
                         <div className="text-sm font-medium text-red-600">Total Expenses</div>
                         <div className="mt-2 text-2xl font-bold text-red-900">
-                            {formatCurrency(summary.total_expenses)}
+                            {formatCurrency(totalExpenses)}
                         </div>
                     </div>
 

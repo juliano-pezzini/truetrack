@@ -1,9 +1,10 @@
 export default function AlertsPanel({ alerts }) {
     const formatCurrency = (amount) => {
+        const numValue = parseFloat(amount) || 0;
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: 'USD',
-        }).format(amount);
+        }).format(numValue);
     };
 
     const hasAccountAlerts = alerts.accounts_at_risk && alerts.accounts_at_risk.length > 0;
@@ -53,7 +54,7 @@ export default function AlertsPanel({ alerts }) {
                                                 {account.account_name}
                                             </span>
                                             <span className="text-red-600 font-semibold">
-                                                {formatCurrency(account.current_balance)}
+                                                {formatCurrency(account.balance || 0)}
                                             </span>
                                         </div>
                                         <p className="text-sm text-gray-600 mt-1">
@@ -82,18 +83,18 @@ export default function AlertsPanel({ alerts }) {
                                                 {alert.account_name}
                                             </span>
                                             <span className="text-red-600 font-semibold">
-                                                {formatCurrency(Math.abs(alert.balance_owed))}
+                                                {formatCurrency(alert.amount_owed || 0)}
                                             </span>
                                         </div>
                                         <div className="flex justify-between items-center mt-2 text-sm">
                                             <span className="text-gray-600">
                                                 Available funds:
                                             </span>
-                                            <span className={alert.has_sufficient_funds ? 'text-green-600' : 'text-red-600'}>
-                                                {formatCurrency(alert.available_funds)}
+                                            <span className={alert.can_pay_full ? 'text-green-600' : 'text-red-600'}>
+                                                {formatCurrency(alert.available_funds || 0)}
                                             </span>
                                         </div>
-                                        {!alert.has_sufficient_funds && (
+                                        {!alert.can_pay_full && (
                                             <p className="text-sm text-red-600 mt-1 font-medium">
                                                 ⚠️ Insufficient funds to cover credit card balance
                                             </p>

@@ -3,14 +3,77 @@ export default function InvestmentSummary({ returns }) {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: 'USD',
-        }).format(amount);
+        }).format(amount || 0);
     };
 
     const formatPercentage = (value) => {
-        return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
+        const numValue = parseFloat(value) || 0;
+        return `${numValue >= 0 ? '+' : ''}${numValue.toFixed(2)}%`;
     };
 
-    if (!returns || returns.length === 0) {
+    // Handle both array format (per-account) and object format (aggregate)
+    if (!returns) {
+        return (
+            <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+                <div className="p-6">
+                    <h3 className="text-lg font-semibold mb-4">Investment Returns</h3>
+                    <p className="text-gray-500">No investment data available.</p>
+                </div>
+            </div>
+        );
+    }
+
+    // If returns is an object (aggregate data), display it as a summary card
+    if (!Array.isArray(returns)) {
+        const returnAmount = parseFloat(returns.return_amount) || 0;
+        const returnPercentage = parseFloat(returns.return_percentage) || 0;
+        const isPositive = returnAmount >= 0;
+
+        return (
+            <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+                <div className="p-6">
+                    <h3 className="text-lg font-semibold mb-4">Investment Returns</h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="bg-gray-50 rounded-lg p-4">
+                            <div className="text-sm font-medium text-gray-600">Initial Value</div>
+                            <div className="mt-2 text-2xl font-bold text-gray-900">
+                                {formatCurrency(returns.initial_value)}
+                            </div>
+                        </div>
+
+                        <div className="bg-gray-50 rounded-lg p-4">
+                            <div className="text-sm font-medium text-gray-600">Current Value</div>
+                            <div className="mt-2 text-2xl font-bold text-gray-900">
+                                {formatCurrency(returns.current_value)}
+                            </div>
+                        </div>
+
+                        <div className={`rounded-lg p-4 ${isPositive ? 'bg-green-50' : 'bg-red-50'}`}>
+                            <div className={`text-sm font-medium ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                                Return Amount
+                            </div>
+                            <div className={`mt-2 text-2xl font-bold ${isPositive ? 'text-green-900' : 'text-red-900'}`}>
+                                {formatCurrency(returnAmount)}
+                            </div>
+                        </div>
+
+                        <div className={`rounded-lg p-4 ${isPositive ? 'bg-green-50' : 'bg-red-50'}`}>
+                            <div className={`text-sm font-medium ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                                Return Percentage
+                            </div>
+                            <div className={`mt-2 text-2xl font-bold ${isPositive ? 'text-green-900' : 'text-red-900'}`}>
+                                {formatPercentage(returnPercentage)}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // If returns is an array (per-account data)
+    if (returns.length === 0) {
         return (
             <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                 <div className="p-6">

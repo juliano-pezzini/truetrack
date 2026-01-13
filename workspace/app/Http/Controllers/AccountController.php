@@ -53,6 +53,13 @@ class AccountController extends Controller
         $perPage = min((int) $request->input('per_page', 15), 100);
         $accounts = $query->paginate($perPage);
 
+        // Calculate current balance for each account
+        $accountingService = app(\App\Services\AccountingService::class);
+        $accounts->getCollection()->transform(function ($account) use ($accountingService) {
+            $account->balance = $accountingService->calculateBalance($account, \Carbon\Carbon::now());
+            return $account;
+        });
+
         return Inertia::render('Accounts/Index', [
             'accounts' => $accounts,
             'filters' => $request->only(['filter', 'sort']),

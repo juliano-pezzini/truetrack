@@ -2,12 +2,13 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 
 export default function CashFlowChart({ data }) {
     const formatCurrency = (value) => {
+        const numValue = parseFloat(value) || 0;
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: 'USD',
             minimumFractionDigits: 0,
             maximumFractionDigits: 0,
-        }).format(value);
+        }).format(numValue);
     };
 
     const formatMonth = (dateString) => {
