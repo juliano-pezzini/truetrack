@@ -80,21 +80,29 @@ class ReportingService
             });
         }
 
-        // Average monthly revenue
-        $avgRevenue = (float) $query->clone()
+        // Calculate monthly revenue totals, then average
+        $revenueMonthlyTotals = $query->clone()
             ->where('type', TransactionType::CREDIT)
             ->whereHas('category', function ($q) {
                 $q->where('type', CategoryType::REVENUE);
             })
-            ->avg('amount');
+            ->selectRaw("DATE_TRUNC('month', transaction_date) as month, SUM(amount) as total")
+            ->groupBy('month')
+            ->get();
 
-        // Average monthly expenses
-        $avgExpenses = (float) $query->clone()
+        $avgRevenue = (float) ($revenueMonthlyTotals->sum('total') / max(1, $revenueMonthlyTotals->count()));
+
+        // Calculate monthly expense totals, then average
+        $expenseMonthlyTotals = $query->clone()
             ->where('type', TransactionType::DEBIT)
             ->whereHas('category', function ($q) {
                 $q->where('type', CategoryType::EXPENSE);
             })
-            ->avg('amount');
+            ->selectRaw("DATE_TRUNC('month', transaction_date) as month, SUM(amount) as total")
+            ->groupBy('month')
+            ->get();
+
+        $avgExpenses = (float) ($expenseMonthlyTotals->sum('total') / max(1, $expenseMonthlyTotals->count()));
 
         // Get current total balance across all active accounts
         $accountsQuery = Account::query()
@@ -106,9 +114,10 @@ class ReportingService
 
         $accounts = $accountsQuery->get();
         $runningBalance = 0;
+        $accountingService = app(AccountingService::class);
 
         foreach ($accounts as $account) {
-            $runningBalance += app(AccountingService::class)->calculateBalance($account, Carbon::now());
+            $runningBalance += $accountingService->calculateBalance($account, Carbon::now());
         }
 
         // Project forward
@@ -231,9 +240,10 @@ class ReportingService
 
         $accounts = $accountsQuery->get();
         $atRisk = collect();
+        $accountingService = app(AccountingService::class);
 
         foreach ($accounts as $account) {
-            $balance = app(AccountingService::class)->calculateBalance($account, Carbon::now());
+            $balance = $accountingService->calculateBalance($account, Carbon::now());
 
             if ($balance < 0) {
                 $atRisk->push([
@@ -278,18 +288,20 @@ class ReportingService
 
         $availableAccounts = $availableFundsQuery->get();
         $totalAvailableFunds = 0;
+        $accountingService = app(AccountingService::class);
 
         foreach ($availableAccounts as $account) {
-            $balance = app(AccountingService::class)->calculateBalance($account, Carbon::now());
+            $balance = $accountingService->calculateBalance($account, Carbon::now());
             if ($balance > 0) {
                 $totalAvailableFunds += $balance;
             }
         }
 
         $alerts = collect();
+        $accountingService = app(AccountingService::class);
 
         foreach ($creditCards as $card) {
-            $balance = app(AccountingService::class)->calculateBalance($card, Carbon::now());
+            $balance = $accountingService->calculateBalance($card, Carbon::now());
             $amountOwed = abs($balance); // Credit cards have negative balance
 
             if ($amountOwed > 0) {

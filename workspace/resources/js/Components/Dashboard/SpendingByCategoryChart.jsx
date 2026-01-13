@@ -20,6 +20,14 @@ export default function SpendingByCategoryChart({ data }) {
         '#ec4899', // pink
         '#06b6d4', // cyan
         '#f97316', // orange
+        '#84cc16', // lime
+        '#14b8a6', // teal
+        '#a855f7', // purple
+        '#f43f5e', // rose
+        '#6366f1', // indigo
+        '#eab308', // yellow
+        '#22c55e', // emerald
+        '#fb923c', // orange-400
     ];
 
     const chartData = data.map(item => ({

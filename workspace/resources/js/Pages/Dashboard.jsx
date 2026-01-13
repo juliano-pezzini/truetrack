@@ -67,7 +67,7 @@ export default function Dashboard({
                     </div>
 
                     {/* Investment Summary */}
-                    {investmentReturns && investmentReturns.length > 0 && (
+                    {investmentReturns && (Array.isArray(investmentReturns) ? investmentReturns.length > 0 : true) && (
                         <div>
                             <InvestmentSummary returns={investmentReturns} />
                         </div>
