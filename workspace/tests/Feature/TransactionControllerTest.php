@@ -18,7 +18,9 @@ class TransactionControllerTest extends TestCase
     use RefreshDatabase;
 
     protected User $user;
+
     protected Account $account;
+
     protected Category $category;
 
     protected function setUp(): void
