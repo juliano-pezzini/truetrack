@@ -21,7 +21,7 @@ export default function CashFlowChart({ data }) {
 
     const chartData = data.map(item => ({
         month: formatMonth(item.month),
-        projected: parseFloat(item.projected_balance),
+        projected: parseFloat(item.net_cash_flow),
     }));
 
     return (
