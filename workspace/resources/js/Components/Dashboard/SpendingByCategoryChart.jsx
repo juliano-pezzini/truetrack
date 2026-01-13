@@ -11,24 +11,27 @@ export default function SpendingByCategoryChart({ data }) {
         }).format(numValue);
     };
 
-    const COLORS = [
-        '#3b82f6', // blue
-        '#ef4444', // red
-        '#10b981', // green
-        '#f59e0b', // amber
-        '#8b5cf6', // violet
-        '#ec4899', // pink
-        '#06b6d4', // cyan
-        '#f97316', // orange
-        '#84cc16', // lime
-        '#14b8a6', // teal
-        '#a855f7', // purple
-        '#f43f5e', // rose
-        '#6366f1', // indigo
-        '#eab308', // yellow
-        '#22c55e', // emerald
-        '#fb923c', // orange-400
+    // Generate distinct colors for any number of categories using HSL color space
+    const generateColor = (index, total) => {
+        const hue = (index * 360 / total) % 360;
+        const saturation = 65 + (index % 3) * 10; // 65-85%
+        const lightness = 50 + (index % 2) * 5; // 50-55%
+        return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+    };
+
+    // Pre-defined colors for first 16 categories for consistency
+    const baseColors = [
+        '#3b82f6', '#ef4444', '#10b981', '#f59e0b',
+        '#8b5cf6', '#ec4899', '#06b6d4', '#f97316',
+        '#84cc16', '#14b8a6', '#a855f7', '#f43f5e',
+        '#6366f1', '#eab308', '#22c55e', '#fb923c',
     ];
+
+    const getColor = (index) => {
+        return index < baseColors.length
+            ? baseColors[index]
+            : generateColor(index, data.length);
+    };
 
     const chartData = data.map(item => ({
         category: item.category_name,
@@ -58,7 +61,7 @@ export default function SpendingByCategoryChart({ data }) {
                     />
                     <Bar dataKey="amount" name="Spending">
                         {chartData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            <Cell key={`cell-${index}`} fill={getColor(index)} />
                         ))}
                     </Bar>
                 </BarChart>
@@ -86,7 +89,7 @@ export default function SpendingByCategoryChart({ data }) {
                                 <td className="px-3 py-2 text-sm text-gray-900 flex items-center">
                                     <span
                                         className="w-3 h-3 rounded-full mr-2"
-                                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                                        style={{ backgroundColor: getColor(index) }}
                                     ></span>
                                     {item.category}
                                 </td>
