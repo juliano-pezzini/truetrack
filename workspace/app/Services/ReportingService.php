@@ -60,7 +60,7 @@ class ReportingService
     /**
      * Generate monthly cash flow projections
      *
-     * @return Collection<int, array{month: string, projected_income: float, projected_expenses: float, net_cash_flow: float}>
+     * @return Collection<int, array{month: string, month_name: string, projected_income: float, projected_expenses: float, net_cash_flow: float, projected_balance: float}>
      */
     public function generateCashFlowProjection(int $monthsAhead = 6, ?int $userId = null): Collection
     {
