@@ -15,6 +15,7 @@ parameters:
         - '#array<model property of App\\Models\\User, mixed>#'
         - '#array<model property of App\\Models\\Category, mixed>#'
         - '#Access to an undefined property .+::\$(category_id|category_name|total_spent|transaction_count)#'
+        - '#Access to an undefined property App\\Models\\Account::\$balance#'
 
     # Laravel specific
     checkModelProperties: true
