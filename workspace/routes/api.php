@@ -63,6 +63,32 @@ Route::prefix('v1')->group(function () {
                 'destroy' => 'api.transactions.destroy',
             ]);
 
+        // Reconciliation management
+        Route::apiResource('reconciliations', App\Http\Controllers\Api\V1\ReconciliationController::class)
+            ->names([
+                'index' => 'api.reconciliations.index',
+                'store' => 'api.reconciliations.store',
+                'show' => 'api.reconciliations.show',
+                'update' => 'api.reconciliations.update',
+                'destroy' => 'api.reconciliations.destroy',
+            ]);
+
+        // Reconciliation-specific actions
+        Route::prefix('reconciliations')->name('api.reconciliations.')->group(function () {
+            Route::post('/{reconciliation}/transactions', [App\Http\Controllers\Api\V1\ReconciliationController::class, 'addTransaction'])
+                ->name('add-transaction');
+            Route::delete('/{reconciliation}/transactions/{transactionId}', [App\Http\Controllers\Api\V1\ReconciliationController::class, 'removeTransaction'])
+                ->name('remove-transaction');
+            Route::post('/{reconciliation}/complete', [App\Http\Controllers\Api\V1\ReconciliationController::class, 'complete'])
+                ->name('complete');
+            Route::get('/{reconciliation}/suggested-transactions', [App\Http\Controllers\Api\V1\ReconciliationController::class, 'suggestedTransactions'])
+                ->name('suggested-transactions');
+        });
+
+        // Credit card closure workflow
+        Route::post('/credit-card-closure', [App\Http\Controllers\Api\V1\ReconciliationController::class, 'creditCardClosure'])
+            ->name('api.credit-card-closure');
+
         // Reports and Analytics
         Route::prefix('reports')->name('api.reports.')->group(function () {
             Route::get('/period-summary', [App\Http\Controllers\Api\V1\ReportController::class, 'periodSummary'])

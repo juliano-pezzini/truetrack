@@ -66,6 +66,14 @@ class Account extends Model
     }
 
     /**
+     * Get the reconciliations for this account.
+     */
+    public function reconciliations(): HasMany
+    {
+        return $this->hasMany(Reconciliation::class);
+    }
+
+    /**
      * Scope a query to only include active accounts.
      */
     public function scopeActive($query)

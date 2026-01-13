@@ -30,6 +30,24 @@ export default function AuthenticatedLayout({ header, children }) {
                                 >
                                     Dashboard
                                 </NavLink>
+                                <NavLink
+                                    href={route('accounts.index')}
+                                    active={route().current('accounts.*')}
+                                >
+                                    Accounts
+                                </NavLink>
+                                <NavLink
+                                    href={route('transactions.index')}
+                                    active={route().current('transactions.*')}
+                                >
+                                    Transactions
+                                </NavLink>
+                                <NavLink
+                                    href={route('reconciliations.index')}
+                                    active={route().current('reconciliations.*')}
+                                >
+                                    Reconciliations
+                                </NavLink>
                             </div>
                         </div>
 
@@ -133,6 +151,24 @@ export default function AuthenticatedLayout({ header, children }) {
                             active={route().current('dashboard')}
                         >
                             Dashboard
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            href={route('accounts.index')}
+                            active={route().current('accounts.*')}
+                        >
+                            Accounts
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            href={route('transactions.index')}
+                            active={route().current('transactions.*')}
+                        >
+                            Transactions
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            href={route('reconciliations.index')}
+                            active={route().current('reconciliations.*')}
+                        >
+                            Reconciliations
                         </ResponsiveNavLink>
                     </div>
 

@@ -79,6 +79,15 @@ class Transaction extends Model
     }
 
     /**
+     * Get the reconciliations that include this transaction.
+     */
+    public function reconciliations(): BelongsToMany
+    {
+        return $this->belongsToMany(Reconciliation::class, 'reconciliation_transaction')
+            ->withTimestamps();
+    }
+
+    /**
      * Scope a query to only include transactions of a given type.
      */
     public function scopeOfType($query, TransactionType $type)

@@ -34,6 +34,25 @@ Route::middleware('auth')->group(function () {
 
     // Transaction management
     Route::resource('transactions', App\Http\Controllers\TransactionController::class);
+
+    // Reconciliation management
+    Route::resource('reconciliations', App\Http\Controllers\ReconciliationController::class);
+
+    // Reconciliation-specific actions
+    Route::prefix('reconciliations')->name('reconciliations.')->group(function () {
+        Route::post('/{reconciliation}/transactions', [App\Http\Controllers\ReconciliationController::class, 'addTransaction'])
+            ->name('add-transaction');
+        Route::delete('/{reconciliation}/transactions/{transactionId}', [App\Http\Controllers\ReconciliationController::class, 'removeTransaction'])
+            ->name('remove-transaction');
+        Route::post('/{reconciliation}/complete', [App\Http\Controllers\ReconciliationController::class, 'complete'])
+            ->name('complete');
+    });
+
+    // Credit card closure
+    Route::get('/credit-card-closure', [App\Http\Controllers\ReconciliationController::class, 'creditCardClosureForm'])
+        ->name('credit-card-closure.form');
+    Route::post('/credit-card-closure', [App\Http\Controllers\ReconciliationController::class, 'creditCardClosure'])
+        ->name('credit-card-closure');
 });
 
 require __DIR__.'/auth.php';
