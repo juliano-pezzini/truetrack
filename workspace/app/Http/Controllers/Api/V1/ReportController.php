@@ -55,7 +55,7 @@ class ReportController extends Controller
             'months_ahead' => 'sometimes|integer|min:1|max:24',
         ]);
 
-        $monthsAhead = $validated['months_ahead'] ?? 6;
+        $monthsAhead = (int) ($validated['months_ahead'] ?? 6);
 
         $projections = $this->reportingService->generateCashFlowProjection(
             $monthsAhead,
