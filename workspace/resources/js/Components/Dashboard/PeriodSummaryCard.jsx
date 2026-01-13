@@ -15,8 +15,8 @@ export default function PeriodSummaryCard({ period, summary }) {
         });
     };
 
-    const totalIncome = parseFloat(summary?.total_income) || 0;
-    const totalExpenses = parseFloat(summary?.total_expenses) || 0;
+    const totalIncome = parseFloat(summary?.revenue) || 0;
+    const totalExpenses = parseFloat(summary?.expenses) || 0;
     const profitLoss = totalIncome - totalExpenses;
     const isProfitable = profitLoss >= 0;
 
