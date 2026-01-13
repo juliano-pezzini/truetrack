@@ -1,16 +1,18 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 
-export default function CreditCardClosure({ auth, reconciliation, bankAccounts }) {
+export default function CreditCardClosure({ auth, accounts }) {
     const { data, setData, post, processing, errors } = useForm({
+        credit_card_account_id: '',
         bank_account_id: '',
-        payment_amount: Math.abs(parseFloat(reconciliation.statement_balance)).toFixed(2),
+        payment_amount: '',
         payment_date: new Date().toISOString().split('T')[0],
+        statement_balance: '',
     });
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        post(route('reconciliations.credit-card-closure', reconciliation.id));
+        post(route('credit-card-closure'));
     };
 
     const formatCurrency = (amount) => {
@@ -29,10 +31,10 @@ export default function CreditCardClosure({ auth, reconciliation, bankAccounts }
     };
 
     const calculateNewBalance = () => {
-        if (!data.bank_account_id) return null;
+        if (!data.bank_account_id || !data.payment_amount) return null;
 
-        const selectedAccount = bankAccounts.find(
-            (acc) => acc.id.toString() === data.bank_account_id
+        const selectedAccount = accounts.find(
+            (acc) => acc.id.toString() === data.bank_account_id && acc.type === 'bank'
         );
 
         if (!selectedAccount) return null;
@@ -40,8 +42,15 @@ export default function CreditCardClosure({ auth, reconciliation, bankAccounts }
         return parseFloat(selectedAccount.balance) - parseFloat(data.payment_amount);
     };
 
+    const getCreditCardAccount = () => {
+        if (!data.credit_card_account_id) return null;
+        return accounts.find((acc) => acc.id.toString() === data.credit_card_account_id);
+    };
+
     const newBankBalance = calculateNewBalance();
-    const amountOwed = Math.abs(parseFloat(reconciliation.statement_balance));
+    const creditCardAccount = getCreditCardAccount();
+    const bankAccounts = accounts.filter((acc) => acc.type === 'bank');
+    const creditCardAccounts = accounts.filter((acc) => acc.type === 'credit_card');
 
     return (
         <AuthenticatedLayout
@@ -58,31 +67,6 @@ export default function CreditCardClosure({ auth, reconciliation, bankAccounts }
                 <div className="max-w-4xl mx-auto sm:px-6 lg:px-8">
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                         <div className="p-6">
-                            {/* Credit Card Summary */}
-                            <div className="mb-6 p-4 bg-gray-50 rounded-md">
-                                <h3 className="text-sm font-medium text-gray-700 mb-3">Credit Card Information</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div>
-                                        <p className="text-sm text-gray-500">Account</p>
-                                        <p className="text-lg font-semibold text-gray-900">
-                                            {reconciliation.account?.name}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-gray-500">Statement Date</p>
-                                        <p className="text-lg font-semibold text-gray-900">
-                                            {formatDate(reconciliation.statement_date)}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-gray-500">Amount Owed</p>
-                                        <p className="text-lg font-semibold text-red-600">
-                                            {formatCurrency(amountOwed)}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
                             {/* Info Alert */}
                             <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
                                 <div className="flex">
@@ -103,7 +87,7 @@ export default function CreditCardClosure({ auth, reconciliation, bankAccounts }
                                                 <li>A credit (payment) to the credit card account</li>
                                             </ul>
                                             <p className="mt-2">
-                                                Both transactions will be automatically linked to this reconciliation and
+                                                Both transactions will be automatically linked to a new reconciliation and
                                                 the reconciliation will be marked as completed.
                                             </p>
                                         </div>
@@ -112,6 +96,34 @@ export default function CreditCardClosure({ auth, reconciliation, bankAccounts }
                             </div>
 
                             <form onSubmit={handleSubmit} className="space-y-6">
+                                {/* Credit Card Account Selection */}
+                                <div>
+                                    <label htmlFor="credit_card_account_id" className="block text-sm font-medium text-gray-700">
+                                        Credit Card Account <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        id="credit_card_account_id"
+                                        value={data.credit_card_account_id}
+                                        onChange={(e) => setData('credit_card_account_id', e.target.value)}
+                                        className={`mt-1 block w-full rounded-md shadow-sm ${
+                                            errors.credit_card_account_id
+                                                ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+                                                : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500'
+                                        }`}
+                                        required
+                                    >
+                                        <option value="">Select a credit card account...</option>
+                                        {creditCardAccounts.map((account) => (
+                                            <option key={account.id} value={account.id}>
+                                                {account.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {errors.credit_card_account_id && (
+                                        <p className="mt-1 text-sm text-red-600">{errors.credit_card_account_id}</p>
+                                    )}
+                                </div>
+
                                 {/* Bank Account Selection */}
                                 <div>
                                     <label htmlFor="bank_account_id" className="block text-sm font-medium text-gray-700">
@@ -138,6 +150,41 @@ export default function CreditCardClosure({ auth, reconciliation, bankAccounts }
                                     {errors.bank_account_id && (
                                         <p className="mt-1 text-sm text-red-600">{errors.bank_account_id}</p>
                                     )}
+                                </div>
+
+                                {/* Statement Balance */}
+                                <div>
+                                    <label htmlFor="statement_balance" className="block text-sm font-medium text-gray-700">
+                                        Statement Balance <span className="text-red-500">*</span>
+                                    </label>
+                                    <div className="mt-1 relative rounded-md shadow-sm">
+                                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                            <span className="text-gray-500 sm:text-sm">$</span>
+                                        </div>
+                                        <input
+                                            type="number"
+                                            id="statement_balance"
+                                            step="0.01"
+                                            value={data.statement_balance}
+                                            onChange={(e) => setData('statement_balance', e.target.value)}
+                                            className={`block w-full rounded-md pl-7 pr-12 ${
+                                                errors.statement_balance
+                                                    ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+                                                    : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500'
+                                            }`}
+                                            placeholder="-0.00"
+                                            required
+                                        />
+                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                                            <span className="text-gray-500 sm:text-sm">USD</span>
+                                        </div>
+                                    </div>
+                                    {errors.statement_balance && (
+                                        <p className="mt-1 text-sm text-red-600">{errors.statement_balance}</p>
+                                    )}
+                                    <p className="mt-1 text-sm text-gray-500">
+                                        Enter the balance from your credit card statement (usually negative).
+                                    </p>
                                 </div>
 
                                 {/* Payment Date */}
@@ -193,12 +240,12 @@ export default function CreditCardClosure({ auth, reconciliation, bankAccounts }
                                         <p className="mt-1 text-sm text-red-600">{errors.payment_amount}</p>
                                     )}
                                     <p className="mt-1 text-sm text-gray-500">
-                                        You can pay a different amount if you don't want to pay the full balance.
+                                        Amount to pay. Can be partial or full balance.
                                     </p>
                                 </div>
 
                                 {/* Balance Preview */}
-                                {newBankBalance !== null && (
+                                {newBankBalance !== null && data.statement_balance && (
                                     <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
                                         <h4 className="text-sm font-medium text-yellow-800 mb-2">Balance Preview</h4>
                                         <div className="grid grid-cols-2 gap-4 text-sm">
@@ -211,7 +258,7 @@ export default function CreditCardClosure({ auth, reconciliation, bankAccounts }
                                             <div>
                                                 <p className="text-yellow-700">Credit Card Remaining Balance:</p>
                                                 <p className="font-semibold text-gray-900">
-                                                    {formatCurrency(amountOwed - parseFloat(data.payment_amount))}
+                                                    {formatCurrency(parseFloat(data.statement_balance) + parseFloat(data.payment_amount))}
                                                 </p>
                                             </div>
                                         </div>
@@ -226,7 +273,7 @@ export default function CreditCardClosure({ auth, reconciliation, bankAccounts }
                                 {/* Action Buttons */}
                                 <div className="flex items-center justify-end gap-4">
                                     <Link
-                                        href={route('reconciliations.show', reconciliation.id)}
+                                        href={route('reconciliations.index')}
                                         className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
                                     >
                                         Cancel
