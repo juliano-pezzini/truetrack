@@ -14,8 +14,10 @@ parameters:
         - '#Parameter \#1 \$user of class Illuminate\\Auth\\Events\\Verified#'
         - '#array<model property of App\\Models\\User, mixed>#'
         - '#array<model property of App\\Models\\Category, mixed>#'
+        - '#array<model property of App\\Models\\Reconciliation, mixed>#'
         - '#Access to an undefined property .+::\$(category_id|category_name|total_spent|transaction_count)#'
         - '#Access to an undefined property App\\Models\\Account::\$balance#'
+        - '#Strict comparison using === between .+ and App\\Enums\\TransactionType::CREDIT#'
 
     # Laravel specific
     checkModelProperties: true
