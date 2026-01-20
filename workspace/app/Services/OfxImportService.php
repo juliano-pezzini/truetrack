@@ -44,6 +44,7 @@ class OfxImportService
     {
         $accounts = [];
 
+        // @phpstan-ignore property.notFound
         foreach ($ofxData->bankAccounts as $bankAccount) {
             $accounts[] = [
                 'accountNumber' => $bankAccount->accountNumber,
@@ -164,6 +165,7 @@ class OfxImportService
     {
         $transactions = [];
 
+        // @phpstan-ignore property.notFound
         foreach ($ofxData->bankAccounts as $bankAccount) {
             $statement = $bankAccount->statement;
 

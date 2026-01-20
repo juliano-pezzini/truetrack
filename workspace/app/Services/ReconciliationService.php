@@ -271,7 +271,9 @@ class ReconciliationService
         foreach ($candidates as $candidate) {
             $confidence = 0;
             $matchReason = '';
-            $dateDiff = abs($candidate->transaction_date->diffInDays($date));
+            /** @var Carbon $transactionDate */
+            $transactionDate = $candidate->transaction_date;
+            $dateDiff = abs($transactionDate->diffInDays($date));
 
             // Exact match: same amount, date within ±3 days, identical description
             if ($dateDiff <= 3 && strcasecmp($candidate->description, $description) === 0) {
@@ -319,8 +321,12 @@ class ReconciliationService
                 return $b['confidence'] <=> $a['confidence'];
             }
 
-            $aDiff = abs($a['transaction']->transaction_date->diffInDays($date));
-            $bDiff = abs($b['transaction']->transaction_date->diffInDays($date));
+            /** @var Carbon $aDate */
+            $aDate = $a['transaction']->transaction_date;
+            /** @var Carbon $bDate */
+            $bDate = $b['transaction']->transaction_date;
+            $aDiff = abs($aDate->diffInDays($date));
+            $bDiff = abs($bDate->diffInDays($date));
 
             return $aDiff <=> $bDiff;
         });
