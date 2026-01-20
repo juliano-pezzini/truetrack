@@ -89,6 +89,20 @@ Route::prefix('v1')->group(function () {
         Route::post('/credit-card-closure', [App\Http\Controllers\Api\V1\ReconciliationController::class, 'creditCardClosure'])
             ->name('api.credit-card-closure');
 
+        // OFX Import management
+        // OFX Import-specific actions (must be before resource routes)
+        Route::get('/ofx-imports/active-count', [App\Http\Controllers\Api\V1\OfxImportController::class, 'activeCount'])
+            ->name('api.ofx-imports.active-count');
+
+        Route::apiResource('ofx-imports', App\Http\Controllers\Api\V1\OfxImportController::class)
+            ->only(['index', 'store', 'show', 'destroy'])
+            ->names([
+                'index' => 'api.ofx-imports.index',
+                'store' => 'api.ofx-imports.store',
+                'show' => 'api.ofx-imports.show',
+                'destroy' => 'api.ofx-imports.destroy',
+            ]);
+
         // Reports and Analytics
         Route::prefix('reports')->name('api.reports.')->group(function () {
             Route::get('/period-summary', [App\Http\Controllers\Api\V1\ReportController::class, 'periodSummary'])
