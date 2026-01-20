@@ -75,7 +75,7 @@ class ProcessOfxImport extends BaseProcessingJob
                     );
 
                     // Attach best match to reconciliation if confidence >= 75%
-                    if (!empty($matches) && $matches[0]['confidence'] >= 75) {
+                    if (! empty($matches) && $matches[0]['confidence'] >= 75) {
                         $reconciliation->transactions()->attach($matches[0]['transaction']->id, [
                             'matched_at' => now(),
                         ]);
@@ -139,7 +139,7 @@ class ProcessOfxImport extends BaseProcessingJob
             $this->handleFailure($import, $exception);
         }
 
-        Log::error("OFX import job failed permanently", [
+        Log::error('OFX import job failed permanently', [
             'import_id' => $this->importId,
             'error' => $exception->getMessage(),
         ]);

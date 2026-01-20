@@ -75,8 +75,8 @@ class CleanupExpiredOfxImports extends Command
         );
 
         // Confirm deletion unless --force or --dry-run
-        if (!$isDryRun && !$force) {
-            if (!$this->confirm('Do you want to proceed with deletion?')) {
+        if (! $isDryRun && ! $force) {
+            if (! $this->confirm('Do you want to proceed with deletion?')) {
                 $this->info('Cleanup cancelled.');
 
                 return self::SUCCESS;
@@ -124,4 +124,3 @@ class CleanupExpiredOfxImports extends Command
         return round($bytes, $precision).' '.$units[$i];
     }
 }
-

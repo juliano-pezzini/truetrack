@@ -35,4 +35,3 @@ class OfxImportController extends Controller
         ]);
     }
 }
-

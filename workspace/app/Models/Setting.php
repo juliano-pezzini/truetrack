@@ -50,10 +50,6 @@ class Setting extends Model
 
     /**
      * Get a setting value by key with caching.
-     *
-     * @param  string  $key
-     * @param  mixed  $default
-     * @return mixed
      */
     public static function getValue(string $key, mixed $default = null): mixed
     {
@@ -73,10 +69,6 @@ class Setting extends Model
     /**
      * Set a setting value with validation and audit trail.
      *
-     * @param  string  $key
-     * @param  mixed  $value
-     * @param  int  $userId
-     * @return void
      * @throws \InvalidArgumentException
      */
     public static function setValue(string $key, mixed $value, int $userId): void
@@ -101,9 +93,6 @@ class Setting extends Model
 
     /**
      * Validate a value against the setting's constraints.
-     *
-     * @param  mixed  $value
-     * @return bool
      */
     public function validate(mixed $value): bool
     {
@@ -128,11 +117,6 @@ class Setting extends Model
 
     /**
      * Record a change in the audit trail.
-     *
-     * @param  string|null  $oldValue
-     * @param  string  $newValue
-     * @param  int  $userId
-     * @return void
      */
     public function recordChange(?string $oldValue, string $newValue, int $userId): void
     {
@@ -147,10 +131,6 @@ class Setting extends Model
 
     /**
      * Cast a value to the specified type.
-     *
-     * @param  mixed  $value
-     * @param  string  $type
-     * @return mixed
      */
     private static function castValue(mixed $value, string $type): mixed
     {

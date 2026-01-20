@@ -16,7 +16,6 @@ class OfxImportService
      * Parse an OFX file and return the parsed data.
      *
      * @param  string  $filePath  Path to the OFX file
-     * @return \OfxParser\Ofx
      *
      * @throws \Exception
      */
@@ -39,7 +38,6 @@ class OfxImportService
     /**
      * Detect accounts present in the OFX file.
      *
-     * @param  \OfxParser\Ofx  $ofxData
      * @return array<int, array{accountNumber: string, accountType: string, bankId: string|null}>
      */
     public function detectAccounts(\OfxParser\Ofx $ofxData): array
@@ -160,7 +158,6 @@ class OfxImportService
     /**
      * Extract transactions from parsed OFX data.
      *
-     * @param  \OfxParser\Ofx  $ofxData
      * @return array<int, array{amount: float, date: \Carbon\Carbon, description: string, type: string, fitId: string}>
      */
     public function extractTransactions(\OfxParser\Ofx $ofxData): array
@@ -203,7 +200,6 @@ class OfxImportService
      * Create an OFX import record.
      *
      * @param  array  $data  Import data
-     * @return OfxImport
      */
     public function createImport(array $data): OfxImport
     {

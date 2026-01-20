@@ -22,8 +22,6 @@ class OfxImportController extends Controller
 
     /**
      * Display a listing of OFX imports.
-     *
-     * @return JsonResponse
      */
     public function index(Request $request): JsonResponse
     {
@@ -53,9 +51,6 @@ class OfxImportController extends Controller
 
     /**
      * Store a newly created OFX import.
-     *
-     * @param  StoreOfxImportRequest  $request
-     * @return JsonResponse
      */
     public function store(StoreOfxImportRequest $request): JsonResponse
     {
@@ -82,7 +77,7 @@ class OfxImportController extends Controller
             );
 
             // Check for duplicate import (unless force_reimport is true)
-            if (!($validated['force_reimport'] ?? false)) {
+            if (! ($validated['force_reimport'] ?? false)) {
                 $duplicate = $this->ofxImportService->checkDuplicateImport(
                     $fileData['hash'],
                     $validated['account_id']
@@ -129,9 +124,6 @@ class OfxImportController extends Controller
 
     /**
      * Display the specified OFX import.
-     *
-     * @param  int  $id
-     * @return JsonResponse
      */
     public function show(int $id): JsonResponse
     {
@@ -147,9 +139,6 @@ class OfxImportController extends Controller
 
     /**
      * Cancel a pending or processing import.
-     *
-     * @param  int  $id
-     * @return JsonResponse
      */
     public function destroy(int $id): JsonResponse
     {
@@ -179,8 +168,6 @@ class OfxImportController extends Controller
 
     /**
      * Get active imports count for the authenticated user.
-     *
-     * @return JsonResponse
      */
     public function activeCount(): JsonResponse
     {
