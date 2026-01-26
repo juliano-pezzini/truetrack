@@ -4,8 +4,65 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "51701571867d1c3f067d3dd82c606678",
+    "content-hash": "9d5476ff3f59a8b2a62d9ccc34183eae",
     "packages": [
+        {
+            "name": "asgrim/ofxparser",
+            "version": "1.1.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/asgrim/ofxparser.git",
+                "reference": "7652efea77a1c5dda007f9764d8061f870248ea1"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/asgrim/ofxparser/zipball/7652efea77a1c5dda007f9764d8061f870248ea1",
+                "reference": "7652efea77a1c5dda007f9764d8061f870248ea1",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.4"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-0": {
+                    "OfxParser": "lib/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Guillaume Bailleul",
+                    "email": "contact@guillaume-bailleul.fr",
+                    "homepage": "http://www.guillaume-bailleul.fr"
+                },
+                {
+                    "name": "James Titcumb",
+                    "email": "hello@jamestitcumb.com",
+                    "homepage": "http://www.jamestitcumb.com/"
+                },
+                {
+                    "name": "Oliver Lowe",
+                    "email": "mrtriangle@gmail.com"
+                }
+            ],
+            "description": "Simple OFX file parser",
+            "keywords": [
+                "finance",
+                "ofx",
+                "open financial exchange",
+                "parser"
+            ],
+            "support": {
+                "issues": "https://github.com/asgrim/ofxparser/issues",
+                "source": "https://github.com/asgrim/ofxparser/tree/master"
+            },
+            "abandoned": true,
+            "time": "2015-12-11T11:08:57+00:00"
+        },
         {
             "name": "brick/math",
             "version": "0.14.1",

@@ -53,6 +53,10 @@ Route::middleware('auth')->group(function () {
         ->name('credit-card-closure.form');
     Route::post('/credit-card-closure', [App\Http\Controllers\ReconciliationController::class, 'creditCardClosure'])
         ->name('credit-card-closure');
+
+    // OFX Import management
+    Route::get('/ofx-imports', [App\Http\Controllers\OfxImportController::class, 'index'])
+        ->name('ofx-imports.index');
 });
 
 require __DIR__.'/auth.php';

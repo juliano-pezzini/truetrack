@@ -23,6 +23,7 @@ services:
             - sail
         depends_on:
             - pgsql
+            - redis
     pgsql:
         image: 'postgres:18-alpine'
         ports:
@@ -48,9 +49,46 @@ services:
                 - '${DB_USERNAME}'
             retries: 3
             timeout: 5s
+    redis:
+        image: 'redis:7-alpine'
+        ports:
+            - '${FORWARD_REDIS_PORT:-6379}:6379'
+        volumes:
+            - 'sail-redis:/data'
+        networks:
+            - sail
+        healthcheck:
+            test:
+                - CMD
+                - redis-cli
+                - ping
+            retries: 3
+            timeout: 5s
+    queue-worker:
+        build:
+            context: './vendor/laravel/sail/runtimes/8.5'
+            dockerfile: Dockerfile
+            args:
+                WWWGROUP: '${WWWGROUP}'
+        image: 'sail-8.5/app'
+        extra_hosts:
+            - 'host.docker.internal:host-gateway'
+        environment:
+            WWWUSER: '${WWWUSER}'
+            LARAVEL_SAIL: 1
+        volumes:
+            - '.:/var/www/html'
+        networks:
+            - sail
+        depends_on:
+            - pgsql
+            - redis
+        command: php artisan queue:work redis --tries=3 --timeout=300 --sleep=3
 networks:
     sail:
         driver: bridge
 volumes:
     sail-pgsql:
+        driver: local
+    sail-redis:
         driver: local
