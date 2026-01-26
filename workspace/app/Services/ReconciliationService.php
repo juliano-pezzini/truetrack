@@ -286,7 +286,7 @@ class ReconciliationService
                     $description
                 );
 
-                $maxLength = max(strlen($candidate->description), strlen($description));
+                $maxLength = max(mb_strlen($candidate->description), mb_strlen($description));
                 $distancePercent = $maxLength > 0 ? ($levenshteinDistance / $maxLength) * 100 : 0;
 
                 if ($distancePercent <= $thresholdPercent) {

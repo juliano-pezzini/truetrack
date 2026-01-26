@@ -186,8 +186,16 @@ class OfxImportControllerTest extends TestCase
             'status' => 'completed',
         ]);
 
-        // Mock the service to return the hash
-        $file = UploadedFile::fake()->create('statement.ofx', 100);
+        // Create a file with known content to get predictable hash
+        $ofxContent = '<?xml version="1.0" encoding="UTF-8"?><OFX></OFX>';
+        $file = UploadedFile::fake()->createWithContent('statement.ofx', $ofxContent);
+
+        // Calculate the hash that will be generated
+        $expectedHash = hash('sha256', $ofxContent);
+
+        // Update the existing import with this hash
+        OfxImport::where('account_id', $this->account->id)
+            ->update(['file_hash' => $expectedHash]);
 
         $response = $this->actingAs($this->user, 'sanctum')
             ->postJson('/api/v1/ofx-imports', [
@@ -195,10 +203,8 @@ class OfxImportControllerTest extends TestCase
                 'account_id' => $this->account->id,
             ]);
 
-        // Note: This would return 409 if the hash matched, but since we're using fake files
-        // the actual hash won't match. In real scenario, this would work.
-        // For testing purposes, we can skip the actual assertion or mock the service.
-        $this->assertTrue(true); // Placeholder
+        $response->assertStatus(409)
+            ->assertJsonFragment(['message' => 'This file has already been imported for this account.']);
     }
 
     public function test_upload_checks_concurrency_limit(): void

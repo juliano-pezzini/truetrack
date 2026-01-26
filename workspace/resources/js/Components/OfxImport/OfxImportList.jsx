@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import OfxImportCard from './OfxImportCard';
 
@@ -7,7 +7,7 @@ export default function OfxImportList({ initialImports = [], accountId = null })
     const [loading, setLoading] = useState(false);
     const [filter, setFilter] = useState('all');
 
-    const fetchImports = async () => {
+    const fetchImports = useCallback(async () => {
         setLoading(true);
         try {
             const params = new URLSearchParams();
@@ -27,11 +27,11 @@ export default function OfxImportList({ initialImports = [], accountId = null })
         } finally {
             setLoading(false);
         }
-    };
+    }, [filter, accountId]);
 
     useEffect(() => {
         fetchImports();
-    }, [filter, accountId]);
+    }, [fetchImports]);
 
     // Auto-refresh every 5 seconds if there are active imports
     useEffect(() => {
@@ -46,7 +46,7 @@ export default function OfxImportList({ initialImports = [], accountId = null })
         }, 5000);
 
         return () => clearInterval(interval);
-    }, [imports]);
+    }, [imports, fetchImports]);
 
     const handleDelete = (id) => {
         setImports(imports.filter((imp) => imp.id !== id));

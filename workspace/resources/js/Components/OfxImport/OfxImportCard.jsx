@@ -53,7 +53,7 @@ export default function OfxImportCard({ import: importData, onDelete }) {
                         {canViewReconciliation && (
                             <SecondaryButton
                                 onClick={handleViewReconciliation}
-                                className="!py-1 !px-3 !text-xs"
+                                className="py-1 px-3 text-xs"
                             >
                                 View
                             </SecondaryButton>
@@ -61,7 +61,7 @@ export default function OfxImportCard({ import: importData, onDelete }) {
                         {canCancel && (
                             <DangerButton
                                 onClick={handleCancel}
-                                className="!py-1 !px-3 !text-xs"
+                                className="py-1 px-3 text-xs"
                             >
                                 Cancel
                             </DangerButton>

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -103,7 +104,7 @@ class OfxImport extends Model
     /**
      * Scope a query to only include active imports.
      */
-    public function scopeActive($query)
+    public function scopeActive(Builder $query): Builder
     {
         return $query->whereIn('status', ['pending', 'processing']);
     }
@@ -111,7 +112,7 @@ class OfxImport extends Model
     /**
      * Scope a query to only include imports for a specific user.
      */
-    public function scopeForUser($query, int $userId)
+    public function scopeForUser(Builder $query, int $userId): Builder
     {
         return $query->where('user_id', $userId);
     }
@@ -119,7 +120,7 @@ class OfxImport extends Model
     /**
      * Scope a query to only include imports for a specific account.
      */
-    public function scopeForAccount($query, int $accountId)
+    public function scopeForAccount(Builder $query, int $accountId): Builder
     {
         return $query->where('account_id', $accountId);
     }
