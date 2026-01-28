@@ -53,9 +53,11 @@ class XlsxImportControllerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'headers',
-                'suggested_mapping',
-                'confidence_scores',
+                'data' => [
+                    'headers',
+                    'suggested_mapping',
+                    'confidence_scores',
+                ],
             ]);
     }
 
@@ -87,10 +89,12 @@ class XlsxImportControllerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'preview_transactions',
-                'validation_summary' => [
-                    'valid_rows',
-                    'rows_with_warnings',
+                'data' => [
+                    'preview_transactions',
+                    'validation_summary' => [
+                        'valid_rows',
+                        'rows_with_warnings',
+                    ],
                 ],
             ]);
     }

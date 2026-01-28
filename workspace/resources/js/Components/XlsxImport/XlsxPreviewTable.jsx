@@ -1,6 +1,9 @@
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 
+// Maximum number of preview rows to display
+const MAX_PREVIEW_ROWS = 5;
+
 export default function XlsxPreviewTable({ previewData, validationSummary, onConfirm, onBack }) {
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-US', {
@@ -22,7 +25,7 @@ export default function XlsxPreviewTable({ previewData, validationSummary, onCon
     };
 
     const previewRowCount = Array.isArray(previewData) ? previewData.length : 0;
-    const displayRowCount = Math.min(5, previewRowCount);
+    const displayRowCount = Math.min(MAX_PREVIEW_ROWS, previewRowCount);
     const rowLabel = displayRowCount === 1 ? 'row' : 'rows';
 
     return (

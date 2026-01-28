@@ -160,7 +160,7 @@ class ProcessXlsxImport implements ShouldQueue
 
                     // Calculate row hash for duplicate detection
                     $rowHash = $xlsxService->calculateRowHash(
-                        $transactionData['transaction_date'],
+                        Carbon::parse($transactionData['transaction_date']),
                         $transactionData['amount'],
                         $transactionData['description']
                     );

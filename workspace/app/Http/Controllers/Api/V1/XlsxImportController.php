@@ -38,9 +38,11 @@ class XlsxImportController extends Controller
         $suggestedMapping = $this->xlsxService->guessColumnMapping($headers);
 
         return response()->json([
-            'headers' => $headers,
-            'suggested_mapping' => $suggestedMapping['mapping_config'],
-            'confidence_scores' => $suggestedMapping['confidence_scores'],
+            'data' => [
+                'headers' => $headers,
+                'suggested_mapping' => $suggestedMapping['mapping_config'],
+                'confidence_scores' => $suggestedMapping['confidence_scores'],
+            ],
         ]);
     }
 
@@ -66,8 +68,10 @@ class XlsxImportController extends Controller
         $preview = $this->xlsxService->previewWithMapping($file, $mappingConfig);
 
         return response()->json([
-            'preview_transactions' => $preview['preview_transactions'],
-            'validation_summary' => $preview['validation_summary'],
+            'data' => [
+                'preview_transactions' => $preview['preview_transactions'],
+                'validation_summary' => $preview['validation_summary'],
+            ],
         ]);
     }
 

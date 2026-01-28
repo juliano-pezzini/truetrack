@@ -53,7 +53,7 @@ export default function XlsxImportUpload({ accounts, activeImportsCount, maxImpo
 
         // Get preview
         const formData = new FormData();
-        formData.append('xlsx_file', data.xlsx_file);
+        formData.append('file', data.file);
         formData.append('mapping_config', JSON.stringify(mappingConfig));
 
         try {
