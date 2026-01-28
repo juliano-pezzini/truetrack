@@ -34,6 +34,41 @@ class SettingSeeder extends Seeder
                 'min_value' => 1,
                 'max_value' => 20,
             ],
+            [
+                'key' => 'xlsx_import_retention_days',
+                'value' => '90',
+                'type' => 'integer',
+                'category' => 'import',
+                'description' => 'Number of days to retain XLSX import files before automatic cleanup',
+                'min_value' => 1,
+                'max_value' => 365,
+            ],
+            [
+                'key' => 'max_xlsx_rows_per_import',
+                'value' => '5000',
+                'type' => 'integer',
+                'category' => 'import',
+                'description' => 'Maximum number of rows allowed per XLSX import',
+                'min_value' => 1,
+                'max_value' => 50000,
+            ],
+            [
+                'key' => 'xlsx_duplicate_detection',
+                'value' => 'row_level',
+                'type' => 'string',
+                'category' => 'import',
+                'description' => 'Duplicate detection strategy for XLSX imports (file_level, row_level, or disabled)',
+                'allowed_values' => 'file_level,row_level,disabled',
+            ],
+            [
+                'key' => 'xlsx_transaction_hash_retention_days',
+                'value' => '365',
+                'type' => 'integer',
+                'category' => 'import',
+                'description' => 'Number of days to retain XLSX transaction hashes for duplicate detection',
+                'min_value' => 30,
+                'max_value' => 1095,
+            ],
 
             // Matching Category
             [

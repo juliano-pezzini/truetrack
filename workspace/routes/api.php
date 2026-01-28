@@ -103,6 +103,36 @@ Route::prefix('v1')->group(function () {
                 'destroy' => 'api.ofx-imports.destroy',
             ]);
 
+        // XLSX Import management
+        // XLSX Import-specific actions (must be before resource routes)
+        Route::post('/xlsx-imports/detect-columns', [App\Http\Controllers\Api\V1\XlsxImportController::class, 'detectColumns'])
+            ->name('api.xlsx-imports.detect-columns');
+        Route::post('/xlsx-imports/preview', [App\Http\Controllers\Api\V1\XlsxImportController::class, 'preview'])
+            ->name('api.xlsx-imports.preview');
+        Route::get('/xlsx-imports/template', [App\Http\Controllers\Api\V1\XlsxImportController::class, 'template'])
+            ->name('api.xlsx-imports.template');
+        Route::get('/xlsx-imports/{xlsxImport}/download', [App\Http\Controllers\Api\V1\XlsxImportController::class, 'download'])
+            ->name('api.xlsx-imports.download');
+        Route::get('/xlsx-imports/{xlsxImport}/error-report', [App\Http\Controllers\Api\V1\XlsxImportController::class, 'errorReport'])
+            ->name('api.xlsx-imports.error-report');
+
+        Route::apiResource('xlsx-imports', App\Http\Controllers\Api\V1\XlsxImportController::class)
+            ->only(['index', 'store', 'show'])
+            ->names([
+                'index' => 'api.xlsx-imports.index',
+                'store' => 'api.xlsx-imports.store',
+                'show' => 'api.xlsx-imports.show',
+            ]);
+
+        // XLSX Column Mapping management
+        Route::apiResource('xlsx-column-mappings', App\Http\Controllers\Api\V1\XlsxColumnMappingController::class)
+            ->names([
+                'index' => 'api.xlsx-column-mappings.index',
+                'store' => 'api.xlsx-column-mappings.store',
+                'update' => 'api.xlsx-column-mappings.update',
+                'destroy' => 'api.xlsx-column-mappings.destroy',
+            ]);
+
         // Reports and Analytics
         Route::prefix('reports')->name('api.reports.')->group(function () {
             Route::get('/period-summary', [App\Http\Controllers\Api\V1\ReportController::class, 'periodSummary'])

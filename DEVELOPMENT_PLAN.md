@@ -1109,26 +1109,1128 @@ After Phase 6 completion, users will be able to:
 
 ---
 
+#### 6.13 XLSX/CSV Import with Flexible Column Mapping
+
+**Goal**: Enable users to import transactions from spreadsheet files (XLSX, CSV) with flexible column mapping, reusing the existing background job infrastructure, reconciliation matching, and progress tracking from OFX import.
+
+**Core Features**:
+- **Flexible Column Mapping**: User-defined mapping of spreadsheet columns to transaction fields
+- **Smart Detection**: Automatic column header recognition with intelligent suggestions
+- **Template Generation**: Downloadable XLSX template with required/optional columns
+- **Row-Level Duplicate Detection**: Hash-based detection (date+amount+description) with skip option
+- **Error Handling**: Skip invalid rows, continue processing, provide downloadable error report
+- **Saved Mappings**: Auto-save column configuration per account for repeat imports
+- **Background Processing**: Reuses `BaseProcessingJob` infrastructure with progress tracking
+- **Reconciliation Integration**: Optional fuzzy matching to existing transactions
+
+---
+
+##### 6.13.1 XLSX Column Specifications
+
+**Required Transaction Fields** (must be mapped):
+- **Transaction Date** - Date of transaction (formats: YYYY-MM-DD, MM/DD/YYYY, DD/MM/YYYY)
+- **Description/Memo** - Transaction description
+- **Amount Detection** - One of three strategies:
+  - **Strategy A**: Single "Amount" column (negative = debit, positive = credit)
+  - **Strategy B**: Separate "Debit" and "Credit" columns (populate one per row)
+  - **Strategy C**: "Amount" + "Type" columns (Type values: "debit", "credit", "expense", "income")
+
+**Optional Transaction Fields** (can be mapped):
+- **Category** - Category name (matched by name or created if not exists)
+- **Settled Date** - Date when transaction settled (nullable)
+- **Tags** - Comma-separated tag names (e.g., "vacation, travel, hotel")
+
+**Account-Level Information** (specified during import, not per-row):
+- **Account Selection** - User selects existing account OR creates new account
+- **Statement Date** - Date of bank statement (for reconciliation creation)
+- **Statement Balance** - Closing balance from statement (for discrepancy calculation)
+
+**Template Column Names** (standardized):
+```
+Transaction Date | Description | Amount | Debit | Credit | Type | Category | Settled Date | Tags
+```
+
+**Template Download**:
+- Users can download `.xlsx` template with:
+  - First row: Column headers
+  - Second row: Example data
+  - Third row: Format notes (e.g., "YYYY-MM-DD or MM/DD/YYYY")
+  - Columns marked as "(Required)" or "(Optional)" in header comments
+
+---
+
+##### 6.13.2 Database Schema
+
+**XlsxImport Model**:
+- `xlsx_imports` table (mirrors `ofx_imports` structure):
+  - `filename` (original filename)
+  - `file_hash` (SHA-256 of entire file, indexed)
+  - `account_id` (foreign key)
+  - `reconciliation_id` (foreign key, nullable)
+  - `status` (enum: 'pending', 'processing', 'completed', 'failed')
+  - `processed_count` (integer, default 0) - Successfully imported rows
+  - `total_count` (integer) - Total rows to process
+  - `skipped_count` (integer, default 0) - Rows skipped due to validation errors
+  - `duplicate_count` (integer, default 0) - Rows skipped as duplicates
+  - `error_message` (text, nullable) - General error message for failed imports
+  - `error_report_path` (text, nullable) - Path to downloadable error CSV
+  - `file_path` (path to compressed .xlsx.gz file)
+  - `user_id` (foreign key)
+  - `column_mapping_id` (foreign key, nullable) - Reference to saved mapping used
+  - Timestamps
+  - Unique index on (`file_hash`, `account_id`, `status`) for file-level duplicate detection
+- Relationships:
+  - `belongsTo(Account)`, `belongsTo(User)`, `belongsTo(Reconciliation)`
+  - `belongsTo(XlsxColumnMapping, 'column_mapping_id')`
+- Methods:
+  - `isCompleted(): bool`, `isFailed(): bool`, `isProcessing(): bool`
+  - `getProgressPercentage(): float` - Calculate from processed/total counts
+  - `hasErrors(): bool` - Check if error_report_path exists
+  - Scopes: `active()`, `forUser()`, `forAccount()`
+
+**XlsxColumnMapping Model**:
+- `xlsx_column_mappings` table (saved mapping configurations):
+  - `user_id` (foreign key)
+  - `account_id` (foreign key, nullable) - Mapping can be account-specific
+  - `name` (string) - User-friendly name (e.g., "Chase Bank Format")
+  - `mapping_config` (JSON) - Column mapping configuration:
+    ```json
+    {
+      "date_column": "Transaction Date",
+      "description_column": "Description",
+      "amount_strategy": "single_column",
+      "amount_column": "Amount",
+      "debit_column": null,
+      "credit_column": null,
+      "type_column": null,
+      "category_column": "Category",
+      "settled_date_column": null,
+      "tags_column": "Tags",
+      "date_format": "auto"
+    }
+    ```
+  - `is_default` (boolean) - Default mapping for this user/account
+  - `last_used_at` (timestamp) - Track usage for sorting
+  - Timestamps
+  - Indexes: `user_id`, `account_id`, `is_default`
+- Relationships:
+  - `belongsTo(User)`, `belongsTo(Account)`
+  - `hasMany(XlsxImport)`
+- Methods:
+  - `markAsUsed(): void` - Update `last_used_at`
+  - `setAsDefault(): void` - Set `is_default` to true, clear others
+  - Scopes: `forUser()`, `forAccount()`, `defaults()`
+
+**XlsxTransactionHash Table** (row-level duplicate detection):
+- `xlsx_transaction_hashes` table:
+  - `user_id` (foreign key)
+  - `account_id` (foreign key)
+  - `row_hash` (SHA-256 of date+amount+description, indexed)
+  - `transaction_id` (foreign key, nullable) - Link to created transaction
+  - `imported_at` (timestamp)
+  - Unique index on (`user_id`, `account_id`, `row_hash`)
+- Purpose: Prevent duplicate imports of same transaction across multiple XLSX imports
+- Cleanup: Delete hashes older than 1 year (scheduled command)
+
+---
+
+##### 6.13.3 XLSX Import Service
+
+**Installation**:
+```bash
+cd workspace
+docker compose exec truetrack composer require maatwebsite/excel
+```
+
+**XlsxImportService** (`app/Services/XlsxImportService.php`):
+
+**Core Methods**:
+
+1. **`parseXlsxFile(UploadedFile $file): array`**
+   - Use `Maatwebsite\Excel` to read spreadsheet
+   - Detect first row with headers (skip empty rows)
+   - Returns: `['headers' => [...], 'row_count' => N, 'preview_rows' => [...]]`
+   - Preview rows: First 5 data rows for user review
+
+2. **`detectHeaders(UploadedFile $file): array`**
+   - Find first non-empty row as headers
+   - Returns array of column names
+   - Handle Excel date columns (convert serial dates to readable format)
+
+3. **`guessColumnMapping(array $headers): array`**
+   - Smart heuristics to suggest mapping:
+     - "Date", "Transaction Date", "Trans Date" → `transaction_date`
+     - "Description", "Memo", "Details" → `description`
+     - "Amount", "Total" → `amount_column` (check for negative values to suggest single_column strategy)
+     - "Debit", "Withdrawal" → `debit_column`
+     - "Credit", "Deposit" → `credit_column`
+     - "Type", "Transaction Type" → `type_column`
+     - "Category" → `category_column`
+     - "Settled", "Posted Date" → `settled_date_column`
+     - "Tags", "Labels" → `tags_column`
+   - Returns suggested `mapping_config` JSON
+   - Confidence score per mapping (100% = exact match, 75% = partial match)
+
+4. **`validateMapping(array $mappingConfig, array $headers): array`**
+   - Ensure required fields are mapped:
+     - `date_column` must exist
+     - `description_column` must exist
+     - Amount strategy must have corresponding columns:
+       - `single_column`: `amount_column` required
+       - `separate_columns`: `debit_column` AND `credit_column` required
+       - `type_column`: `amount_column` AND `type_column` required
+   - Return validation errors array or empty if valid
+
+5. **`previewWithMapping(UploadedFile $file, array $mappingConfig): array`**
+   - Apply mapping to first 5 rows
+   - Return transformed data:
+     ```php
+     [
+       ['transaction_date' => '2026-01-15', 'amount' => 50.00, 'type' => 'debit', 'description' => 'Groceries', ...],
+       // ... 4 more rows
+     ]
+     ```
+   - Include validation warnings per row (e.g., "Invalid date format", "Amount not numeric")
+
+6. **`extractTransactionFromRow(array $row, array $mappingConfig): array`**
+   - Map single row to transaction data structure:
+     ```php
+     [
+       'transaction_date' => Carbon::parse($row[$mappingConfig['date_column']]),
+       'description' => $row[$mappingConfig['description_column']],
+       'amount' => abs($amount),
+       'type' => $this->detectType($row, $mappingConfig),
+       'category_name' => $row[$mappingConfig['category_column']] ?? null,
+       'settled_date' => $row[$mappingConfig['settled_date_column']] ?? null,
+       'tags' => $this->parseTags($row[$mappingConfig['tags_column']] ?? ''),
+     ]
+     ```
+   - Validate each field (date parsing, numeric amount, required fields)
+   - Throw `InvalidRowDataException` with row number and field errors
+
+7. **`detectType(array $row, array $mappingConfig): string`**
+   - Implement type detection based on strategy:
+     - **single_column**: Check if amount is negative → 'debit', else 'credit'
+     - **separate_columns**: Check which column has value (debit_column → 'debit', credit_column → 'credit')
+     - **type_column**: Map type value (case-insensitive):
+       - "debit", "expense", "withdrawal" → 'debit'
+       - "credit", "income", "deposit" → 'credit'
+   - Throw exception if type cannot be determined
+
+8. **`calculateRowHash(Carbon $date, float $amount, string $description): string`**
+   - Generate SHA-256 hash: `hash('sha256', $date->format('Y-m-d') . '|' . $amount . '|' . strtolower(trim($description)))`
+   - Used for row-level duplicate detection
+
+9. **`checkRowDuplicate(int $userId, int $accountId, string $rowHash): ?int`**
+   - Query `xlsx_transaction_hashes` table
+   - Returns `transaction_id` if duplicate found, null otherwise
+
+10. **`compressAndStoreFile(UploadedFile $file): string`**
+    - Compress file using gzip compression
+    - Store as `.xlsx.gz` in `storage/app/xlsx_imports/`
+    - Return storage path
+
+11. **`generateTemplate(): string`**
+    - Create XLSX file with template structure:
+      - Row 1: Headers (with comments marking required/optional)
+      - Row 2: Example data
+      - Row 3: Format hints
+    - Return download path
+    - Template cached for 1 hour (regenerate daily)
+
+12. **`generateErrorReport(array $errors): string`**
+    - Create CSV file with error details:
+      - Columns: Row Number, Field, Error Message, Raw Value
+    - Store in `storage/app/xlsx_imports/errors/`
+    - Return path for download
+    - Example errors:
+      ```csv
+      Row Number,Field,Error Message,Raw Value
+      5,transaction_date,Invalid date format,13/32/2025
+      12,amount,Amount must be numeric,ABC
+      18,type,Cannot determine transaction type,
+      ```
+
+**Unit Tests**:
+- `test_can_parse_valid_xlsx_file()`
+- `test_detects_headers_correctly()`
+- `test_guesses_column_mapping_accurately()`
+- `test_validates_mapping_config()`
+- `test_rejects_missing_required_fields()`
+- `test_previews_with_mapping_applied()`
+- `test_extracts_transaction_from_row()`
+- `test_detects_type_from_single_column_strategy()`
+- `test_detects_type_from_separate_columns_strategy()`
+- `test_detects_type_from_type_column_strategy()`
+- `test_calculates_row_hash_consistently()`
+- `test_detects_duplicate_rows()`
+- `test_compresses_file_successfully()`
+- `test_generates_template_with_correct_structure()`
+- `test_generates_error_report_csv()`
+- `test_handles_invalid_xlsx_format()`
+- `test_handles_empty_rows()`
+- `test_parses_comma_separated_tags()`
+
+---
+
+##### 6.13.4 Background Job
+
+**ProcessXlsxImport Job** (`app/Jobs/ProcessXlsxImport.php`):
+
+Extends `BaseProcessingJob` (reusing progress tracking, error handling, concurrency checks).
+
+```php
+class ProcessXlsxImport extends BaseProcessingJob
+{
+    public function __construct(
+        public int $xlsxImportId,
+        public int $accountId,
+        public int $userId,
+        public array $mappingConfig,
+        public bool $createReconciliation = false,
+        public ?string $statementDate = null,
+        public ?float $statementBalance = null
+    ) {}
+
+    public function handle(): void
+    {
+        $import = XlsxImport::findOrFail($this->xlsxImportId);
+        $import->update(['status' => 'processing']);
+
+        $errors = [];
+        $processedCount = 0;
+        $skippedCount = 0;
+        $duplicateCount = 0;
+
+        try {
+            // 1. Decompress and parse XLSX file
+            $rows = $this->xlsxImportService->parseXlsxFileRows($filePath, $this->mappingConfig);
+            $import->update(['total_count' => count($rows)]);
+
+            // 2. Create reconciliation if requested
+            $reconciliation = null;
+            if ($this->createReconciliation) {
+                $reconciliation = $this->reconciliationService->createReconciliation([...]);
+            }
+
+            // 3. Process each row
+            foreach ($rows as $index => $row) {
+                try {
+                    // Extract transaction data
+                    $txnData = $this->xlsxImportService->extractTransactionFromRow($row, $this->mappingConfig);
+
+                    // Check row-level duplicate
+                    $rowHash = $this->xlsxImportService->calculateRowHash(...);
+                    $existingTxnId = $this->xlsxImportService->checkRowDuplicate(...);
+
+                    if ($existingTxnId) {
+                        $duplicateCount++;
+                        continue; // Skip duplicate
+                    }
+
+                    // Create transaction
+                    $transaction = $this->accountingService->createTransaction([...]);
+
+                    // Attach tags
+                    if (!empty($txnData['tags'])) {
+                        $tagIds = $this->resolveTagIds($txnData['tags']);
+                        $transaction->tags()->sync($tagIds);
+                    }
+
+                    // Store hash for future duplicate detection
+                    DB::table('xlsx_transaction_hashes')->insert([...]);
+
+                    // Fuzzy match to reconciliation if exists
+                    if ($reconciliation) {
+                        $matches = $this->reconciliationService->findMatchingTransactionsWithConfidence(...);
+                        // Auto-attach exact matches (100% confidence)
+                    }
+
+                    $processedCount++;
+
+                } catch (InvalidRowDataException $e) {
+                    // Log error, skip row, continue
+                    $errors[] = [...];
+                    $skippedCount++;
+                }
+
+                // Update progress every 10 rows
+                if ($processedCount % 10 === 0) {
+                    $this->updateProgress($processedCount, count($rows), $skippedCount, $duplicateCount);
+                }
+            }
+
+            // 4. Generate error report if errors exist
+            $errorReportPath = !empty($errors) ? $this->xlsxImportService->generateErrorReport($errors) : null;
+
+            // 5. Update import record
+            $import->update([
+                'reconciliation_id' => $reconciliation?->id,
+                'status' => 'completed',
+                'processed_count' => $processedCount,
+                'skipped_count' => $skippedCount,
+                'duplicate_count' => $duplicateCount,
+                'error_report_path' => $errorReportPath,
+            ]);
+
+            $this->markCompleted();
+
+        } catch (\Throwable $e) {
+            $this->handleFailure($e);
+        }
+    }
+
+    private function resolveCategoryId(?string $categoryName): ?int
+    {
+        if (!$categoryName) return null;
+        $category = Category::firstOrCreate(
+            ['user_id' => $this->userId, 'name' => $categoryName],
+            ['type' => 'expense']
+        );
+        return $category->id;
+    }
+
+    private function resolveTagIds(array $tagNames): array
+    {
+        return collect($tagNames)->map(function ($name) {
+            $tag = Tag::firstOrCreate(
+                ['user_id' => $this->userId, 'name' => trim($name)],
+                ['color' => $this->randomTagColor()]
+            );
+            return $tag->id;
+        })->toArray();
+    }
+}
+```
+
+**PHPUnit Tests**:
+- `test_job_processes_xlsx_import_successfully()`
+- `test_job_updates_progress_correctly()`
+- `test_job_skips_invalid_rows_and_continues()`
+- `test_job_detects_and_skips_duplicate_rows()`
+- `test_job_creates_reconciliation_when_requested()`
+- `test_job_matches_transactions_with_fuzzy_matching()`
+- `test_job_creates_categories_if_not_exist()`
+- `test_job_attaches_tags_correctly()`
+- `test_job_generates_error_report_for_invalid_rows()`
+- `test_job_marks_failed_on_exception()`
+- `test_job_respects_concurrency_limits()`
+
+---
+
+##### 6.13.5 API Endpoints
+
+**XLSX Import Endpoints**:
+
+1. **`POST /api/v1/xlsx-imports/detect-columns`**
+   - **Request**: `DetectXlsxColumnsRequest`
+     - `xlsx_file` (required, file, mimes:xlsx,csv, max:10240 KB)
+   - **Process**:
+     - Parse file, detect headers
+     - Guess column mapping with confidence scores
+     - Return preview of first 5 rows
+   - **Response**:
+     ```json
+     {
+       "data": {
+         "headers": ["Date", "Description", "Amount", "Category"],
+         "suggested_mapping": {
+           "date_column": "Date",
+           "description_column": "Description",
+           "amount_strategy": "single_column",
+           "amount_column": "Amount",
+           "category_column": "Category"
+         },
+         "confidence_scores": {
+           "date_column": 100,
+           "description_column": 100,
+           "amount_column": 100,
+           "category_column": 100
+         },
+         "preview_rows": [
+           ["2026-01-15", "Groceries", "-50.00", "Food"],
+           ["2026-01-16", "Salary", "2000.00", "Income"]
+         ],
+         "total_rows": 150
+       }
+     }
+     ```
+
+2. **`POST /api/v1/xlsx-imports/preview`**
+   - **Request**: `PreviewXlsxImportRequest`
+     - `xlsx_file` (required, file)
+     - `mapping_config` (required, JSON object)
+   - **Process**:
+     - Apply mapping to first 5 rows
+     - Validate data (show warnings)
+   - **Response**:
+     ```json
+     {
+       "data": {
+         "preview_transactions": [
+           {
+             "transaction_date": "2026-01-15",
+             "description": "Groceries",
+             "amount": 50.00,
+             "type": "debit",
+             "category": "Food",
+             "warnings": []
+           }
+         ],
+         "validation_summary": {
+           "valid_rows": 1,
+           "rows_with_warnings": 1
+         }
+       }
+     }
+     ```
+
+3. **`POST /api/v1/xlsx-imports/store`**
+   - **Request**: `StoreXlsxImportRequest`
+     - `xlsx_file` (required, file, mimes:xlsx,csv, max:10240 KB)
+     - `account_id` (required, integer, exists:accounts,id)
+     - `mapping_config` (required, JSON object)
+     - `save_mapping` (boolean, default: true) - Auto-save mapping
+     - `mapping_name` (string, required if save_mapping=true)
+     - `create_reconciliation` (boolean, default: false)
+     - `statement_date` (date, required if create_reconciliation=true)
+     - `statement_balance` (numeric, required if create_reconciliation=true)
+   - **Validation**:
+     - Check user's active imports count vs `max_concurrent_imports_per_user`
+     - Compute SHA-256 hash, check for file-level duplicates (optional warning)
+     - Validate mapping config has required fields
+   - **Process**:
+     - Compress and store file
+     - Save column mapping if requested
+     - Create `XlsxImport` record
+     - Dispatch `ProcessXlsxImport` job
+   - **Response**:
+     ```json
+     {
+       "data": {
+         "import_id": 123,
+         "status": "pending",
+         "total_rows": 150,
+         "message": "Import queued for processing"
+       }
+     }
+     ```
+   - **Status Codes**:
+     - 201: Job dispatched
+     - 429: Concurrency limit exceeded
+     - 422: Validation errors (invalid mapping, missing required fields)
+
+4. **`GET /api/v1/xlsx-imports`**
+   - **Purpose**: Import history with pagination
+   - **Query Parameters**:
+     - `filter[account_id]`, `filter[status]`, `filter[date_from]`, `filter[date_to]`
+     - `sort` (e.g., `-created_at`)
+     - `per_page` (default: 15)
+   - **Response**: Paginated collection with metadata
+
+5. **`GET /api/v1/xlsx-imports/{id}`**
+   - **Purpose**: Poll job status and progress
+   - **Response**:
+     ```json
+     {
+       "data": {
+         "id": 123,
+         "filename": "bank_statement_jan.xlsx",
+         "status": "processing",
+         "progress_percentage": 65.5,
+         "processed_count": 98,
+         "total_count": 150,
+         "skipped_count": 2,
+         "duplicate_count": 5,
+         "reconciliation_id": 45,
+         "has_errors": true,
+         "error_message": null,
+         "created_at": "2026-01-13T10:30:00Z"
+       }
+     }
+     ```
+
+6. **`GET /api/v1/xlsx-imports/{id}/download`**
+   - **Purpose**: Download stored compressed XLSX file
+   - **Authorization**: User must own the import
+   - **Response**: File download (.xlsx.gz)
+
+7. **`GET /api/v1/xlsx-imports/{id}/error-report`**
+   - **Purpose**: Download error report CSV for imports with skipped rows
+   - **Authorization**: User must own the import
+   - **Response**: CSV file download with error details
+
+8. **`GET /api/v1/xlsx-imports/template`**
+   - **Purpose**: Download XLSX template with required/optional columns
+   - **Response**: XLSX file download with example data and format hints
+
+**Column Mapping Endpoints**:
+
+9. **`GET /api/v1/xlsx-column-mappings`**
+   - **Purpose**: List saved column mappings for user
+   - **Query Parameters**:
+     - `filter[account_id]` (optional) - Filter by account
+     - `sort` (default: `-last_used_at`)
+   - **Response**:
+     ```json
+     {
+       "data": [
+         {
+           "id": 1,
+           "name": "Chase Bank Format",
+           "account_id": 5,
+           "mapping_config": {...},
+           "is_default": true,
+           "last_used_at": "2026-01-20T10:30:00Z"
+         }
+       ]
+     }
+     ```
+
+10. **`POST /api/v1/xlsx-column-mappings`**
+    - **Purpose**: Manually save column mapping
+    - **Request**:
+      - `name` (required, string, max: 100)
+      - `account_id` (nullable, integer)
+      - `mapping_config` (required, JSON object)
+      - `is_default` (boolean, default: false)
+    - **Response**: Created mapping resource
+
+11. **`PUT /api/v1/xlsx-column-mappings/{id}`**
+    - **Purpose**: Update saved mapping
+    - **Request**: Same as POST
+    - **Response**: Updated mapping resource
+
+12. **`DELETE /api/v1/xlsx-column-mappings/{id}`**
+    - **Purpose**: Delete saved mapping
+    - **Response**: 204 No Content
+
+---
+
+##### 6.13.6 React Components
+
+**XLSX Import Workflow Components**:
+
+1. **`XlsxImportUpload`** (Main upload and mapping interface)
+   - **Features**:
+     - File upload input (.xlsx, .csv)
+     - Account selector (existing accounts) or "Create New Account" option
+     - Display active imports: "3 of 5 imports active"
+     - Disable submit when concurrency limit reached
+     - "Download Template" button (calls `/api/v1/xlsx-imports/template`)
+   - **Workflow**:
+     - Step 1: Select account
+     - Step 2: Upload file → Auto-detect columns
+     - Step 3: Review/adjust column mapping (delegates to `XlsxColumnMapper`)
+     - Step 4: Preview data (delegates to `XlsxPreviewTable`)
+     - Step 5: Confirm and import
+   - **Props**: `onImportStarted(importId)`
+
+2. **`XlsxColumnMapper`** (Column mapping configuration)
+   - **Features**:
+     - Display detected spreadsheet headers
+     - Dropdown per header to map to TrueTrack fields:
+       - Transaction Date (required)
+       - Description (required)
+       - Amount / Debit / Credit (required)
+       - Type (optional)
+       - Category (optional)
+       - Settled Date (optional)
+       - Tags (optional)
+       - "Not Used" option
+     - Radio buttons for type detection strategy:
+       - Single column (amount sign)
+       - Separate columns (debit + credit)
+       - Type column
+     - Show confidence badges (100% = exact match, 75% = suggested)
+     - "Load Saved Mapping" dropdown (shows user's saved mappings)
+     - "Save Mapping" checkbox with name input
+     - "Auto-detect" button to rerun smart detection
+   - **Validation**:
+     - Highlight missing required fields in red
+     - Disable "Next" button until valid
+   - **Props**: `headers`, `suggestedMapping`, `onMappingConfirmed(mappingConfig)`
+
+3. **`XlsxPreviewTable`** (Preview mapped data)
+   - **Features**:
+     - Show first 5 rows with mapping applied
+     - Columns: Transaction Date, Description, Amount, Type, Category, Tags
+     - Warning badges for validation issues (invalid date, non-numeric amount)
+     - "Looks good? Import N rows" confirmation
+     - "Back to mapping" button
+   - **Props**: `previewData`, `validationSummary`, `onConfirm()`, `onBack()`
+
+4. **`XlsxImportProgress`** (Reuse from OFX, enhanced)
+   - **Enhancements** (additional to OFX progress):
+     - Show skipped rows count: "Processed: 98/150 | Skipped: 2 | Duplicates: 5"
+     - "Download Error Report" button (appears if `has_errors === true`)
+     - Link to error report: `/api/v1/xlsx-imports/{id}/error-report`
+   - **Reuse**: Uses existing `useJobProgress` hook for polling
+   - **Props**: `importId`
+
+5. **`XlsxImportHistory`** (History page)
+   - **Features**:
+     - Paginated table of all XLSX imports
+     - Columns: Date, Filename, Account, Status, Processed/Skipped/Duplicates, Actions
+     - Filters: Account, Status, Date Range
+     - Expandable rows showing:
+       - Reconciliation link (if created)
+       - Processed/Skipped/Duplicate counts
+       - Error report download (if errors exist)
+     - Actions: View Details, Download File, Download Errors, Reimport
+   - **Props**: None (fetches data on mount)
+
+6. **`SavedMappingSelector`** (Reusable dropdown)
+   - **Features**:
+     - Dropdown showing user's saved mappings
+     - Sort by last used date
+     - Show account name (if account-specific)
+     - "Default" badge for default mappings
+     - "Load" button per mapping
+   - **Props**: `accountId`, `onMappingSelected(mappingConfig)`
+
+7. **`ReconciliationOptionsPanel`** (Optional reconciliation during import)
+   - **Features**:
+     - Checkbox: "Create reconciliation from this import"
+     - Conditional fields (shown if checkbox enabled):
+       - Statement Date (date picker)
+       - Statement Balance (numeric input)
+     - Info tooltip: "Transactions will be automatically matched to existing entries"
+   - **Props**: `onReconciliationConfigChanged(config)`
+
+**Reusable Components** (shared with OFX):
+- `ImportProgressList` - Polling progress for multiple imports
+- `JobStatusBadge` - Status badges (Pending, Processing, Completed, Failed)
+- `ProgressBar` - Visual progress indicator
+- `useJobProgress` - Polling hook for job status
+
+**Integration with Existing Components**:
+- **`ImportHistory` Page** - Unified page showing both OFX and XLSX imports
+  - Tabs: "All Imports", "OFX Imports", "XLSX Imports"
+  - Combined table with "Type" column (OFX vs XLSX)
+  - Type-specific action buttons (download original file, download errors for XLSX)
+
+---
+
+##### 6.13.7 Form Requests
+
+1. **`DetectXlsxColumnsRequest`**
+   - Validation:
+     - `xlsx_file`: required, file, mimes:xlsx,xls,csv, max:10240 (10MB)
+   - Authorization: User must be authenticated
+
+2. **`PreviewXlsxImportRequest`**
+   - Validation:
+     - `xlsx_file`: required, file, mimes:xlsx,xls,csv, max:10240
+     - `mapping_config`: required, array
+     - `mapping_config.date_column`: required, string
+     - `mapping_config.description_column`: required, string
+     - `mapping_config.amount_strategy`: required, in:single_column,separate_columns,type_column
+     - (Conditional validations based on strategy)
+
+3. **`StoreXlsxImportRequest`**
+   - Validation:
+     - `xlsx_file`: required, file, mimes:xlsx,xls,csv, max:10240
+     - `account_id`: required, integer, exists:accounts,id, owned by user
+     - `mapping_config`: required, array, validated via `validateMapping()`
+     - `save_mapping`: boolean
+     - `mapping_name`: required_if:save_mapping,true, string, max:100
+     - `create_reconciliation`: boolean
+     - `statement_date`: required_if:create_reconciliation,true, date
+     - `statement_balance`: required_if:create_reconciliation,true, numeric
+   - Custom validation:
+     - Check concurrency limit via `XlsxImportService::checkConcurrencyLimit()`
+     - Validate mapping config via `XlsxImportService::validateMapping()`
+   - Authorization: User must own the account
+
+4. **`StoreXlsxColumnMappingRequest`**
+   - Validation:
+     - `name`: required, string, max:100
+     - `account_id`: nullable, integer, exists:accounts,id, owned by user
+     - `mapping_config`: required, array, validated via `validateMapping()`
+     - `is_default`: boolean
+
+---
+
+##### 6.13.8 Settings
+
+**New Settings** (added to `settings` table via seeder):
+
+- **Import Category**:
+  - `xlsx_import_retention_days`: 90 (min: 1, max: 365)
+  - `max_xlsx_rows_per_import`: 5000 (min: 1, max: 50000) - Prevent memory issues
+  - `xlsx_duplicate_detection`: 'row_level' (enum: 'file_level', 'row_level', 'disabled')
+
+- **System Category**:
+  - `xlsx_transaction_hash_retention_days`: 365 (min: 30, max: 1095) - How long to keep hashes for duplicate detection
+
+**Reused Settings**:
+- `max_concurrent_imports_per_user`: 5 (shared with OFX)
+- `levenshtein_distance_threshold_percent`: 20 (shared for fuzzy matching)
+
+---
+
+##### 6.13.9 Scheduled Commands
+
+**CleanupExpiredXlsxImports Command** (`app/Console/Commands/CleanupExpiredXlsxImports.php`):
+- **Purpose**: Delete old XLSX imports and files
+- **Schedule**: Daily at 2:00 AM
+- **Process**:
+  1. Fetch `xlsx_import_retention_days` from settings (default: 90)
+  2. Query `xlsx_imports` where `created_at < now() - retention_days`
+  3. Delete compressed .xlsx.gz files from storage
+  4. Delete error report CSV files from storage
+  5. Delete database records
+  6. Log cleanup summary
+
+**CleanupOldTransactionHashes Command** (`app/Console/Commands/CleanupOldTransactionHashes.php`):
+- **Purpose**: Delete old transaction hashes to prevent table bloat
+- **Schedule**: Weekly (Sundays at 3:00 AM)
+- **Process**:
+  1. Fetch `xlsx_transaction_hash_retention_days` from settings (default: 365)
+  2. Delete `xlsx_transaction_hashes` where `imported_at < now() - retention_days`
+  3. Log rows deleted
+
+**Registration** (`app/Console/Kernel.php`):
+```php
+protected function schedule(Schedule $schedule)
+{
+    $schedule->command('ofx:cleanup-expired')->dailyAt('02:00');
+    $schedule->command('xlsx:cleanup-expired')->dailyAt('02:00');
+    $schedule->command('xlsx:cleanup-hashes')->weeklyOn(0, '03:00'); // Sunday 3am
+}
+```
+
+---
+
+##### 6.13.10 Testing Strategy
+
+**PHPUnit Tests** (Backend):
+
+**Unit Tests** (`XlsxImportService`):
+- `test_can_parse_valid_xlsx_file()`
+- `test_can_parse_csv_file()`
+- `test_detects_headers_correctly()`
+- `test_skips_empty_rows_before_headers()`
+- `test_guesses_column_mapping_with_exact_matches()`
+- `test_guesses_column_mapping_with_partial_matches()`
+- `test_validates_mapping_config_for_required_fields()`
+- `test_rejects_invalid_amount_strategy()`
+- `test_previews_with_single_column_strategy()`
+- `test_previews_with_separate_columns_strategy()`
+- `test_previews_with_type_column_strategy()`
+- `test_extracts_transaction_from_row_successfully()`
+- `test_handles_invalid_date_formats()`
+- `test_handles_non_numeric_amounts()`
+- `test_detects_type_from_negative_amount()`
+- `test_detects_type_from_debit_credit_columns()`
+- `test_detects_type_from_type_column_values()`
+- `test_calculates_row_hash_consistently()`
+- `test_detects_duplicate_rows_by_hash()`
+- `test_parses_comma_separated_tags()`
+- `test_compresses_xlsx_file_successfully()`
+- `test_generates_template_with_required_columns()`
+- `test_generates_error_report_csv_correctly()`
+- `test_handles_corrupted_xlsx_file()`
+- `test_handles_empty_xlsx_file()`
+
+**Unit Tests** (`ProcessXlsxImport` Job):
+- `test_job_processes_xlsx_import_successfully()`
+- `test_job_updates_progress_every_10_rows()`
+- `test_job_skips_invalid_rows_and_continues()`
+- `test_job_logs_errors_for_invalid_rows()`
+- `test_job_detects_and_skips_duplicate_rows()`
+- `test_job_tracks_skipped_and_duplicate_counts()`
+- `test_job_creates_reconciliation_when_requested()`
+- `test_job_matches_transactions_with_fuzzy_matching()`
+- `test_job_creates_categories_if_not_exist()`
+- `test_job_attaches_tags_from_comma_separated_string()`
+- `test_job_generates_error_report_for_skipped_rows()`
+- `test_job_marks_completed_with_summary()`
+- `test_job_marks_failed_on_exception()`
+- `test_job_respects_max_rows_per_import_setting()`
+
+**Feature Tests** (API Endpoints):
+- `test_can_detect_columns_from_uploaded_xlsx()`
+- `test_suggests_column_mapping_with_confidence_scores()`
+- `test_can_preview_import_with_mapping_applied()`
+- `test_shows_validation_warnings_in_preview()`
+- `test_can_create_xlsx_import_with_valid_mapping()`
+- `test_rejects_import_with_invalid_mapping()`
+- `test_enforces_concurrency_limit_for_xlsx_imports()`
+- `test_auto_saves_column_mapping_when_requested()`
+- `test_can_create_reconciliation_during_import()`
+- `test_can_list_xlsx_imports_with_filters()`
+- `test_can_poll_import_status_and_progress()`
+- `test_can_download_imported_xlsx_file()`
+- `test_can_download_error_report_csv()`
+- `test_can_download_xlsx_template()`
+- `test_can_list_saved_column_mappings()`
+- `test_can_create_column_mapping()`
+- `test_can_update_column_mapping()`
+- `test_can_delete_column_mapping()`
+- `test_unauthorized_user_cannot_access_others_imports()`
+
+**Integration Tests**:
+- `test_end_to_end_xlsx_import_workflow()`
+  - Upload → Detect → Map → Preview → Import → Poll → Complete
+- `test_import_with_saved_mapping_reuse()`
+- `test_import_with_reconciliation_and_fuzzy_matching()`
+- `test_concurrent_imports_by_same_user()`
+- `test_large_xlsx_file_import_performance()` (1000+ rows)
+- `test_csv_file_import_workflow()`
+- `test_duplicate_row_detection_across_multiple_imports()`
+- `test_error_handling_with_partially_valid_file()`
+- `test_settings_impact_on_import_behavior()`
+  - Update `max_xlsx_rows_per_import`, verify rejection
+  - Update `xlsx_duplicate_detection`, verify behavior
+
+**Jest Tests** (Frontend):
+- `XlsxImportUpload`:
+  - `test_uploads_file_and_triggers_column_detection()`
+  - `test_shows_concurrency_limit_warning()`
+  - `test_downloads_template_on_button_click()`
+- `XlsxColumnMapper`:
+  - `test_displays_detected_headers()`
+  - `test_shows_suggested_mapping_with_confidence_badges()`
+  - `test_allows_manual_column_mapping_adjustments()`
+  - `test_validates_required_fields_before_next_step()`
+  - `test_loads_saved_mapping_on_selection()`
+  - `test_shows_save_mapping_option()`
+- `XlsxPreviewTable`:
+  - `test_displays_preview_rows_with_mapped_data()`
+  - `test_shows_validation_warnings()`
+  - `test_confirms_import_on_button_click()`
+- `XlsxImportProgress`:
+  - `test_polls_job_status_in_real_time()`
+  - `test_displays_skipped_and_duplicate_counts()`
+  - `test_shows_download_error_report_button_when_errors_exist()`
+- `XlsxImportHistory`:
+  - `test_displays_paginated_import_list()`
+  - `test_filters_by_account_and_status()`
+  - `test_downloads_original_file_on_action_click()`
+  - `test_downloads_error_report_on_action_click()`
+- `SavedMappingSelector`:
+  - `test_displays_saved_mappings_for_user()`
+  - `test_loads_mapping_on_selection()`
+
+**Test Fixtures**:
+- `tests/fixtures/valid_statement.xlsx` - Standard format (Date, Description, Amount)
+- `tests/fixtures/debit_credit_format.xlsx` - Separate debit/credit columns
+- `tests/fixtures/type_column_format.xlsx` - Explicit type column
+- `tests/fixtures/with_tags_and_categories.xlsx` - All optional columns
+- `tests/fixtures/invalid_dates.xlsx` - Rows with invalid date formats
+- `tests/fixtures/non_numeric_amounts.xlsx` - Rows with text in amount column
+- `tests/fixtures/large_import.xlsx` - 1000+ rows for performance testing
+- `tests/fixtures/empty_rows.xlsx` - File with empty rows between data
+- `tests/fixtures/valid_statement.csv` - CSV version of standard format
+
+**Coverage Targets**:
+- `XlsxImportService`: 90%+ (complex mapping logic)
+- `ProcessXlsxImport` job: 85%+
+- Controllers: 80%+
+- React Components: 70%+ (focus on logic)
+- Overall: 75%+
+
+---
+
+##### 6.13.11 Deliverables Summary
+
+**Database Migrations**:
+- `create_xlsx_imports_table` (mirrors `ofx_imports` with additional fields)
+- `create_xlsx_column_mappings_table` (saved mapping configurations)
+- `create_xlsx_transaction_hashes_table` (row-level duplicate detection)
+
+**Models**:
+- `XlsxImport` (progress tracking, error handling, relationships)
+- `XlsxColumnMapping` (mapping persistence, default handling)
+- No dedicated model for `xlsx_transaction_hashes` (direct DB access)
+
+**Services**:
+- `XlsxImportService` (parsing, column detection, mapping, validation, template generation)
+
+**Jobs**:
+- `ProcessXlsxImport` (extends `BaseProcessingJob`, row-by-row processing)
+- `CleanupExpiredXlsxImports` (scheduled cleanup)
+- `CleanupOldTransactionHashes` (scheduled cleanup)
+
+**Controllers**:
+- `Api\V1\XlsxImportController`:
+  - `detectColumns()`, `preview()`, `store()`, `index()`, `show()`, `download()`, `errorReport()`, `template()`
+- `Api\V1\XlsxColumnMappingController`:
+  - `index()`, `store()`, `update()`, `destroy()`
+
+**Form Requests**:
+- `DetectXlsxColumnsRequest` (file validation)
+- `PreviewXlsxImportRequest` (mapping validation)
+- `StoreXlsxImportRequest` (comprehensive validation, concurrency check)
+- `StoreXlsxColumnMappingRequest` (mapping persistence validation)
+
+**API Resources**:
+- `XlsxImportResource` (status, progress, error details)
+- `XlsxColumnMappingResource` (mapping configuration, usage metadata)
+
+**Policies**:
+- `XlsxImportPolicy` (ownership checks, authorization)
+
+**React Components** (8 new components):
+- `XlsxImportUpload` - Main import interface
+- `XlsxColumnMapper` - Column mapping configuration
+- `XlsxPreviewTable` - Preview mapped data
+- `XlsxImportProgress` - Enhanced progress tracking
+- `XlsxImportHistory` - Import history page
+- `SavedMappingSelector` - Reusable mapping selector
+- `ReconciliationOptionsPanel` - Optional reconciliation config
+- **Enhanced `ImportHistory`** - Unified OFX + XLSX history page
+
+**Seeders**:
+- `XlsxImportSeeder` (test data)
+- `XlsxColumnMappingSeeder` (example mappings)
+- Updated `SettingSeeder` (XLSX-specific settings)
+
+**Factories**:
+- `XlsxImportFactory`
+- `XlsxColumnMappingFactory`
+
+**Tests**:
+- PHPUnit: 40+ tests (unit, feature, integration)
+- Jest: 15+ tests (component logic, user interactions)
+- Test fixtures: 9 XLSX/CSV sample files
+- Coverage: 75%+ overall, 90%+ for `XlsxImportService`
+
+**Documentation Updates**:
+- API documentation (new endpoints, request/response examples)
+- User guide (XLSX import workflow, column mapping, template usage)
+- Developer guide (column mapping architecture, duplicate detection strategy)
+
+**Infrastructure**:
+- Laravel Excel / PhpSpreadsheet dependency
+- Storage configuration (xlsx_imports directory, error reports)
+- Scheduled command registration (cleanup jobs)
+
+---
+
+##### 6.13.12 User Capabilities
+
+After XLSX import implementation, users will be able to:
+
+**XLSX/CSV Import**:
+- ✅ Upload XLSX or CSV files (up to 10MB, 5000 rows)
+- ✅ Download standardized XLSX template with example data
+- ✅ Automatically detect spreadsheet column headers
+- ✅ Review smart column mapping suggestions with confidence scores
+- ✅ Manually adjust column mappings via intuitive UI
+- ✅ Choose transaction type detection strategy (amount sign, separate columns, type column)
+- ✅ Preview first 5 rows with mapping applied before importing
+- ✅ Save column mappings for future imports (account-specific or global)
+- ✅ Load previously saved mappings with one click
+- ✅ Import transactions with categories and tags (auto-created if needed)
+- ✅ Optionally create reconciliation during import with fuzzy matching
+- ✅ Track import progress in real-time (processed/skipped/duplicates)
+- ✅ Automatically skip duplicate rows (based on date+amount+description hash)
+- ✅ Continue import when encountering invalid rows (skip and log errors)
+- ✅ Download detailed error report (CSV) showing row numbers and validation issues
+- ✅ View comprehensive import history with filters (account, status, date)
+- ✅ Download original imported XLSX files for reference
+- ✅ Reimport files when needed
+
+**System Benefits**:
+- ✅ Prevent duplicate transaction imports via row-level hashing
+- ✅ Handle malformed data gracefully (skip invalid rows, continue processing)
+- ✅ Reuse column mappings across imports (saved per account or globally)
+- ✅ Support multiple spreadsheet formats (XLSX, CSV)
+- ✅ Automatic category and tag creation during import
+- ✅ Reconciliation integration with fuzzy matching (same as OFX)
+- ✅ Unified import history (OFX + XLSX in single interface)
+- ✅ Configurable retention policies (auto-cleanup old imports and hashes)
+- ✅ Memory-efficient processing (chunked reading for large files)
+- ✅ Detailed error reporting for troubleshooting
+
+---
+
+**Phase 6 Status**: Ready for implementation with comprehensive OFX + XLSX import integration
+
+---
+
 ## Database Schema Overview
 
-### Core Tables
-- `users` - User accounts (from Breeze)
-- `accounts` - Financial accounts (bank, credit card, wallet, transitional) with initial_balance
-- `account_balances` - Monthly balance snapshots for performance optimization
-- `categories` - Revenue/Expense categories (hierarchical)
-- `tags` - Flexible transaction grouping
-- `transactions` - Financial entries with personal finance logic (credits increase, debits decrease)
-- `reconciliations` - Bank/credit card statement reconciliation records
+### 1. Authentication & Authorization
+- **`users`** - User accounts and authentication (Laravel Breeze)
+  - Relationships: Has roles, created imports, transactions, and reconciliations
+- **`roles`** - User role definitions (admin, user)
+  - Relationships: BelongsToMany users (via role_user), permissions (via permission_role)
+- **`permissions`** - Granular permission definitions (manage-users, manage-settings, etc.)
+  - Relationships: BelongsToMany roles (via permission_role)
+- **`permission_role`** (pivot) - Role-permission assignments (explicit, no inheritance)
+- **`role_user`** (pivot) - User-role assignments
 
-### Pivot Tables
-- `reconciliation_transaction` - Links transactions to reconciliations
-- `tag_transaction` - Many-to-many (transactions and tags)
+### 2. Financial Core
+- **`accounts`** - Financial accounts (bank, credit_card, wallet, transitional)
+  - Stores initial_balance (never modified after creation)
+  - Relationships: Has balances, transactions, imports, reconciliations
+- **`account_balances`** - Monthly balance snapshots for performance optimization
+  - One record per account per month with closing_balance
+  - Enables fast balance calculations and historical tracking
+  - Relationships: Belongs to account
+- **`categories`** - Hierarchical revenue/expense categories
+  - Self-referential (parent_id for hierarchy)
+  - Relationships: Has transactions, has child categories
+- **`tags`** - Flexible transaction grouping and labeling
+  - Relationships: BelongsToMany transactions (via tag_transaction)
+- **`transactions`** - Transaction records with personal finance logic
+  - Type: 'credit' (increases balance) or 'debit' (decreases balance)
+  - Relationships: Belongs to account, category; has tags, reconciliations
+- **`tag_transaction`** (pivot) - Transaction-tag associations (many-to-many)
 
-### Key Constraints
-- Foreign keys with cascading rules
-- Check constraints for accounting integrity
-- Unique indexes for performance
-- Soft deletes for audit trail
+### 3. Reconciliation
+- **`reconciliations`** - Bank/credit card statement reconciliation records
+  - Tracks statement dates, balances, and discrepancies
+  - Status: pending, in_progress, completed
+  - Relationships: Belongs to account, user; has matched transactions
+- **`reconciliation_transaction`** (pivot) - Transaction-reconciliation links
+  - Includes confidence scores (100%, 75%, 50%) for fuzzy matching
+
+### 4. Import Management
+- **`ofx_imports`** - OFX/QFX file import tracking and status
+  - File hash (SHA-256) for duplicate detection
+  - Progress tracking: processed_count, total_count
+  - Status: pending, processing, completed, failed
+  - Compressed file storage (.ofx.gz)
+  - Relationships: Belongs to account, user, reconciliation (optional)
+- **`xlsx_imports`** - XLSX/CSV file import tracking and status
+  - Mirrors ofx_imports structure with additional fields
+  - Row-level duplicate detection support
+  - Tracks skipped_count, duplicate_count
+  - Error report generation (downloadable CSV)
+  - Relationships: Belongs to account, user, reconciliation (optional), column_mapping (optional)
+- **`xlsx_column_mappings`** - Saved spreadsheet column mapping configurations
+  - User-defined or account-specific mappings
+  - Stores mapping_config (JSON) for reuse
+  - Default mapping support, usage tracking (last_used_at)
+  - Relationships: Belongs to user, account (optional); has xlsx_imports
+- **`xlsx_transaction_hashes`** - Row-level duplicate detection for XLSX imports
+  - SHA-256 hash of (date + amount + description) per account
+  - Prevents duplicate imports across multiple files
+  - Unique index on (user_id, account_id, row_hash)
+  - Automatic cleanup via scheduled command (1-year retention)
+
+### 5. System Configuration
+- **`settings`** - Configurable system settings with validation rules
+  - Categories: import, system, security, matching
+  - Includes min/max constraints, type casting, default values
+  - Examples: retention days, concurrency limits, matching thresholds
+  - Relationships: Has change history (setting_changes)
+- **`setting_changes`** - Settings change audit trail
+  - Tracks who changed what setting, when, and old/new values
+  - Relationships: Belongs to setting, user (changed_by)
+
+### Key Database Characteristics
+- **Foreign Keys**: All relationships use cascading rules (delete, update) where appropriate
+- **Unique Indexes**: File hashes, transaction hashes, user identifiers for performance
+- **Check Constraints**: Enforce accounting integrity (e.g., non-negative amounts)
+- **Soft Deletes**: Audit trail support on core tables (users, accounts, transactions, categories, tags)
+- **Status Enums**: Standardized status values (pending, processing, completed, failed)
+- **Timestamps**: All tables include created_at, updated_at for audit purposes
 
 ---
 
