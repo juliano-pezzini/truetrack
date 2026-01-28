@@ -174,8 +174,9 @@ class ProcessXlsxImport implements ShouldQueue
 
                     // Resolve category
                     $categoryId = null;
-                    if (! empty($transactionData['category'])) {
-                        $categoryId = $this->resolveCategoryId($transactionData['category']);
+                    $categoryName = $transactionData['category_name'] ?? $transactionData['category'] ?? null;
+                    if (! empty($categoryName)) {
+                        $categoryId = $this->resolveCategoryId($categoryName);
                     }
 
                     // Create transaction

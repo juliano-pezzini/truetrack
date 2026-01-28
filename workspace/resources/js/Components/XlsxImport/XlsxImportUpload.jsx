@@ -32,11 +32,11 @@ export default function XlsxImportUpload({ accounts, activeImportsCount, maxImpo
         const file = e.target.files[0];
         if (!file) return;
 
-        setData('xlsx_file', file);
+        setData('file', file);
 
         // Auto-detect columns
         const formData = new FormData();
-        formData.append('xlsx_file', file);
+        formData.append('file', file);
 
         try {
             const response = await axios.post('/api/v1/xlsx-imports/detect-columns', formData);

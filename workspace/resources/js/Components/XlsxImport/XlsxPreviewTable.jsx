@@ -21,12 +21,18 @@ export default function XlsxPreviewTable({ previewData, validationSummary, onCon
         return type === 'credit' ? 'text-green-600' : 'text-red-600';
     };
 
+    const previewRowCount = Array.isArray(previewData) ? previewData.length : 0;
+    const displayRowCount = Math.min(5, previewRowCount);
+    const rowLabel = displayRowCount === 1 ? 'row' : 'rows';
+
     return (
         <div className="space-y-6">
             <div>
                 <h3 className="text-lg font-semibold">Preview Transactions</h3>
                 <p className="text-sm text-gray-600 mt-1">
-                    Review the first 5 rows to ensure the mapping is correct
+                    {displayRowCount > 0
+                        ? `Review the first ${displayRowCount} ${rowLabel} to ensure the mapping is correct`
+                        : 'No rows are available to preview yet.'}
                 </p>
             </div>
 
