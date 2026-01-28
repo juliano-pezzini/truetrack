@@ -154,7 +154,7 @@ class XlsxTestHelper
 
         // Generate many rows
         for ($i = 2; $i <= $rowCount + 1; $i++) {
-            $date = '2026-01-' . str_pad((string) (($i % 28) + 1), 2, '0', STR_PAD_LEFT);
+            $date = '2026-01-'.str_pad((string) (($i % 28) + 1), 2, '0', STR_PAD_LEFT);
             $sheet->setCellValue("A{$i}", $date);
             $sheet->setCellValue("B{$i}", "Transaction {$i}");
             $sheet->setCellValue("C{$i}", rand(-500, 500) / 10);

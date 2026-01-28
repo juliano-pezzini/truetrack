@@ -15,8 +15,6 @@ class XlsxColumnMappingFactory extends Factory
 {
     /**
      * Define the model's default state.
-     *
-     * @return array<string, mixed>
      */
     public function definition(): array
     {
@@ -75,4 +73,3 @@ class XlsxColumnMappingFactory extends Factory
         });
     }
 }
-

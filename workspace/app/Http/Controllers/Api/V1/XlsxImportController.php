@@ -22,6 +22,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 class XlsxImportController extends Controller
 {
     use AuthorizesRequests;
+
     public function __construct(
         private XlsxImportService $xlsxService
     ) {}
@@ -188,7 +189,7 @@ class XlsxImportController extends Controller
     /**
      * Download stored XLSX file.
      */
-    public function download(XlsxImport $xlsxImport): Response
+    public function download(XlsxImport $xlsxImport): \Symfony\Component\HttpFoundation\BinaryFileResponse
     {
         $this->authorize('view', $xlsxImport);
 
@@ -205,7 +206,7 @@ class XlsxImportController extends Controller
     /**
      * Download error report CSV.
      */
-    public function errorReport(XlsxImport $xlsxImport): Response
+    public function errorReport(XlsxImport $xlsxImport): \Symfony\Component\HttpFoundation\BinaryFileResponse
     {
         $this->authorize('view', $xlsxImport);
 

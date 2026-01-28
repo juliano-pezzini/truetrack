@@ -6,7 +6,6 @@ namespace Database\Factories;
 
 use App\Models\Account;
 use App\Models\User;
-use App\Models\XlsxColumnMapping;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -16,8 +15,6 @@ class XlsxImportFactory extends Factory
 {
     /**
      * Define the model's default state.
-     *
-     * @return array<string, mixed>
      */
     public function definition(): array
     {
@@ -82,4 +79,3 @@ class XlsxImportFactory extends Factory
         ]);
     }
 }
-

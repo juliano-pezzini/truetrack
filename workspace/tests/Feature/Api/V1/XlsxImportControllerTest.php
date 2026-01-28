@@ -6,7 +6,6 @@ namespace Tests\Feature\Api\V1;
 
 use App\Models\Account;
 use App\Models\User;
-use App\Models\XlsxColumnMapping;
 use App\Models\XlsxImport;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -39,6 +38,7 @@ class XlsxImportControllerTest extends TestCase
     {
         $tempPath = storage_path("app/{$filename}");
         XlsxTestHelper::createStandardFormatXlsx($tempPath);
+
         return new UploadedFile($tempPath, $filename, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true);
     }
 

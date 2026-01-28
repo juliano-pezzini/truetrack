@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 class XlsxColumnMappingController extends Controller
 {
     use AuthorizesRequests;
+
     /**
      * List user's saved column mappings.
      */
