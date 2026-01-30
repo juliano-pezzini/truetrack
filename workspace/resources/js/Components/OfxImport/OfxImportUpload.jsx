@@ -38,7 +38,17 @@ export default function OfxImportUpload({ accounts, onSuccess }) {
     };
 
     return (
-        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="relative rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+            {/* Loading Overlay */}
+            {processing && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center rounded-lg bg-white bg-opacity-90">
+                    <div className="text-center">
+                        <div className="mx-auto h-16 w-16 animate-spin rounded-full border-4 border-gray-200 border-t-indigo-600"></div>
+                        <p className="mt-4 text-sm font-medium text-gray-700">Uploading...</p>
+                    </div>
+                </div>
+            )}
+
             <h3 className="mb-4 text-lg font-semibold text-gray-900">
                 Upload OFX Statement
             </h3>
