@@ -1,18 +1,9 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
-Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
-});
+Route::get('/', fn () => redirect()->route('dashboard'));
 
 Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
@@ -54,9 +45,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/credit-card-closure', [App\Http\Controllers\ReconciliationController::class, 'creditCardClosure'])
         ->name('credit-card-closure');
 
-    // OFX Import management
-    Route::get('/ofx-imports', [App\Http\Controllers\OfxImportController::class, 'index'])
-        ->name('ofx-imports.index');
+    // Unified Import management (OFX + XLSX/CSV)
+    Route::get('/imports', [App\Http\Controllers\ImportController::class, 'index'])
+        ->name('imports.index');
 });
 
 require __DIR__.'/auth.php';
