@@ -36,6 +36,10 @@ class StoreXlsxImportRequest extends FormRequest
                 'mimes:xlsx,xls,csv',
                 'max:10240',
             ],
+            'force' => [
+                'sometimes',
+                'boolean',
+            ],
             'account_id' => [
                 'required',
                 'exists:accounts,id',
