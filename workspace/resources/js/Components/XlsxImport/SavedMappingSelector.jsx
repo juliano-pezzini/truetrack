@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import ConfirmModal from '../ConfirmModal';
 
 export default function SavedMappingSelector({ accountId, onMappingSelected }) {
     const [mappings, setMappings] = useState([]);
@@ -7,6 +8,8 @@ export default function SavedMappingSelector({ accountId, onMappingSelected }) {
     const [selectedMappingId, setSelectedMappingId] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [mappingToDelete, setMappingToDelete] = useState(null);
 
     useEffect(() => {
         fetchMappings();
@@ -52,18 +55,19 @@ export default function SavedMappingSelector({ accountId, onMappingSelected }) {
         if (!selectedMappingId) return;
 
         const mapping = mappings.find((m) => m.id === parseInt(selectedMappingId));
-        const mappingName = mapping?.name || 'this mapping';
+        setMappingToDelete(mapping);
+        setShowDeleteConfirm(true);
+    };
 
-        if (!confirm(`Remove "${mappingName}"? This cannot be undone.`)) {
-            return;
-        }
-
+    const handleConfirmDelete = async () => {
         setIsDeleting(true);
         setDeleteError(null);
 
         try {
             await axios.delete(`/api/v1/xlsx-column-mappings/${selectedMappingId}`);
             setSelectedMappingId('');
+            setShowDeleteConfirm(false);
+            setMappingToDelete(null);
             await fetchMappings();
         } catch (error) {
             console.error('Failed to delete saved mapping:', error);
@@ -71,6 +75,11 @@ export default function SavedMappingSelector({ accountId, onMappingSelected }) {
         } finally {
             setIsDeleting(false);
         }
+    };
+
+    const handleCancelDelete = () => {
+        setShowDeleteConfirm(false);
+        setMappingToDelete(null);
     };
 
     if (loading) {
@@ -82,34 +91,48 @@ export default function SavedMappingSelector({ accountId, onMappingSelected }) {
     }
 
     return (
-        <div className="mt-1 space-y-2">
-            <div className="flex gap-2">
-                <select
-                    className="block w-full border-gray-300 rounded-md shadow-sm"
-                    value={selectedMappingId}
-                    onChange={handleMappingSelect}
-                >
-                    <option value="">-- Select a saved mapping --</option>
-                    {mappings.map((mapping) => (
-                        <option key={mapping.id} value={mapping.id}>
-                            {mapping.name}
-                            {mapping.is_default && ' (Default)'}
-                            {mapping.account_id && ` - ${mapping.account?.name || 'Account-specific'}`}
-                        </option>
-                    ))}
-                </select>
-                <button
-                    type="button"
-                    onClick={handleDeleteMapping}
-                    disabled={!selectedMappingId || isDeleting}
-                    className="px-3 py-2 text-sm rounded-md border border-red-300 text-red-700 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    {isDeleting ? 'Removing...' : 'Remove'}
-                </button>
+        <>
+            <div className="mt-1 space-y-2">
+                <div className="flex gap-2">
+                    <select
+                        className="block w-full border-gray-300 rounded-md shadow-sm"
+                        value={selectedMappingId}
+                        onChange={handleMappingSelect}
+                    >
+                        <option value="">-- Select a saved mapping --</option>
+                        {mappings.map((mapping) => (
+                            <option key={mapping.id} value={mapping.id}>
+                                {mapping.name}
+                                {mapping.is_default && ' (Default)'}
+                                {mapping.account_id && ` - ${mapping.account?.name || 'Account-specific'}`}
+                            </option>
+                        ))}
+                    </select>
+                    <button
+                        type="button"
+                        onClick={handleDeleteMapping}
+                        disabled={!selectedMappingId || isDeleting}
+                        className="px-3 py-2 text-sm rounded-md border border-red-300 text-red-700 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {isDeleting ? 'Removing...' : 'Remove'}
+                    </button>
+                </div>
+                {deleteError && (
+                    <p className="text-sm text-red-600">{deleteError}</p>
+                )}
             </div>
-            {deleteError && (
-                <p className="text-sm text-red-600">{deleteError}</p>
-            )}
-        </div>
+            <ConfirmModal
+                show={showDeleteConfirm}
+                title="Remove Saved Mapping"
+                message={`Remove "${mappingToDelete?.name || 'this mapping'}"? This cannot be undone.`}
+                confirmText="Remove"
+                cancelText="Cancel"
+                onConfirm={handleConfirmDelete}
+                onCancel={handleCancelDelete}
+                isLoading={isDeleting}
+                isDangerous={true}
+                maxWidth="sm"
+            />
+        </>
     );
 }

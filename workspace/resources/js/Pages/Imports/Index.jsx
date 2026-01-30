@@ -9,8 +9,8 @@ export default function Index({ auth, accounts, imports }) {
     const [activeTab, setActiveTab] = useState('all');
 
     const handleUploadSuccess = () => {
-        // Refresh the page to show the new import
-        window.location.reload();
+        // Refresh the data while preserving the SPA experience
+        router.reload({ preserveScroll: true });
     };
 
     // Filter imports based on active tab
