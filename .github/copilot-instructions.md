@@ -568,4 +568,32 @@ export default function AccountForm({ account, onSubmit }) {
 
 ---
 
-**Remember**: This is a financial application. Data integrity, security, and accuracy are paramount. Always validate accounting logic thoroughly.
+## Development Phases Documentation
+
+For detailed implementation specifications, see the phase-specific documentation:
+
+### Navigation
+- **[All Phase Documentation](../docs/phases/README.md)** - Navigation hub for all phases
+
+### Individual Phase Docs
+- **[Phase 1: Project Foundation](../docs/phases/PHASE_01_PROJECT_FOUNDATION.md)** - Bootstrap environment with authentication
+- **[Phase 2: Accounts Module](../docs/phases/PHASE_02_ACCOUNTS_MODULE.md)** - Financial accounts management
+- **[Phase 3: Categories & Tags](../docs/phases/PHASE_03_CATEGORIES_AND_TAGS.md)** - Financial taxonomy
+- **[Phase 4: Transactions](../docs/phases/PHASE_04_TRANSACTIONS.md)** - Transaction recording with balance logic
+- **[Phase 5: Analytics Dashboard](../docs/phases/PHASE_05_ANALYTICS_DASHBOARD.md)** - Financial insights and reporting
+- **[Phase 6: Statement Import](../docs/phases/PHASE_06_STATEMENT_IMPORT.md)** - OFX + XLSX import framework
+  - **[Phase 6.1-6.5: OFX Import](../docs/phases/PHASE_06_OFX_IMPORT.md)** - Detailed OFX implementation
+  - **[Phase 6.6-6.13: XLSX Import](../docs/phases/PHASE_06_XLSX_CSV_IMPORT.md)** - Detailed XLSX implementation
+
+Each phase document includes:
+- Complete deliverables list (models, controllers, services, jobs, components)
+- Database schema and migrations
+- API endpoint specifications with JSON examples
+- React component specifications
+- Form request validation rules
+- Testing strategy (PHPUnit + Jest)
+- Coverage targets (80%+ services, 70%+ overall)
+- User capabilities after completion
+
+---
+
