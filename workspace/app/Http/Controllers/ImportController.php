@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Account;
 use App\Models\OfxImport;
+use App\Models\Reconciliation;
 use App\Models\XlsxImport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -29,7 +30,12 @@ class ImportController extends Controller
             ->orderBy('created_at', 'desc')
             ->limit(20)
             ->get()
-            ->map(function ($import) {
+            ->map(function (OfxImport $import): array {
+                $matchedCount = 0;
+                if ($import->reconciliation instanceof Reconciliation) {
+                    $matchedCount = $import->reconciliation->transactions()->count();
+                }
+
                 return [
                     'id' => $import->id,
                     'type' => 'ofx',
@@ -37,8 +43,8 @@ class ImportController extends Controller
                     'account' => $import->account,
                     'status' => $import->status,
                     'processed_count' => $import->processed_count,
-                    'matched_count' => $import->matched_count,
-                    'progress' => $import->progress,
+                    'matched_count' => $matchedCount,
+                    'progress' => $import->getProgressPercentage(),
                     'error_message' => $import->error_message,
                     'reconciliation_id' => $import->reconciliation_id,
                     'created_at' => $import->created_at,
@@ -54,7 +60,7 @@ class ImportController extends Controller
                     ->orderBy('created_at', 'desc')
                     ->limit(20)
                     ->get()
-                    ->map(function ($import) {
+                    ->map(function (XlsxImport $import): array {
                         return [
                             'id' => $import->id,
                             'type' => 'xlsx',
@@ -64,9 +70,9 @@ class ImportController extends Controller
                             'processed_count' => $import->processed_count,
                             'skipped_count' => $import->skipped_count ?? 0,
                             'duplicate_count' => $import->duplicate_count ?? 0,
-                            'progress' => $import->progress,
+                            'progress' => $import->getProgressPercentage(),
                             'error_message' => $import->error_message,
-                            'has_errors' => $import->has_errors ?? false,
+                            'has_errors' => $import->hasErrors(),
                             'reconciliation_id' => $import->reconciliation_id,
                             'created_at' => $import->created_at,
                         ];
