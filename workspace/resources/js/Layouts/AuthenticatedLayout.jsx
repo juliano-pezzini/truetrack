@@ -31,12 +31,6 @@ export default function AuthenticatedLayout({ header, children }) {
                                     Dashboard
                                 </NavLink>
                                 <NavLink
-                                    href={route('accounts.index')}
-                                    active={route().current('accounts.*')}
-                                >
-                                    Accounts
-                                </NavLink>
-                                <NavLink
                                     href={route('transactions.index')}
                                     active={route().current('transactions.*')}
                                 >
@@ -47,6 +41,12 @@ export default function AuthenticatedLayout({ header, children }) {
                                     active={route().current('reconciliations.*')}
                                 >
                                     Reconciliations
+                                </NavLink>
+                                <NavLink
+                                    href={route('imports.index')}
+                                    active={route().current('imports.*')}
+                                >
+                                    Import
                                 </NavLink>
                             </div>
                         </div>
@@ -85,6 +85,11 @@ export default function AuthenticatedLayout({ header, children }) {
                                     </Dropdown.Trigger>
 
                                     <Dropdown.Content>
+                                        <Dropdown.Link
+                                            href={route('accounts.index')}
+                                        >
+                                            Accounts
+                                        </Dropdown.Link>
                                         <Dropdown.Link
                                             href={route('categories.index')}
                                         >
@@ -201,12 +206,6 @@ export default function AuthenticatedLayout({ header, children }) {
                             Dashboard
                         </ResponsiveNavLink>
                         <ResponsiveNavLink
-                            href={route('accounts.index')}
-                            active={route().current('accounts.*')}
-                        >
-                            Accounts
-                        </ResponsiveNavLink>
-                        <ResponsiveNavLink
                             href={route('transactions.index')}
                             active={route().current('transactions.*')}
                         >
@@ -218,6 +217,12 @@ export default function AuthenticatedLayout({ header, children }) {
                         >
                             Reconciliations
                         </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            href={route('imports.index')}
+                            active={route().current('imports.*')}
+                        >
+                            Import
+                        </ResponsiveNavLink>
                     </div>
 
                     <div className="border-t border-gray-200 pb-3 pt-4">
@@ -227,6 +232,12 @@ export default function AuthenticatedLayout({ header, children }) {
                             </div>
                         </div>
                         <div className="space-y-1">
+                            <ResponsiveNavLink
+                                href={route('accounts.index')}
+                                active={route().current('accounts.*')}
+                            >
+                                Accounts
+                            </ResponsiveNavLink>
                             <ResponsiveNavLink
                                 href={route('categories.index')}
                                 active={route().current('categories.*')}
