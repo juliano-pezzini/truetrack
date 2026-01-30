@@ -32,6 +32,8 @@ class XlsxImport extends Model
         'file_path',
         'user_id',
         'column_mapping_id',
+        'mapping_config',
+        'is_forced',
     ];
 
     /**
@@ -44,6 +46,8 @@ class XlsxImport extends Model
         'total_count' => 'integer',
         'skipped_count' => 'integer',
         'duplicate_count' => 'integer',
+        'mapping_config' => 'array',
+        'is_forced' => 'boolean',
     ];
 
     /**

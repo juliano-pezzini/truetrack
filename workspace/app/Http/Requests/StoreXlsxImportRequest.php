@@ -36,6 +36,10 @@ class StoreXlsxImportRequest extends FormRequest
                 'mimes:xlsx,xls,csv',
                 'max:10240',
             ],
+            'force' => [
+                'sometimes',
+                'boolean',
+            ],
             'account_id' => [
                 'required',
                 'exists:accounts,id',
@@ -61,7 +65,6 @@ class StoreXlsxImportRequest extends FormRequest
             'create_reconciliation' => 'nullable|boolean',
             'statement_date' => 'nullable|date|required_if:create_reconciliation,true',
             'statement_balance' => 'nullable|numeric|required_if:create_reconciliation,true',
-            'force' => 'nullable|boolean',
         ];
     }
 

@@ -118,6 +118,8 @@ class XlsxImportController extends Controller
             'file_path' => $filePath,
             'user_id' => $user->id,
             'column_mapping_id' => $request->input('column_mapping_id'),
+            'mapping_config' => $request->input('mapping_config'),
+            'is_forced' => $request->boolean('force'),
         ]);
 
         // Save column mapping if requested

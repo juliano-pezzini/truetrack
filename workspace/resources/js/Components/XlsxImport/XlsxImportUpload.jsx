@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useForm } from '@inertiajs/react';
+import axios from 'axios';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import InputLabel from '@/Components/InputLabel';
@@ -14,6 +15,9 @@ export default function XlsxImportUpload({ accounts, activeImportsCount, maxImpo
     const [suggestedMapping, setSuggestedMapping] = useState(null);
     const [previewData, setPreviewData] = useState(null);
     const [validationSummary, setValidationSummary] = useState(null);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [submitError, setSubmitError] = useState(null);
+    const [duplicateImportId, setDuplicateImportId] = useState(null);
 
     const { data, setData, post, processing, errors, reset } = useForm({
         account_id: '',
@@ -33,6 +37,9 @@ export default function XlsxImportUpload({ accounts, activeImportsCount, maxImpo
         if (!file) return;
 
         setData('file', file);
+        setSubmitError(null);
+        setDuplicateImportId(null);
+        setIsProcessing(true);
 
         // Auto-detect columns
         const formData = new FormData();
@@ -45,24 +52,50 @@ export default function XlsxImportUpload({ accounts, activeImportsCount, maxImpo
             setStep(2);
         } catch (error) {
             console.error('Column detection failed:', error);
+        } finally {
+            setIsProcessing(false);
         }
     };
 
     const handleMappingConfirmed = async (mappingConfig) => {
         setData('mapping_config', mappingConfig);
+        setSubmitError(null);
+        setDuplicateImportId(null);
+        setIsProcessing(true);
 
-        // Get preview
+        // Get preview - send as FormData with proper structure
         const formData = new FormData();
         formData.append('file', data.file);
-        formData.append('mapping_config', JSON.stringify(mappingConfig));
+
+        // Append mapping_config fields individually for proper Laravel validation
+        // Only append non-null, non-empty values
+        Object.keys(mappingConfig).forEach(key => {
+            const value = mappingConfig[key];
+            if (value !== null && value !== undefined && value !== '') {
+                if (typeof value === 'object') {
+                    formData.append(`mapping_config[${key}]`, JSON.stringify(value));
+                } else {
+                    formData.append(`mapping_config[${key}]`, value);
+                }
+            }
+        });
 
         try {
-            const response = await axios.post('/api/v1/xlsx-imports/preview', formData);
+            const response = await axios.post('/api/v1/xlsx-imports/preview', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
             setPreviewData(response.data.data.preview_transactions);
             setValidationSummary(response.data.data.validation_summary);
             setStep(3);
         } catch (error) {
             console.error('Preview failed:', error);
+            if (error.response?.data?.errors) {
+                console.error('Validation errors:', error.response.data.errors);
+            }
+        } finally {
+            setIsProcessing(false);
         }
     };
 
@@ -70,22 +103,93 @@ export default function XlsxImportUpload({ accounts, activeImportsCount, maxImpo
         setStep(4);
     };
 
-    const handleFinalSubmit = (e) => {
-        e.preventDefault();
+    const submitImport = async (force = false) => {
+        setSubmitError(null);
+        if (!force) {
+            setDuplicateImportId(null);
+        }
+        setIsProcessing(true);
 
-        post(route('api.v1.xlsx-imports.store'), {
-            forceFormData: true,
-            onSuccess: (response) => {
-                if (onImportStarted) {
-                    onImportStarted(response.data.import_id);
+        // Build FormData with all import configuration
+        const formData = new FormData();
+        formData.append('file', data.file);
+        formData.append('account_id', data.account_id);
+
+        // Append mapping_config fields
+        // Only append non-null, non-empty values
+        Object.keys(data.mapping_config).forEach(key => {
+            const value = data.mapping_config[key];
+            if (value !== null && value !== undefined && value !== '') {
+                if (typeof value === 'object') {
+                    formData.append(`mapping_config[${key}]`, JSON.stringify(value));
+                } else {
+                    formData.append(`mapping_config[${key}]`, value);
                 }
-                reset();
-                setStep(1);
-                setDetectedHeaders([]);
-                setSuggestedMapping(null);
-                setPreviewData(null);
-            },
+            }
         });
+
+        // Optional fields
+        if (data.save_mapping) {
+            formData.append('save_mapping', '1');
+            if (data.mapping_name) {
+                formData.append('mapping_name', data.mapping_name);
+            }
+        }
+
+        if (data.create_reconciliation) {
+            formData.append('create_reconciliation', '1');
+            if (data.statement_date) {
+                formData.append('statement_date', data.statement_date);
+            }
+            if (data.statement_balance) {
+                formData.append('statement_balance', data.statement_balance);
+            }
+        }
+
+        if (force) {
+            formData.append('force', '1');
+        }
+
+        try {
+            const response = await axios.post('/api/v1/xlsx-imports', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+
+            if (onImportStarted) {
+                onImportStarted(response.data.data.id);
+            }
+
+            // Reset form
+            reset();
+            setStep(1);
+            setDetectedHeaders([]);
+            setSuggestedMapping(null);
+            setPreviewData(null);
+        } catch (error) {
+            console.error('Import submission failed:', error);
+            if (error.response?.status === 409 && error.response?.data?.requires_confirmation) {
+                setSubmitError(error.response.data.message || 'This file has already been imported for this account.');
+                setDuplicateImportId(error.response.data.duplicate_import_id ?? null);
+            } else if (error.response?.data?.errors) {
+                console.error('Validation errors:', error.response.data.errors);
+                setSubmitError('Import validation failed. Please review your inputs and try again.');
+            } else {
+                setSubmitError('Import submission failed. Please try again.');
+            }
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    const handleFinalSubmit = async (e) => {
+        e.preventDefault();
+        await submitImport(false);
+    };
+
+    const handleForceReimport = async () => {
+        await submitImport(true);
     };
 
     const handleBack = () => {
@@ -97,13 +201,25 @@ export default function XlsxImportUpload({ accounts, activeImportsCount, maxImpo
     };
 
     return (
-        <div className="space-y-6">
+        <div className="relative space-y-4">
+            {/* Loading Overlay */}
+            {(isProcessing || processing) && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center rounded-lg bg-white bg-opacity-90">
+                    <div className="text-center">
+                        <div className="mx-auto h-16 w-16 animate-spin rounded-full border-4 border-gray-200 border-t-indigo-600"></div>
+                        <p className="mt-4 text-sm font-medium text-gray-700">Processing...</p>
+                    </div>
+                </div>
+            )}
+
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-semibold">Import from XLSX/CSV</h2>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                        Upload XLSX/CSV Statement
+                    </h3>
                     <p className="text-sm text-gray-600 mt-1">
-                        Active imports: {activeImportsCount} of {maxImports}
+                        Import transactions from spreadsheet files with flexible column mapping
                     </p>
                 </div>
                 <SecondaryButton onClick={handleDownloadTemplate}>
@@ -111,14 +227,41 @@ export default function XlsxImportUpload({ accounts, activeImportsCount, maxImpo
                 </SecondaryButton>
             </div>
 
+            {/* Concurrency Warning */}
+            {concurrencyLimitReached && (
+                <div className="rounded-md bg-yellow-50 p-4">
+                    <p className="text-sm text-yellow-700">
+                        You have reached the maximum number of concurrent imports ({maxImports}).
+                        Please wait for existing imports to complete.
+                    </p>
+                </div>
+            )}
+
+            {/* Submission Error */}
+            {submitError && (
+                <div className="rounded-md bg-red-50 p-4 border border-red-200">
+                    <p className="text-sm text-red-700">{submitError}</p>
+                    {duplicateImportId && (
+                        <div className="mt-2 space-y-2">
+                            <p className="text-xs text-red-600">
+                                Existing import ID: {duplicateImportId}. Check import history for details.
+                            </p>
+                            <PrimaryButton onClick={handleForceReimport} disabled={isProcessing || processing}>
+                                Force reimport
+                            </PrimaryButton>
+                        </div>
+                    )}
+                </div>
+            )}
+
             {/* Step 1: File Upload & Account Selection */}
             {step === 1 && (
-                <div className="bg-white rounded-lg shadow p-6 space-y-4">
+                <div className="space-y-4">
                     <div>
                         <InputLabel htmlFor="account_id" value="Account *" />
                         <select
                             id="account_id"
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
+                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                             value={data.account_id}
                             onChange={(e) => setData('account_id', e.target.value)}
                         >
@@ -137,49 +280,49 @@ export default function XlsxImportUpload({ accounts, activeImportsCount, maxImpo
                         <input
                             id="xlsx_file"
                             type="file"
-                            className="mt-1 block w-full"
+                            className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:rounded-md file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100"
                             accept=".xlsx,.xls,.csv"
                             onChange={handleFileSelect}
                             disabled={!data.account_id || concurrencyLimitReached}
                         />
+                        <p className="mt-2 text-sm text-gray-500">
+                            Supported formats: .xlsx, .xls, .csv (max 10MB)
+                        </p>
                         <InputError message={errors.xlsx_file} className="mt-2" />
-                        {concurrencyLimitReached && (
-                            <p className="mt-2 text-sm text-red-600">
-                                You have reached the maximum number of concurrent imports. Please wait for existing imports to complete.
-                            </p>
-                        )}
                     </div>
+
+                    {!data.account_id && (
+                        <p className="text-sm text-gray-500 italic">
+                            Please select an account first, then choose a file to begin the import process.
+                        </p>
+                    )}
                 </div>
             )}
 
             {/* Step 2: Column Mapping */}
             {step === 2 && (
-                <div className="bg-white rounded-lg shadow p-6">
-                    <XlsxColumnMapper
-                        headers={detectedHeaders}
-                        suggestedMapping={suggestedMapping}
-                        accountId={data.account_id}
-                        onMappingConfirmed={handleMappingConfirmed}
-                        onBack={handleBack}
-                    />
-                </div>
+                <XlsxColumnMapper
+                    headers={detectedHeaders}
+                    suggestedMapping={suggestedMapping}
+                    accountId={data.account_id}
+                    onMappingConfirmed={handleMappingConfirmed}
+                    onBack={handleBack}
+                />
             )}
 
             {/* Step 3: Preview */}
             {step === 3 && (
-                <div className="bg-white rounded-lg shadow p-6">
-                    <XlsxPreviewTable
-                        previewData={previewData}
-                        validationSummary={validationSummary}
-                        onConfirm={handlePreviewConfirm}
-                        onBack={handleBack}
-                    />
-                </div>
+                <XlsxPreviewTable
+                    previewData={previewData}
+                    validationSummary={validationSummary}
+                    onConfirm={handlePreviewConfirm}
+                    onBack={handleBack}
+                />
             )}
 
             {/* Step 4: Reconciliation Options & Confirm */}
             {step === 4 && (
-                <div className="bg-white rounded-lg shadow p-6 space-y-4">
+                <div className="space-y-4">
                     <h3 className="text-lg font-semibold">Import Options</h3>
 
                     <div>
@@ -199,7 +342,7 @@ export default function XlsxImportUpload({ accounts, activeImportsCount, maxImpo
                                 <input
                                     id="mapping_name"
                                     type="text"
-                                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
+                                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                     value={data.mapping_name}
                                     onChange={(e) => setData('mapping_name', e.target.value)}
                                     placeholder="e.g., Chase Bank Format"

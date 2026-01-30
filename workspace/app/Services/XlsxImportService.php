@@ -299,16 +299,20 @@ class XlsxImportService
         $amount = $this->extractAmount($row, $mappingConfig);
         $type = $this->detectType($row, $mappingConfig);
 
+        $categoryColumn = $mappingConfig['category_column'] ?? null;
+        $settledDateColumn = $mappingConfig['settled_date_column'] ?? null;
+        $tagsColumn = $mappingConfig['tags_column'] ?? null;
+
         return [
             'transaction_date' => $transactionDate->format('Y-m-d'),
             'description' => $description,
             'amount' => abs($amount),
             'type' => $type,
-            'category_name' => $row[$mappingConfig['category_column']] ?? null,
-            'settled_date' => isset($mappingConfig['settled_date_column']) && isset($row[$mappingConfig['settled_date_column']])
-                ? $this->parseDate($row[$mappingConfig['settled_date_column']])?->format('Y-m-d')
+            'category_name' => $categoryColumn ? ($row[$categoryColumn] ?? null) : null,
+            'settled_date' => $settledDateColumn && isset($row[$settledDateColumn])
+                ? $this->parseDate($row[$settledDateColumn])?->format('Y-m-d')
                 : null,
-            'tags' => $this->parseTags($row[$mappingConfig['tags_column']] ?? ''),
+            'tags' => $tagsColumn ? $this->parseTags($row[$tagsColumn] ?? '') : [],
         ];
     }
 
@@ -320,9 +324,11 @@ class XlsxImportService
         try {
             return $this->extractTransactionFromRow($row, $mappingConfig);
         } catch (\Exception $e) {
+            $descriptionColumn = $mappingConfig['description_column'] ?? null;
+
             return [
                 'transaction_date' => null,
-                'description' => $row[$mappingConfig['description_column']] ?? '',
+                'description' => $descriptionColumn ? ($row[$descriptionColumn] ?? '') : '',
                 'amount' => 0,
                 'type' => 'debit',
                 'category_name' => null,

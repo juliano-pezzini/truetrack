@@ -21,6 +21,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Throwable;
 
@@ -70,7 +71,7 @@ class ProcessXlsxImport implements ShouldQueue
             $errors = [];
 
             // Decompress the file if needed
-            $compressedPath = storage_path('app/'.$xlsxImport->file_path);
+            $compressedPath = Storage::path($xlsxImport->file_path);
             $decompressedPath = $compressedPath;
 
             if (str_ends_with($xlsxImport->file_path, '.gz')) {
@@ -109,6 +110,28 @@ class ProcessXlsxImport implements ShouldQueue
                 throw new \RuntimeException('No header row found in spreadsheet');
             }
 
+            $mappingConfig = $this->mappingConfig;
+            if (empty($mappingConfig) && ! empty($xlsxImport->mapping_config)) {
+                $mappingConfig = $xlsxImport->mapping_config;
+            }
+            $validationErrors = $xlsxService->validateMapping($mappingConfig, $headerRow);
+            if (! empty($validationErrors)) {
+                $guessed = $xlsxService->guessColumnMapping($headerRow);
+                $mappingConfig = $guessed['mapping_config'];
+                $validationErrors = $xlsxService->validateMapping($mappingConfig, $headerRow);
+            }
+
+            if (! empty($validationErrors)) {
+                DB::transaction(function () use ($xlsxImport, $validationErrors) {
+                    $xlsxImport->update([
+                        'status' => 'failed',
+                        'error_message' => 'Invalid column mapping: '.implode(' | ', $validationErrors),
+                    ]);
+                });
+
+                return;
+            }
+
             // Extract data rows
             $dataRows = [];
             foreach ($worksheet->getRowIterator($headerRowIndex + 1) as $row) {
@@ -131,8 +154,11 @@ class ProcessXlsxImport implements ShouldQueue
 
             // Create reconciliation if requested
             $reconciliation = null;
+            $reconciliationUserId = $this->userId ?: $xlsxImport->user_id;
+
             if ($this->createReconciliation && $this->statementDate && $this->statementBalance !== null) {
                 $reconciliation = Reconciliation::create([
+                    'user_id' => $reconciliationUserId,
                     'account_id' => $this->accountId,
                     'statement_date' => Carbon::parse($this->statementDate),
                     'statement_balance' => $this->statementBalance,
@@ -155,7 +181,7 @@ class ProcessXlsxImport implements ShouldQueue
                     // Extract transaction data
                     $transactionData = $xlsxService->extractTransactionFromRow(
                         $row,
-                        $this->mappingConfig
+                        $mappingConfig
                     );
 
                     // Calculate row hash for duplicate detection
@@ -181,12 +207,14 @@ class ProcessXlsxImport implements ShouldQueue
 
                     // Create transaction
                     $transaction = Transaction::create([
+                        'user_id' => $this->userId ?: $xlsxImport->user_id,
                         'account_id' => $this->accountId,
                         'category_id' => $categoryId,
                         'type' => $transactionData['type'],
                         'amount' => $transactionData['amount'],
                         'description' => $transactionData['description'],
                         'transaction_date' => $transactionData['transaction_date'],
+                        'settled_date' => $transactionData['settled_date'] ?? null,
                         'notes' => $transactionData['notes'] ?? null,
                     ]);
 

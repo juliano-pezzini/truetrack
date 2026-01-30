@@ -217,16 +217,23 @@ All Pull Requests must pass:
 
 ---
 
-### Phase 6: Bank and Credit Card Reconciliation with OFX Import
-**Goal**: Verify transactions against actual statements with automated OFX file import, intelligent fuzzy matching, and comprehensive import history
+### Phase 6: Bank and Credit Card Reconciliation with Statement Import (OFX/XLSX/CSV)
+**Goal**: Verify transactions against actual statements with automated file import (OFX, XLSX, CSV), intelligent fuzzy matching, and comprehensive import history
+
+**CRITICAL DESIGN DECISION**: 
+**Single unified import page** (`/imports`) that handles ALL file types (OFX, XLSX, CSV). The UI detects file type and presents the appropriate workflow:
+- **OFX/QFX files**: Direct import with automatic parsing
+- **XLSX/CSV files**: Column mapping workflow with smart suggestions
+- **Unified History**: All imports displayed together with type-specific actions
 
 **Core Features**:
-- **OFX File Import**: Upload bank/credit card statements in OFX format with automatic parsing
-- **Duplicate Prevention**: SHA-256 hash-based detection with reimportation option
-- **Multi-Account Support**: Detect and batch-process multiple accounts from single OFX file
+- **Multi-Format Import**: Upload OFX, QFX, XLSX, or CSV bank/credit card statements
+- **OFX File Import**: Automatic parsing with multi-account detection
+- **XLSX/CSV Import**: Flexible column mapping with saved configurations
+- **Duplicate Prevention**: SHA-256 hash-based detection (file-level for OFX, row-level for XLSX)
 - **Intelligent Matching**: Adaptive Levenshtein distance fuzzy matching (configurable threshold)
 - **Background Processing**: Reusable queue-based job infrastructure with individual progress tracking
-- **Import History**: Comprehensive audit trail with permanent file retention (gzip compressed)
+- **Unified Import History**: Single interface showing all imports with type-specific actions
 - **Role-Based Permissions**: Explicit permission system for user and settings management
 - **Configurable Settings**: Categorized admin settings with validation and full audit trail
 
@@ -999,12 +1006,21 @@ protected function schedule(Schedule $schedule)
 - `CleanupExpiredOfxImports` (scheduled command)
 
 **Controllers**:
+- **New `ImportController`** (web controller for unified page):
+  - `index()` - Main unified import page (OFX + XLSX)
 - Enhanced `Api\V1\ReconciliationController`:
   - `importOfx()`, `confirmImport()`, `getImportStatus()`, `getImportHistory()`, `downloadImport()`
 - New `Api\V1\SettingController`:
   - `index()`, `update()`, `history()`
 - New `Api\V1\UserController`:
   - `index()`, `updateRoles()`
+
+**Routes** (web.php):
+```php
+// SINGLE unified import page (replaces separate /ofx-imports and /xlsx-imports routes)
+Route::get('/imports', [App\Http\Controllers\ImportController::class, 'index'])
+    ->name('imports.index');
+```
 
 **Form Requests**:
 - `ImportOfxRequest` (file validation, concurrency check)
@@ -1707,7 +1723,35 @@ class ProcessXlsxImport extends BaseProcessingJob
 
 ---
 
-##### 6.13.6 React Components
+##### 6.13.6 React Components - Unified Import Page Architecture
+
+**IMPORTANT**: All components are designed for a **single unified import page** at `/imports` (route name: `imports.index`). The page intelligently handles both OFX and XLSX/CSV file types based on file extension.
+
+**Page Structure**:
+```
+/imports (Unified Import Page)
+├── File Upload Section (detects file type)
+│   ├── OFX Upload → OfxImportUpload component
+│   └── XLSX/CSV Upload → XlsxImportUpload component
+├── Active Imports Section (shows all types)
+│   └── ImportProgressList component
+└── Import History Section (unified table with tabs)
+    ├── Tab: All Imports
+    ├── Tab: OFX Imports  
+    └── Tab: XLSX Imports
+```
+
+**Main Page Component**:
+
+1. **`ImportsIndex`** (Main unified page - `/imports`)
+   - **Features**:
+     - File type detection on upload (check extension)
+     - Conditional rendering: Show `OfxImportUpload` OR `XlsxImportUpload` based on file type
+     - Display active imports count: "3 of 5 imports active"
+     - Real-time progress tracking for all import types
+     - Unified import history with type filter tabs
+   - **Props**: `auth`, `accounts`, `imports` (OFX + XLSX combined)
+   - **Route**: `Route::get('/imports', [ImportController::class, 'index'])->name('imports.index')`
 
 **XLSX Import Workflow Components**:
 
@@ -1798,17 +1842,26 @@ class ProcessXlsxImport extends BaseProcessingJob
      - Info tooltip: "Transactions will be automatically matched to existing entries"
    - **Props**: `onReconciliationConfigChanged(config)`
 
-**Reusable Components** (shared with OFX):
-- `ImportProgressList` - Polling progress for multiple imports
+**Reusable Components** (shared between OFX and XLSX):
+- `ImportProgressList` - Polling progress for multiple imports (supports both types)
 - `JobStatusBadge` - Status badges (Pending, Processing, Completed, Failed)
 - `ProgressBar` - Visual progress indicator
-- `useJobProgress` - Polling hook for job status
+- `useJobProgress` - Polling hook for job status (works with both OFX and XLSX APIs)
+- `ImportHistoryTable` - Unified table component with type awareness
 
-**Integration with Existing Components**:
-- **`ImportHistory` Page** - Unified page showing both OFX and XLSX imports
+**CRITICAL - Unified Page Integration**:
+- **NO separate `/ofx-imports` page** - Remove if exists
+- **NO separate `/xlsx-imports` page** - Never create
+- **SINGLE `/imports` page** - Only import interface in the application
+- **Component Reuse**: Both OFX and XLSX components are imported into the same page
+- **Conditional Rendering**: Page shows appropriate upload component based on file type detection
+- **Unified History**: `ImportHistoryTable` component handles both types with:
   - Tabs: "All Imports", "OFX Imports", "XLSX Imports"
-  - Combined table with "Type" column (OFX vs XLSX)
-  - Type-specific action buttons (download original file, download errors for XLSX)
+  - Combined table with "Type" column (OFX vs XLSX badge)
+  - Type-specific action buttons:
+    - OFX: Download file, View reconciliation, Reimport
+    - XLSX: Download file, Download error report, View reconciliation, Reimport
+  - Single pagination controls for all import types
 
 ---
 
@@ -2073,15 +2126,16 @@ protected function schedule(Schedule $schedule)
 **Policies**:
 - `XlsxImportPolicy` (ownership checks, authorization)
 
-**React Components** (8 new components):
-- `XlsxImportUpload` - Main import interface
+**React Components** (1 main page + 8 supporting components):
+- **`ImportsIndex`** - **MAIN UNIFIED IMPORT PAGE** at `/imports` (replaces separate OFX/XLSX pages)
+- `OfxImportUpload` - OFX-specific upload interface (integrated into ImportsIndex)
+- `XlsxImportUpload` - XLSX-specific upload interface (integrated into ImportsIndex)
 - `XlsxColumnMapper` - Column mapping configuration
 - `XlsxPreviewTable` - Preview mapped data
-- `XlsxImportProgress` - Enhanced progress tracking
-- `XlsxImportHistory` - Import history page
+- `ImportProgressList` - Real-time progress for all import types
+- `ImportHistoryTable` - Unified history table with type tabs
 - `SavedMappingSelector` - Reusable mapping selector
 - `ReconciliationOptionsPanel` - Optional reconciliation config
-- **Enhanced `ImportHistory`** - Unified OFX + XLSX history page
 
 **Seeders**:
 - `XlsxImportSeeder` (test data)
