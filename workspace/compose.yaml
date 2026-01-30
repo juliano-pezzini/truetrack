@@ -83,7 +83,7 @@ services:
         depends_on:
             - pgsql
             - redis
-        command: php artisan queue:work redis --tries=3 --timeout=300 --sleep=3
+        command: php artisan queue:work database --queue=default --tries=3 --timeout=300 --sleep=3
 networks:
     sail:
         driver: bridge
