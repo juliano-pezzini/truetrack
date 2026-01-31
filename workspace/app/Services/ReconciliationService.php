@@ -353,8 +353,8 @@ class ReconciliationService
     protected function calculateLevenshteinDistance(string $str1, string $str2): int
     {
         // Normalize strings: lowercase and trim
-        $str1 = mb_strtolower(trim($str1));
-        $str2 = mb_strtolower(trim($str2));
+        $str1 = mb_strtolower(trim($str1 ?? ''));
+        $str2 = mb_strtolower(trim($str2 ?? ''));
 
         // Use PHP's built-in levenshtein function
         // Note: Limited to 255 characters; for longer strings, use a custom implementation

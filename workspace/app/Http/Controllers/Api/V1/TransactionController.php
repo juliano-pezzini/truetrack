@@ -97,7 +97,7 @@ class TransactionController extends Controller
         }
 
         // Sorting
-        $sortField = ltrim($request->input('sort', '-transaction_date'), '-');
+        $sortField = ltrim($request->input('sort', '-transaction_date') ?? '-transaction_date', '-');
         $sortDirection = str_starts_with($request->input('sort', '-transaction_date'), '-') ? 'desc' : 'asc';
         $query->orderBy($sortField, $sortDirection);
 

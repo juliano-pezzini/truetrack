@@ -168,7 +168,7 @@ class XlsxImportController extends Controller
         }
 
         // Sorting
-        $sortField = ltrim($request->input('sort', '-created_at'), '-');
+        $sortField = ltrim($request->input('sort', '-created_at') ?? '-created_at', '-');
         $sortDirection = str_starts_with($request->input('sort', '-created_at'), '-') ? 'desc' : 'asc';
         $query->orderBy($sortField, $sortDirection);
 
