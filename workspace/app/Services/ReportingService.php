@@ -67,12 +67,14 @@ class ReportingService
     {
         $projections = collect();
 
-        // Calculate average monthly income and expenses from last 3 months
-        $threeMonthsAgo = Carbon::now()->subMonths(3);
-        $today = Carbon::now();
+        // Calculate average monthly income and expenses from the previous 3 full months
+        $threeMonthsAgo = Carbon::now()->subMonths(3)->startOfMonth();
+        $endOfLastMonth = Carbon::now()->subMonth()->endOfMonth();
 
         $query = Transaction::query()
-            ->whereBetween('transaction_date', [$threeMonthsAgo, $today]);
+            ->whereBetween('transaction_date', [$threeMonthsAgo, $endOfLastMonth]);
+
+        $monthsInRange = 3;
 
         if ($userId) {
             $query->whereHas('account', function ($q) use ($userId) {
@@ -90,7 +92,7 @@ class ReportingService
             ->groupBy('month')
             ->get();
 
-        $avgRevenue = (float) ($revenueMonthlyTotals->sum('total') / max(1, $revenueMonthlyTotals->count()));
+        $avgRevenue = (float) ($revenueMonthlyTotals->sum('total') / $monthsInRange);
 
         // Calculate monthly expense totals, then average
         $expenseMonthlyTotals = $query->clone()
@@ -102,7 +104,7 @@ class ReportingService
             ->groupBy('month')
             ->get();
 
-        $avgExpenses = (float) ($expenseMonthlyTotals->sum('total') / max(1, $expenseMonthlyTotals->count()));
+        $avgExpenses = (float) ($expenseMonthlyTotals->sum('total') / $monthsInRange);
 
         // Get current total balance across all active accounts
         $accountsQuery = Account::query()
