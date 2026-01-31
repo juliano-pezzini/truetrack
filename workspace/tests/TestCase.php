@@ -60,7 +60,7 @@ abstract class TestCase extends BaseTestCase
                 if ($file->isFile() && $file->getExtension() === 'jsx') {
                     $relativePath = 'resources/js/Pages/' . str_replace($pagesPath . DIRECTORY_SEPARATOR, '', $file->getPathname());
                     $relativePath = str_replace('\\', '/', $relativePath); // Normalize path separators
-                    
+
                     $manifest[$relativePath] = [
                         'file' => 'assets/' . str_replace(['/', '.jsx'], ['-', '.js'], $relativePath),
                         'src' => $relativePath,
