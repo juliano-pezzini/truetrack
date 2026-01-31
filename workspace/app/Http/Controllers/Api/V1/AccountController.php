@@ -43,7 +43,7 @@ class AccountController extends Controller
         if ($request->has('sort')) {
             $sort = $request->input('sort');
             $direction = str_starts_with($sort, '-') ? 'desc' : 'asc';
-            $field = ltrim($sort ?? '', '-');
+            $field = ltrim($sort, '-');
 
             $query->orderBy($field, $direction);
         } else {

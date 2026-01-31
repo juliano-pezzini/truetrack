@@ -86,8 +86,12 @@ abstract class TestCase extends BaseTestCase
 
         // Remove the build directory if it's empty
         $buildDir = public_path('build');
-        if (is_dir($buildDir) && count(scandir($buildDir)) === 2) { // Only . and ..
-            rmdir($buildDir);
+        if (is_dir($buildDir)) {
+            $entries = scandir($buildDir);
+
+            if ($entries !== false && count($entries) === 2) { // Only . and ..
+                rmdir($buildDir);
+            }
         }
     }
 }
