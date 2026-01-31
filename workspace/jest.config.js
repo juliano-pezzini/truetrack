@@ -27,6 +27,7 @@ export default {
   ],
 
   // Coverage configuration
+  coverageDirectory: 'coverage',
   collectCoverageFrom: [
     'resources/js/**/*.{js,jsx}',
     '!resources/js/**/*.d.ts',

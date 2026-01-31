@@ -7,9 +7,57 @@ on:
     branches: [ main, develop ]
 
 jobs:
-  tests:
-    name: Run Tests & Quality Checks
+  backend-lint:
+    name: Backend Lint Checks (Pint & PHPStan)
     runs-on: ubuntu-latest
+
+    env:
+      APP_KEY: ${{ secrets.APP_KEY_TEST }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, pdo_pgsql, bcmath, intl, gd, exif, iconv
+          coverage: xdebug
+
+      - name: Copy .env
+        run: |
+          cd workspace
+          php -r "file_exists('.env') || copy('.env.example', '.env');"
+          echo "APP_KEY=$APP_KEY" >> .env
+
+      - name: Install Composer dependencies
+        run: |
+          cd workspace
+          composer install --prefer-dist --no-interaction --no-progress --optimize-autoloader
+
+      - name: Run Laravel Pint (Code Style)
+        run: |
+          cd workspace
+          ./vendor/bin/pint --test
+
+      - name: Run PHPStan (Static Analysis)
+        run: |
+          cd workspace
+          ./vendor/bin/phpstan analyse --memory-limit=512M --error-format=github
+
+  backend-tests:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+
+    env:
+      APP_KEY: ${{ secrets.APP_KEY_TEST }}
+      DB_CONNECTION: pgsql
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_DATABASE: testing
+      DB_USERNAME: sail
+      DB_PASSWORD: password
 
     services:
       postgres:
@@ -37,32 +85,54 @@ jobs:
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, pdo_pgsql, bcmath, intl, gd, exif, iconv
           coverage: xdebug
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: workspace/package-lock.json
-
       - name: Copy .env
         run: |
           cd workspace
           php -r "file_exists('.env') || copy('.env.example', '.env');"
+          echo "APP_KEY=$APP_KEY" >> .env
 
       - name: Install Composer dependencies
         run: |
           cd workspace
           composer install --prefer-dist --no-interaction --no-progress --optimize-autoloader
 
-      - name: Generate application key
-        run: |
-          cd workspace
-          php artisan key:generate
-
       - name: Set permissions
         run: |
           cd workspace
           chmod -R 777 storage bootstrap/cache
+
+      - name: Run migrations
+        run: |
+          cd workspace
+          php artisan migrate --force
+
+      - name: Run PHPUnit (Backend Tests)
+        run: |
+          cd workspace
+          php artisan test --coverage --min=70
+
+      - name: Upload backend coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: workspace/coverage/
+          retention-days: 7
+
+  frontend-tests:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: workspace/package-lock.json
 
       - name: Install NPM dependencies
         run: |
@@ -74,66 +144,46 @@ jobs:
           cd workspace
           npm run build
 
-      - name: Run migrations
-        env:
-          DB_CONNECTION: pgsql
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_DATABASE: testing
-          DB_USERNAME: sail
-          DB_PASSWORD: password
-        run: |
-          cd workspace
-          php artisan migrate --force
-
-      - name: Run Laravel Pint (Code Style)
-        run: |
-          cd workspace
-          ./vendor/bin/pint --test
-
-      - name: Run PHPStan (Static Analysis)
-        run: |
-          cd workspace
-          ./vendor/bin/phpstan analyse --memory-limit=512M --error-format=github
-
-      - name: Run PHPUnit (Backend Tests)
-        env:
-          DB_CONNECTION: pgsql
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_DATABASE: testing
-          DB_USERNAME: sail
-          DB_PASSWORD: password
-        run: |
-          cd workspace
-          php artisan test --coverage --min=70
-
       - name: Run Jest (Frontend Tests)
         run: |
           cd workspace
-          npm run test:coverage -- --coverageReporters=text-summary
+          npm run test:coverage -- --coverageReporters=html --coverageReporters=lcov --coverageReporters=text-summary
 
-      - name: Upload coverage reports
+      - name: Upload frontend coverage reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-reports
-          path: |
-            workspace/coverage/
+          name: frontend-coverage
+          path: workspace/coverage/
           retention-days: 7
 
   quality-gate:
     name: Quality Gate Check
-    needs: tests
+    needs: [backend-lint, backend-tests, frontend-tests]
     runs-on: ubuntu-latest
     if: always()
     
     steps:
-      - name: Check test results
+      - name: Check backend lint results
         run: |
-          if [ "${{ needs.tests.result }}" != "success" ]; then
-            echo "::warning::Quality checks failed. Manual review required for merge."
-            echo "You can bypass this check with manual approval if necessary."
+          if [ "${{ needs.backend-lint.result }}" != "success" ]; then
+            echo "::error::Backend lint checks (Pint/PHPStan) failed"
             exit 1
           fi
-          echo "✅ All quality checks passed!"
+
+      - name: Check backend test results
+        run: |
+          if [ "${{ needs.backend-tests.result }}" != "success" ]; then
+            echo "::error::Backend tests (PHPUnit) failed"
+            exit 1
+          fi
+
+      - name: Check frontend test results
+        run: |
+          if [ "${{ needs.frontend-tests.result }}" != "success" ]; then
+            echo "::error::Frontend tests (Jest) failed"
+            exit 1
+          fi
+
+      - name: All quality checks passed
+        run: echo "✅ All quality checks passed!"
