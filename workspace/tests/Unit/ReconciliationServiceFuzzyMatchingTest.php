@@ -8,6 +8,7 @@ use App\Models\Account;
 use App\Models\Setting;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Services\AccountingService;
 use App\Services\ReconciliationService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -26,7 +27,11 @@ class ReconciliationServiceFuzzyMatchingTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new ReconciliationService();
+
+        // Inject AccountingService dependency
+        $accountingService = app(AccountingService::class);
+        $this->service = new ReconciliationService($accountingService);
+
         $this->user = User::factory()->create();
         $this->account = Account::factory()->for($this->user)->create();
 
