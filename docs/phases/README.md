@@ -14,6 +14,7 @@ Complete implementation guides for TrueTrack development. Each phase builds upon
 | 4 | Transactions | Planned | [PHASE_04_TRANSACTIONS.md](PHASE_04_TRANSACTIONS.md) |
 | 5 | Analytics Dashboard | Planned | [PHASE_05_ANALYTICS_DASHBOARD.md](PHASE_05_ANALYTICS_DASHBOARD.md) |
 | 6 | Statement Import | Planned | [PHASE_06_STATEMENT_IMPORT.md](PHASE_06_STATEMENT_IMPORT.md) |
+| 7 | Auto-Categorization with Learning | Planned | [PHASE_07_AUTO_CATEGORIZATION.md](PHASE_07_AUTO_CATEGORIZATION.md) |
 
 ---
 
@@ -32,7 +33,7 @@ Phase 6 is split into detailed sub-phase documentation for easier management:
 
 ### Getting Started
 1. Read [PHASE_01_PROJECT_FOUNDATION.md](PHASE_01_PROJECT_FOUNDATION.md) for initial setup
-2. Follow phases in order (1 → 2 → 3 → 4 → 5 → 6)
+2. Follow phases in order (1 → 2 → 3 → 4 → 5 → 6 → 7)
 3. Refer to [copilot-instructions.md](../../.github/copilot-instructions.md) for coding standards
 
 ### Phase Details
@@ -132,6 +133,7 @@ Phase 1: Project Foundation
                 └─ Phase 6: Statement Import
                    ├─ Phase 6.1-6.5: OFX Import
                    └─ Phase 6.6-6.13: XLSX/CSV Import
+                      └─ Phase 7: Auto-Categorization
 ```
 
 Each phase builds on previous phases. Complete phases in order for dependencies to work correctly.
