@@ -7,24 +7,9 @@ on:
     branches: [ main, develop ]
 
 jobs:
-  backend-tests:
-    name: Backend Tests & Quality Checks
+  backend-setup:
+    name: Backend Setup
     runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:18-alpine
-        env:
-          POSTGRES_USER: sail
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: testing
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     steps:
       - name: Checkout code
@@ -57,6 +42,79 @@ jobs:
           cd workspace
           chmod -R 777 storage bootstrap/cache
 
+  backend-lint:
+    name: Backend Lint Checks (Pint & PHPStan)
+    needs: backend-setup
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        lint-tool: [pint, phpstan]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, pdo_pgsql, bcmath, intl, gd, exif, iconv
+          coverage: xdebug
+
+      - name: Install Composer dependencies
+        run: |
+          cd workspace
+          composer install --prefer-dist --no-interaction --no-progress --optimize-autoloader
+
+      - name: Run Laravel Pint (Code Style)
+        if: matrix.lint-tool == 'pint'
+        run: |
+          cd workspace
+          ./vendor/bin/pint --test
+
+      - name: Run PHPStan (Static Analysis)
+        if: matrix.lint-tool == 'phpstan'
+        run: |
+          cd workspace
+          ./vendor/bin/phpstan analyse --memory-limit=512M --error-format=github
+
+  backend-tests:
+    name: Backend Tests
+    needs: backend-setup
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: sail
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: testing
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, pdo_pgsql, bcmath, intl, gd, exif, iconv
+          coverage: xdebug
+
+      - name: Install Composer dependencies
+        run: |
+          cd workspace
+          composer install --prefer-dist --no-interaction --no-progress --optimize-autoloader
+
       - name: Run migrations
         env:
           DB_CONNECTION: pgsql
@@ -68,16 +126,6 @@ jobs:
         run: |
           cd workspace
           php artisan migrate --force
-
-      - name: Run Laravel Pint (Code Style)
-        run: |
-          cd workspace
-          ./vendor/bin/pint --test
-
-      - name: Run PHPStan (Static Analysis)
-        run: |
-          cd workspace
-          ./vendor/bin/phpstan analyse --memory-limit=512M --error-format=github
 
       - name: Run PHPUnit (Backend Tests)
         env:
@@ -139,22 +187,29 @@ jobs:
 
   quality-gate:
     name: Quality Gate Check
-    needs: [backend-tests, frontend-tests]
+    needs: [backend-lint, backend-tests, frontend-tests]
     runs-on: ubuntu-latest
     if: always()
     
     steps:
+      - name: Check backend lint results
+        run: |
+          if [ "${{ needs.backend-lint.result }}" != "success" ]; then
+            echo "::error::Backend lint checks (Pint/PHPStan) failed"
+            exit 1
+          fi
+
       - name: Check backend test results
         run: |
           if [ "${{ needs.backend-tests.result }}" != "success" ]; then
-            echo "::error::Backend tests failed"
+            echo "::error::Backend tests (PHPUnit) failed"
             exit 1
           fi
 
       - name: Check frontend test results
         run: |
           if [ "${{ needs.frontend-tests.result }}" != "success" ]; then
-            echo "::error::Frontend tests failed"
+            echo "::error::Frontend tests (Jest) failed"
             exit 1
           fi
 
