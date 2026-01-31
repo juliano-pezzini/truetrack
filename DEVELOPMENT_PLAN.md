@@ -32,8 +32,9 @@ See [.github/copilot-instructions.md](.github/copilot-instructions.md) for detai
 | 4 | Transactions (Core Logic) | 2-3 wks | Planned | [PHASE_04_TRANSACTIONS.md](docs/phases/PHASE_04_TRANSACTIONS.md) |
 | 5 | Analytics Dashboard | 2-3 wks | Planned | [PHASE_05_ANALYTICS_DASHBOARD.md](docs/phases/PHASE_05_ANALYTICS_DASHBOARD.md) |
 | 6 | Statement Import (OFX + XLSX) | 4-6 wks | Planned | [PHASE_06_STATEMENT_IMPORT.md](docs/phases/PHASE_06_STATEMENT_IMPORT.md) |
+| 7 | Auto-Categorization with Learning | 2-3 wks | Planned | [PHASE_07_AUTO_CATEGORIZATION.md](docs/phases/PHASE_07_AUTO_CATEGORIZATION.md) |
 
-**Total Duration**: 13-20 weeks (3-5 months)
+**Total Duration**: 15-23 weeks (4-6 months)
 
 ### Phase 6 Sub-Documentation
 
@@ -46,7 +47,7 @@ Phase 6 has two detailed implementation guides:
 ## Quick Start
 
 ### Documentation Navigation
-- **→ [All Phase Documentation](docs/phases/README.md)** - Hub for all 8 phases with navigation  
+- **→ [All Phase Documentation](docs/phases/README.md)** - Hub for all phases with navigation  
 - **→ [Coding Standards](.github/copilot-instructions.md)** - Patterns, conventions, best practices
 - **→ [Phase 1: Getting Started](docs/phases/PHASE_01_PROJECT_FOUNDATION.md)** - How to begin implementation
 
@@ -125,6 +126,8 @@ Phase 6: roles, permissions, permission_role, role_user
         settings, setting_changes
         reconciliations, reconciliation_transaction
         ofx_imports, xlsx_imports, xlsx_column_mappings, xlsx_transaction_hashes
+Phase 7: auto_category_rules, auto_category_corrections,
+        learned_category_patterns, auto_category_suggestions_log
 ```
 
 ### Key Tables
@@ -210,6 +213,8 @@ Phase 4 (Transactions)
 Phase 5 (Analytics)
     ↓
 Phase 6 (Imports)
+    ↓
+Phase 7 (Auto-Categorization)
 ```
 
 **Sequential Implementation Required**: Each phase builds on previous infrastructure.
@@ -247,7 +252,8 @@ docs/phases/
 ├── PHASE_05_ANALYTICS_DASHBOARD.md
 ├── PHASE_06_STATEMENT_IMPORT.md (Core framework)
 ├── PHASE_06_OFX_IMPORT.md (Detailed OFX implementation)
-└── PHASE_06_XLSX_CSV_IMPORT.md (Detailed XLSX implementation)
+├── PHASE_06_XLSX_CSV_IMPORT.md (Detailed XLSX implementation)
+└── PHASE_07_AUTO_CATEGORIZATION.md (Auto-category rules + learning)
 ```
 
 Each phase document includes:
