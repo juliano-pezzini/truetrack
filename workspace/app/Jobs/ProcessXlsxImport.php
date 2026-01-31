@@ -38,11 +38,6 @@ class ProcessXlsxImport implements ShouldQueue
     public int $timeout = 600; // 10 minutes for large files
 
     /**
-     * The accounting service instance.
-     */
-    private AccountingService $accountingService;
-
-    /**
      * Create a new job instance.
      */
     public function __construct(
@@ -63,7 +58,6 @@ class ProcessXlsxImport implements ShouldQueue
         ReconciliationService $reconciliationService,
         AccountingService $accountingService
     ): void {
-        $this->accountingService = $accountingService;
         $xlsxImport = XlsxImport::findOrFail($this->xlsxImportId);
 
         try {
@@ -220,7 +214,7 @@ class ProcessXlsxImport implements ShouldQueue
                     }
 
                     // Create transaction using AccountingService to ensure balance snapshots are updated
-                    $transaction = $this->accountingService->recordTransaction([
+                    $transaction = $accountingService->recordTransaction([
                         'user_id' => $this->userId ?: $xlsxImport->user_id,
                         'account_id' => $this->accountId,
                         'category_id' => $categoryId,
