@@ -22,6 +22,7 @@ class ReconciliationService
     public function __construct(
         private readonly AccountingService $accountingService
     ) {}
+
     /**
      * Create a new reconciliation.
      *
