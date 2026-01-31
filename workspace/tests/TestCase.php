@@ -58,8 +58,7 @@ abstract class TestCase extends BaseTestCase
 
             foreach ($iterator as $file) {
                 if ($file->isFile() && $file->getExtension() === 'jsx') {
-                    $relativePath = 'resources/js/Pages/'.str_replace($pagesPath.DIRECTORY_SEPARATOR, '', $file->getPathname());
-                    $relativePath = str_replace('\\', '/', $relativePath); // Normalize path separators
+                    $relativePath = $this->getRelativeJsxPath($file->getPathname(), $pagesPath);
 
                     $manifest[$relativePath] = [
                         'file' => 'assets/'.str_replace(['/', '.jsx'], ['-', '.js'], $relativePath),
@@ -87,11 +86,21 @@ abstract class TestCase extends BaseTestCase
         // Remove the build directory if it's empty
         $buildDir = public_path('build');
         if (is_dir($buildDir)) {
-            $entries = scandir($buildDir);
+            $iterator = new \FilesystemIterator($buildDir, \FilesystemIterator::SKIP_DOTS);
 
-            if ($entries !== false && count($entries) === 2) { // Only . and ..
+            if (! $iterator->valid()) {
                 rmdir($buildDir);
             }
         }
+    }
+
+    /**
+     * Get relative path for JSX file.
+     */
+    private function getRelativeJsxPath(string $fullPath, string $basePath): string
+    {
+        $relativePath = 'resources/js/Pages/'.str_replace($basePath.DIRECTORY_SEPARATOR, '', $fullPath);
+
+        return str_replace('\\', '/', $relativePath); // Normalize path separators
     }
 }
