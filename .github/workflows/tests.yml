@@ -7,9 +7,13 @@ on:
     branches: [ main, develop ]
 
 jobs:
-  backend-setup:
-    name: Backend Setup
+  backend-lint:
+    name: Backend Lint Checks (Pint & PHPStan)
     runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        lint-tool: [pint, phpstan]
 
     steps:
       - name: Checkout code
@@ -28,60 +32,30 @@ jobs:
           php -r "file_exists('.env') || copy('.env.example', '.env');"
 
       - name: Install Composer dependencies
-        run: |
-          cd workspace
-          composer install --prefer-dist --no-interaction --no-progress --optimize-autoloader
-
-      - name: Generate application key
-        run: |
-          cd workspace
-          php artisan key:generate
-
-      - name: Set permissions
-        run: |
-          cd workspace
-          chmod -R 777 storage bootstrap/cache
-
-  backend-lint:
-    name: Backend Lint Checks (Pint & PHPStan)
-    needs: backend-setup
-    runs-on: ubuntu-latest
-    
-    strategy:
-      matrix:
-        lint-tool: [pint, phpstan]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, pdo_pgsql, bcmath, intl, gd, exif, iconv
-          coverage: xdebug
-
-      - name: Install Composer dependencies
+        env:
+          APP_KEY: ${{ secrets.APP_KEY_TEST }}
         run: |
           cd workspace
           composer install --prefer-dist --no-interaction --no-progress --optimize-autoloader
 
       - name: Run Laravel Pint (Code Style)
         if: matrix.lint-tool == 'pint'
+        env:
+          APP_KEY: ${{ secrets.APP_KEY_TEST }}
         run: |
           cd workspace
           ./vendor/bin/pint --test
 
       - name: Run PHPStan (Static Analysis)
         if: matrix.lint-tool == 'phpstan'
+        env:
+          APP_KEY: ${{ secrets.APP_KEY_TEST }}
         run: |
           cd workspace
           ./vendor/bin/phpstan analyse --memory-limit=512M --error-format=github
 
   backend-tests:
     name: Backend Tests
-    needs: backend-setup
     runs-on: ubuntu-latest
 
     services:
@@ -110,13 +84,26 @@ jobs:
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, pdo_pgsql, bcmath, intl, gd, exif, iconv
           coverage: xdebug
 
+      - name: Copy .env
+        run: |
+          cd workspace
+          php -r "file_exists('.env') || copy('.env.example', '.env');"
+
       - name: Install Composer dependencies
+        env:
+          APP_KEY: ${{ secrets.APP_KEY_TEST }}
         run: |
           cd workspace
           composer install --prefer-dist --no-interaction --no-progress --optimize-autoloader
 
+      - name: Set permissions
+        run: |
+          cd workspace
+          chmod -R 777 storage bootstrap/cache
+
       - name: Run migrations
         env:
+          APP_KEY: ${{ secrets.APP_KEY_TEST }}
           DB_CONNECTION: pgsql
           DB_HOST: localhost
           DB_PORT: 5432
@@ -129,6 +116,7 @@ jobs:
 
       - name: Run PHPUnit (Backend Tests)
         env:
+          APP_KEY: ${{ secrets.APP_KEY_TEST }}
           DB_CONNECTION: pgsql
           DB_HOST: localhost
           DB_PORT: 5432
