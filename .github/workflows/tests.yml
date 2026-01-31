@@ -11,6 +11,9 @@ jobs:
     name: Backend Lint Checks (Pint & PHPStan)
     runs-on: ubuntu-latest
 
+    env:
+      APP_KEY: ${{ secrets.APP_KEY_TEST }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -23,30 +26,22 @@ jobs:
           coverage: xdebug
 
       - name: Copy .env
-        env:
-          APP_KEY: ${{ secrets.APP_KEY_TEST }}
         run: |
           cd workspace
           php -r "file_exists('.env') || copy('.env.example', '.env');"
           echo "APP_KEY=$APP_KEY" >> .env
 
       - name: Install Composer dependencies
-        env:
-          APP_KEY: ${{ secrets.APP_KEY_TEST }}
         run: |
           cd workspace
           composer install --prefer-dist --no-interaction --no-progress --optimize-autoloader
 
       - name: Run Laravel Pint (Code Style)
-        env:
-          APP_KEY: ${{ secrets.APP_KEY_TEST }}
         run: |
           cd workspace
           ./vendor/bin/pint --test
 
       - name: Run PHPStan (Static Analysis)
-        env:
-          APP_KEY: ${{ secrets.APP_KEY_TEST }}
         run: |
           cd workspace
           ./vendor/bin/phpstan analyse --memory-limit=512M --error-format=github
@@ -54,6 +49,15 @@ jobs:
   backend-tests:
     name: Backend Tests
     runs-on: ubuntu-latest
+
+    env:
+      APP_KEY: ${{ secrets.APP_KEY_TEST }}
+      DB_CONNECTION: pgsql
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_DATABASE: testing
+      DB_USERNAME: sail
+      DB_PASSWORD: password
 
     services:
       postgres:
@@ -82,16 +86,12 @@ jobs:
           coverage: xdebug
 
       - name: Copy .env
-        env:
-          APP_KEY: ${{ secrets.APP_KEY_TEST }}
         run: |
           cd workspace
           php -r "file_exists('.env') || copy('.env.example', '.env');"
           echo "APP_KEY=$APP_KEY" >> .env
 
       - name: Install Composer dependencies
-        env:
-          APP_KEY: ${{ secrets.APP_KEY_TEST }}
         run: |
           cd workspace
           composer install --prefer-dist --no-interaction --no-progress --optimize-autoloader
@@ -102,27 +102,11 @@ jobs:
           chmod -R 777 storage bootstrap/cache
 
       - name: Run migrations
-        env:
-          APP_KEY: ${{ secrets.APP_KEY_TEST }}
-          DB_CONNECTION: pgsql
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_DATABASE: testing
-          DB_USERNAME: sail
-          DB_PASSWORD: password
         run: |
           cd workspace
           php artisan migrate --force
 
       - name: Run PHPUnit (Backend Tests)
-        env:
-          APP_KEY: ${{ secrets.APP_KEY_TEST }}
-          DB_CONNECTION: pgsql
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_DATABASE: testing
-          DB_USERNAME: sail
-          DB_PASSWORD: password
         run: |
           cd workspace
           php artisan test --coverage --min=70
@@ -182,21 +166,21 @@ jobs:
     steps:
       - name: Check backend lint results
         run: |
-          if [ "${{ needs.backend-lint.result }}" == "failure" ]; then
+          if [ "${{ needs.backend-lint.result }}" != "success" ]; then
             echo "::error::Backend lint checks (Pint/PHPStan) failed"
             exit 1
           fi
 
       - name: Check backend test results
         run: |
-          if [ "${{ needs.backend-tests.result }}" == "failure" ]; then
+          if [ "${{ needs.backend-tests.result }}" != "success" ]; then
             echo "::error::Backend tests (PHPUnit) failed"
             exit 1
           fi
 
       - name: Check frontend test results
         run: |
-          if [ "${{ needs.frontend-tests.result }}" == "failure" ]; then
+          if [ "${{ needs.frontend-tests.result }}" != "success" ]; then
             echo "::error::Frontend tests (Jest) failed"
             exit 1
           fi
