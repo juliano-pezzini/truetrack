@@ -10,6 +10,7 @@ use App\Models\Account;
 use App\Models\Reconciliation;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Services\AccountingService;
 use App\Services\ReconciliationService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -29,7 +30,8 @@ class ReconciliationServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new ReconciliationService();
+        $accountingService = app(AccountingService::class);
+        $this->service = new ReconciliationService($accountingService);
         $this->user = User::factory()->create();
         $this->account = Account::factory()->for($this->user)->create();
     }

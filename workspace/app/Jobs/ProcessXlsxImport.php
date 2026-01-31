@@ -12,6 +12,7 @@ use App\Models\Reconciliation;
 use App\Models\Tag;
 use App\Models\Transaction;
 use App\Models\XlsxImport;
+use App\Services\AccountingService;
 use App\Services\ReconciliationService;
 use App\Services\XlsxImportService;
 use Carbon\Carbon;
@@ -54,7 +55,8 @@ class ProcessXlsxImport implements ShouldQueue
      */
     public function handle(
         XlsxImportService $xlsxService,
-        ReconciliationService $reconciliationService
+        ReconciliationService $reconciliationService,
+        AccountingService $accountingService
     ): void {
         $xlsxImport = XlsxImport::findOrFail($this->xlsxImportId);
 
@@ -205,8 +207,14 @@ class ProcessXlsxImport implements ShouldQueue
                         $categoryId = $this->resolveCategoryId($categoryName);
                     }
 
-                    // Create transaction
-                    $transaction = Transaction::create([
+                    // Resolve tags
+                    $tagIds = null;
+                    if (! empty($transactionData['tags'])) {
+                        $tagIds = $this->resolveTagIds($transactionData['tags']);
+                    }
+
+                    // Create transaction using AccountingService to ensure balance snapshots are updated
+                    $transaction = $accountingService->recordTransaction([
                         'user_id' => $this->userId ?: $xlsxImport->user_id,
                         'account_id' => $this->accountId,
                         'category_id' => $categoryId,
@@ -216,13 +224,8 @@ class ProcessXlsxImport implements ShouldQueue
                         'transaction_date' => $transactionData['transaction_date'],
                         'settled_date' => $transactionData['settled_date'] ?? null,
                         'notes' => $transactionData['notes'] ?? null,
+                        'tag_ids' => $tagIds,
                     ]);
-
-                    // Attach tags
-                    if (! empty($transactionData['tags'])) {
-                        $tagIds = $this->resolveTagIds($transactionData['tags']);
-                        $transaction->tags()->attach($tagIds);
-                    }
 
                     // Store row hash
                     DB::table('xlsx_transaction_hashes')->insert([
