@@ -17,13 +17,6 @@ use InvalidArgumentException;
 class ReconciliationService
 {
     /**
-     * Create a new reconciliation service instance.
-     */
-    public function __construct(
-        private readonly AccountingService $accountingService
-    ) {}
-
-    /**
      * Create a new reconciliation.
      *
      * @param  array<string, mixed>  $data
@@ -162,8 +155,7 @@ class ReconciliationService
             $paymentDate = Carbon::parse($data['payment_date']);
 
             // Create debit transaction on bank account (decreases balance)
-            // Using AccountingService to ensure monthly balance snapshots are updated
-            $bankTransaction = $this->accountingService->recordTransaction([
+            $bankTransaction = Transaction::create([
                 'user_id' => $data['user_id'],
                 'account_id' => $bankAccount->id,
                 'category_id' => $data['category_id'] ?? null,
@@ -175,15 +167,8 @@ class ReconciliationService
             ]);
 
             // Create credit transaction on credit card account (increases balance/reduces debt)
-            // Using AccountingService to ensure monthly balance snapshots are updated
-            $creditCardTransaction = $this->accountingService->recordTransaction([
-                'user_id' => $data['user_id'],
-                'account_id' => $creditCardAccount->id,
-                'category_id' => $data['category_id'] ?? null,
-                'amount' => $paymentAmount,
-                'description' => $data['description'] ?? 'Payment received from bank',
-                'transaction_date' => $paymentDate,
-                'settled_date' => $paymentDate,
+            $creditCardTransaction = Transaction::create([
+,
                 'type' => TransactionType::CREDIT,
             ]);
 
