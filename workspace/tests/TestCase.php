@@ -35,7 +35,7 @@ abstract class TestCase extends BaseTestCase
             mkdir($publicPath, 0755, true);
         }
 
-        // Create a minimal manifest with the main app entry point
+        // Create a comprehensive manifest with all page components
         $manifest = [
             'resources/js/app.jsx' => [
                 'file' => 'assets/app.js',
@@ -48,6 +48,27 @@ abstract class TestCase extends BaseTestCase
                 'isEntry' => true,
             ],
         ];
+
+        // Add all page components dynamically
+        $pagesPath = resource_path('js/Pages');
+        if (is_dir($pagesPath)) {
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($pagesPath, \RecursiveDirectoryIterator::SKIP_DOTS)
+            );
+
+            foreach ($iterator as $file) {
+                if ($file->isFile() && $file->getExtension() === 'jsx') {
+                    $relativePath = 'resources/js/Pages/' . str_replace($pagesPath . DIRECTORY_SEPARATOR, '', $file->getPathname());
+                    $relativePath = str_replace('\\', '/', $relativePath); // Normalize path separators
+                    
+                    $manifest[$relativePath] = [
+                        'file' => 'assets/' . str_replace(['/', '.jsx'], ['-', '.js'], $relativePath),
+                        'src' => $relativePath,
+                        'isEntry' => true,
+                    ];
+                }
+            }
+        }
 
         file_put_contents($manifestPath, json_encode($manifest, JSON_PRETTY_PRINT));
     }
