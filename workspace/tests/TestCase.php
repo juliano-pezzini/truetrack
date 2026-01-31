@@ -28,10 +28,10 @@ abstract class TestCase extends BaseTestCase
     protected function createFakeViteManifest(): void
     {
         $publicPath = public_path('build');
-        $manifestPath = $publicPath . '/manifest.json';
+        $manifestPath = $publicPath.'/manifest.json';
 
         // Create directory if it doesn't exist
-        if (!is_dir($publicPath)) {
+        if (! is_dir($publicPath)) {
             mkdir($publicPath, 0755, true);
         }
 
@@ -58,11 +58,11 @@ abstract class TestCase extends BaseTestCase
 
             foreach ($iterator as $file) {
                 if ($file->isFile() && $file->getExtension() === 'jsx') {
-                    $relativePath = 'resources/js/Pages/' . str_replace($pagesPath . DIRECTORY_SEPARATOR, '', $file->getPathname());
+                    $relativePath = 'resources/js/Pages/'.str_replace($pagesPath.DIRECTORY_SEPARATOR, '', $file->getPathname());
                     $relativePath = str_replace('\\', '/', $relativePath); // Normalize path separators
 
                     $manifest[$relativePath] = [
-                        'file' => 'assets/' . str_replace(['/', '.jsx'], ['-', '.js'], $relativePath),
+                        'file' => 'assets/'.str_replace(['/', '.jsx'], ['-', '.js'], $relativePath),
                         'src' => $relativePath,
                         'isEntry' => true,
                     ];
