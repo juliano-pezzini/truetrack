@@ -30,6 +30,8 @@ class ReconciliationController extends Controller
      */
     public function index(Request $request): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', Reconciliation::class);
+
         $query = Reconciliation::query()
             ->where('user_id', $request->user()->id)
             ->with(['account', 'reconciledBy']);
@@ -78,6 +80,8 @@ class ReconciliationController extends Controller
      */
     public function store(StoreReconciliationRequest $request): JsonResponse
     {
+        $this->authorize('create', Reconciliation::class);
+
         $reconciliation = $this->reconciliationService->createReconciliation([
             'user_id' => $request->user()->id,
             ...$request->validated(),

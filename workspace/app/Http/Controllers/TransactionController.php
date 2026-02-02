@@ -30,6 +30,8 @@ class TransactionController extends Controller
      */
     public function index(Request $request): Response
     {
+        $this->authorize('viewAny', Transaction::class);
+
         $query = Transaction::query()
             ->where('user_id', $request->user()->id)
             ->with(['account', 'category', 'tags']);
@@ -103,6 +105,8 @@ class TransactionController extends Controller
      */
     public function create(Request $request): Response
     {
+        $this->authorize('create', Transaction::class);
+
         $accounts = Account::query()
             ->where('user_id', $request->user()->id)
             ->where('is_active', true)
@@ -131,6 +135,8 @@ class TransactionController extends Controller
      */
     public function store(StoreTransactionRequest $request): RedirectResponse
     {
+        $this->authorize('create', Transaction::class);
+
         $this->accountingService->recordTransaction($request->validated());
 
         return redirect()->route('transactions.index')

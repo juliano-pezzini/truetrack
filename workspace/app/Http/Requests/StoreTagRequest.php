@@ -21,9 +21,11 @@ class StoreTagRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
-        $this->merge([
-            'user_id' => $this->user()->id,
-        ]);
+        if ($this->user()) {
+            $this->merge([
+                'user_id' => $this->user()->id,
+            ]);
+        }
     }
 
     /**
@@ -35,7 +37,13 @@ class StoreTagRequest extends FormRequest
     {
         return [
             'user_id' => ['required', 'integer', 'exists:users,id'],
-            'name' => ['required', 'string', 'max:255', 'unique:tags,name'],
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                \Illuminate\Validation\Rule::unique('tags', 'name')
+                    ->where('user_id', $this->user()->id ?? null),
+            ],
             'color' => ['required', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
         ];
     }

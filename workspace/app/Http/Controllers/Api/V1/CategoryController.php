@@ -9,17 +9,22 @@ use App\Http\Requests\StoreCategoryRequest;
 use App\Http\Requests\UpdateCategoryRequest;
 use App\Http\Resources\CategoryResource;
 use App\Models\Category;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class CategoryController extends Controller
 {
+    use AuthorizesRequests;
+
     /**
      * Display a listing of the resource.
      */
     public function index(Request $request): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', Category::class);
+
         $query = Category::query()
             ->where('user_id', $request->user()->id)
             ->with(['parent', 'children']);
@@ -72,6 +77,8 @@ class CategoryController extends Controller
      */
     public function store(StoreCategoryRequest $request): JsonResponse
     {
+        $this->authorize('create', Category::class);
+
         $category = Category::create($request->validated());
 
         $category->load(['parent', 'children']);
@@ -86,10 +93,7 @@ class CategoryController extends Controller
      */
     public function show(Request $request, Category $category): CategoryResource
     {
-        // Ensure user owns the category
-        if ($category->user_id !== $request->user()->id) {
-            abort(403, 'Unauthorized');
-        }
+        $this->authorize('view', $category);
 
         $category->load(['parent', 'children']);
 
@@ -101,10 +105,7 @@ class CategoryController extends Controller
      */
     public function update(UpdateCategoryRequest $request, Category $category): CategoryResource
     {
-        // Ensure user owns the category
-        if ($category->user_id !== $request->user()->id) {
-            abort(403, 'Unauthorized');
-        }
+        $this->authorize('update', $category);
 
         $category->update($request->validated());
 
@@ -118,10 +119,7 @@ class CategoryController extends Controller
      */
     public function destroy(Request $request, Category $category): JsonResponse
     {
-        // Ensure user owns the category
-        if ($category->user_id !== $request->user()->id) {
-            abort(403, 'Unauthorized');
-        }
+        $this->authorize('delete', $category);
 
         // Check if category has children
         if ($category->hasChildren()) {

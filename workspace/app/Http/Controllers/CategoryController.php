@@ -8,6 +8,7 @@ use App\Enums\CategoryType;
 use App\Http\Requests\StoreCategoryRequest;
 use App\Http\Requests\UpdateCategoryRequest;
 use App\Models\Category;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -15,11 +16,15 @@ use Inertia\Response;
 
 class CategoryController extends Controller
 {
+    use AuthorizesRequests;
+
     /**
      * Display a listing of the resource.
      */
     public function index(Request $request): Response
     {
+        $this->authorize('viewAny', Category::class);
+
         $query = Category::query()
             ->where('user_id', $request->user()->id)
             ->with(['parent', 'children']);
@@ -60,6 +65,8 @@ class CategoryController extends Controller
      */
     public function create(Request $request): Response
     {
+        $this->authorize('create', Category::class);
+
         $parentCategories = Category::query()
             ->where('user_id', $request->user()->id)
             ->whereNull('parent_id')
@@ -81,6 +88,8 @@ class CategoryController extends Controller
      */
     public function store(StoreCategoryRequest $request): RedirectResponse
     {
+        $this->authorize('create', Category::class);
+
         $category = Category::create($request->validated());
 
         return redirect()
@@ -93,10 +102,7 @@ class CategoryController extends Controller
      */
     public function show(Request $request, Category $category): Response
     {
-        // Ensure user owns the category
-        if ($category->user_id !== $request->user()->id) {
-            abort(403);
-        }
+        $this->authorize('view', $category);
 
         $category->load(['parent', 'children']);
 
@@ -110,10 +116,7 @@ class CategoryController extends Controller
      */
     public function edit(Request $request, Category $category): Response
     {
-        // Ensure user owns the category
-        if ($category->user_id !== $request->user()->id) {
-            abort(403);
-        }
+        $this->authorize('update', $category);
 
         $parentCategories = Category::query()
             ->where('user_id', $request->user()->id)
@@ -139,10 +142,7 @@ class CategoryController extends Controller
      */
     public function update(UpdateCategoryRequest $request, Category $category): RedirectResponse
     {
-        // Ensure user owns the category
-        if ($category->user_id !== $request->user()->id) {
-            abort(403);
-        }
+        $this->authorize('update', $category);
 
         $category->update($request->validated());
 
@@ -156,10 +156,7 @@ class CategoryController extends Controller
      */
     public function destroy(Request $request, Category $category): RedirectResponse
     {
-        // Ensure user owns the category
-        if ($category->user_id !== $request->user()->id) {
-            abort(403);
-        }
+        $this->authorize('delete', $category);
 
         // Check if category has children
         if ($category->hasChildren()) {

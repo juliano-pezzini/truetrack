@@ -146,5 +146,67 @@ Route::prefix('v1')->group(function () {
             Route::get('/alerts', [App\Http\Controllers\Api\V1\ReportController::class, 'alerts'])
                 ->name('alerts');
         });
+
+        // Auto-Categorization Rules
+        Route::prefix('auto-category-rules')->name('api.auto-category-rules.')->group(function () {
+            // Special routes MUST come before apiResource routes
+            Route::post('/reorder', [App\Http\Controllers\Api\V1\AutoCategoryRuleController::class, 'reorder'])
+                ->name('reorder');
+            Route::post('/test-coverage', [App\Http\Controllers\Api\V1\AutoCategoryRuleController::class, 'testCoverage'])
+                ->name('test-coverage');
+            Route::get('/export', [App\Http\Controllers\Api\V1\AutoCategoryRuleController::class, 'export'])
+                ->name('export');
+            Route::post('/import', [App\Http\Controllers\Api\V1\AutoCategoryRuleController::class, 'import'])
+                ->name('import');
+        });
+
+        // Auto-Category Rules CRUD (using apiResource for proper model binding)
+        Route::apiResource('auto-category-rules', App\Http\Controllers\Api\V1\AutoCategoryRuleController::class)
+            ->names([
+                'index' => 'api.auto-category-rules.index',
+                'store' => 'api.auto-category-rules.store',
+                'show' => 'api.auto-category-rules.show',
+                'update' => 'api.auto-category-rules.update',
+                'destroy' => 'api.auto-category-rules.destroy',
+            ]);
+
+        // Auto-Category Rules custom actions (require model binding)
+        Route::prefix('auto-category-rules')->name('api.auto-category-rules.')->group(function () {
+            Route::post('/{auto_category_rule}/archive', [App\Http\Controllers\Api\V1\AutoCategoryRuleController::class, 'archive'])
+                ->name('archive');
+            Route::post('/{auto_category_rule}/restore', [App\Http\Controllers\Api\V1\AutoCategoryRuleController::class, 'restore'])
+                ->name('restore');
+        });
+
+        // Learned Category Patterns
+        Route::prefix('learned-patterns')->name('api.learned-patterns.')->group(function () {
+            // Special routes MUST come before apiResource routes
+            Route::post('/clear-all', [App\Http\Controllers\Api\V1\LearnedPatternController::class, 'clearAll'])
+                ->name('clear-all');
+            Route::get('/statistics', [App\Http\Controllers\Api\V1\LearnedPatternController::class, 'statistics'])
+                ->name('statistics');
+            Route::get('/top-performers', [App\Http\Controllers\Api\V1\LearnedPatternController::class, 'topPerformers'])
+                ->name('top-performers');
+            Route::get('/underperforming', [App\Http\Controllers\Api\V1\LearnedPatternController::class, 'underperforming'])
+                ->name('underperforming');
+        });
+
+        // Learned Patterns CRUD (using apiResource for proper model binding)
+        Route::apiResource('learned-patterns', App\Http\Controllers\Api\V1\LearnedPatternController::class)
+            ->names([
+                'index' => 'api.learned-patterns.index',
+                'show' => 'api.learned-patterns.show',
+                'update' => 'api.learned-patterns.update',
+                'destroy' => 'api.learned-patterns.destroy',
+            ])
+            ->only(['index', 'show', 'update', 'destroy']);
+
+        // Learned Patterns custom actions
+        Route::prefix('learned-patterns')->name('api.learned-patterns.')->group(function () {
+            Route::post('/{learnedCategoryPattern}/toggle', [App\Http\Controllers\Api\V1\LearnedPatternController::class, 'toggle'])
+                ->name('toggle');
+            Route::post('/{learnedCategoryPattern}/convert', [App\Http\Controllers\Api\V1\LearnedPatternController::class, 'convert'])
+                ->name('convert');
+        });
     });
 });

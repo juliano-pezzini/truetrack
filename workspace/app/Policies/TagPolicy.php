@@ -12,7 +12,7 @@ class TagPolicy
     /**
      * Determine whether the user can view any tags.
      */
-    public function viewAny(?User $user): bool
+    public function viewAny(User $user): bool
     {
         return true;
     }
@@ -20,9 +20,9 @@ class TagPolicy
     /**
      * Determine whether the user can view the tag.
      */
-    public function view(?User $user, Tag $tag): bool
+    public function view(User $user, Tag $tag): bool
     {
-        return true;
+        return $tag->user_id === $user->id;
     }
 
     /**
@@ -38,7 +38,7 @@ class TagPolicy
      */
     public function update(User $user, Tag $tag): bool
     {
-        return true;
+        return $tag->user_id === $user->id;
     }
 
     /**
@@ -46,7 +46,7 @@ class TagPolicy
      */
     public function delete(User $user, Tag $tag): bool
     {
-        return true;
+        return $tag->user_id === $user->id;
     }
 
     /**

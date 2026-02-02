@@ -115,6 +115,7 @@ class CategoryControllerTest extends TestCase
     public function test_store_validates_required_fields(): void
     {
         $response = $this->actingAs($this->user)
+            ->from(route('categories.create'))
             ->post(route('categories.store'), []);
 
         $response->assertSessionHasErrors(['name', 'type']);

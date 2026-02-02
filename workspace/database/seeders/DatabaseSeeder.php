@@ -28,6 +28,10 @@ class DatabaseSeeder extends Seeder
             // AccountSeeder::class,
             // TransactionSeeder::class,
             ReconciliationSeeder::class,
+            AutoCategoryRuleSeeder::class,
+            LearnedCategoryPatternSeeder::class,
+            AutoCategoryCorrectionSeeder::class,
+            AutoCategorySuggestionLogSeeder::class,
         ]);
     }
 }

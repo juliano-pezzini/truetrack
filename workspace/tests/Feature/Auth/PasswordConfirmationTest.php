@@ -10,6 +10,8 @@ class PasswordConfirmationTest extends TestCase
 {
     use RefreshDatabase;
 
+
+
     public function test_confirm_password_screen_can_be_rendered(): void
     {
         $user = User::factory()->create();
@@ -23,7 +25,9 @@ class PasswordConfirmationTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->post('/confirm-password', [
+        $response = $this->actingAs($user)
+            ->from('/confirm-password')
+            ->post('/confirm-password', [
             'password' => 'password',
         ]);
 
@@ -35,7 +39,9 @@ class PasswordConfirmationTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->post('/confirm-password', [
+        $response = $this->actingAs($user)
+            ->from('/confirm-password')
+            ->post('/confirm-password', [
             'password' => 'wrong-password',
         ]);
 

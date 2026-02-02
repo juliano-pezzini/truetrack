@@ -48,6 +48,14 @@ Route::middleware('auth')->group(function () {
     // Unified Import management (OFX + XLSX/CSV)
     Route::get('/imports', [App\Http\Controllers\ImportController::class, 'index'])
         ->name('imports.index');
+
+    // Auto-Category Rules management
+    Route::get('/auto-category-rules', [App\Http\Controllers\AutoCategoryRuleController::class, 'index'])
+        ->name('auto-category-rules.index');
+
+    // Learned Patterns management
+    Route::get('/learned-patterns', [App\Http\Controllers\LearnedPatternController::class, 'index'])
+        ->name('learned-patterns.index');
 });
 
 require __DIR__.'/auth.php';

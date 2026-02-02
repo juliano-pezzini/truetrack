@@ -10,6 +10,7 @@ use App\Http\Requests\UpdateTransactionRequest;
 use App\Http\Resources\TransactionResource;
 use App\Models\Transaction;
 use App\Services\AccountingService;
+use App\Services\AutoCategoryLearningService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,7 +21,8 @@ class TransactionController extends Controller
     use AuthorizesRequests;
 
     public function __construct(
-        private readonly AccountingService $accountingService
+        private readonly AccountingService $accountingService,
+        private readonly AutoCategoryLearningService $learningService
     ) {}
 
     /**
@@ -28,6 +30,8 @@ class TransactionController extends Controller
      */
     public function index(Request $request): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', Transaction::class);
+
         $query = Transaction::query()
             ->where('user_id', $request->user()->id)
             ->with(['account', 'category', 'tags']);
@@ -112,6 +116,8 @@ class TransactionController extends Controller
      */
     public function store(StoreTransactionRequest $request): JsonResponse
     {
+        $this->authorize('create', Transaction::class);
+
         $transaction = $this->accountingService->recordTransaction(
             $request->validated()
         );
@@ -140,10 +146,24 @@ class TransactionController extends Controller
     {
         $this->authorize('update', $transaction);
 
+        // Capture original category for learning
+        $originalCategoryId = $transaction->category_id;
+        $newCategoryId = $request->validated()['category_id'] ?? null;
+
         $updatedTransaction = $this->accountingService->updateTransaction(
             $transaction,
             $request->validated()
         );
+
+        // Trigger learning if category was manually changed
+        if ($originalCategoryId !== $newCategoryId && $newCategoryId !== null) {
+            $this->learningService->learnFromCorrection(
+                $updatedTransaction,
+                $newCategoryId,
+                $originalCategoryId ? 'user_correction' : 'initial_category',
+                0
+            );
+        }
 
         return new TransactionResource($updatedTransaction);
     }
