@@ -12,6 +12,9 @@ abstract class TestCase extends BaseTestCase
 
         // Create a fake Vite manifest for testing
         $this->createFakeViteManifest();
+
+        // Withouth verifying CSRF token in tests for web routes
+        $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class);
     }
 
     protected function tearDown(): void
@@ -80,7 +83,7 @@ abstract class TestCase extends BaseTestCase
         $manifestPath = public_path('build/manifest.json');
 
         if (file_exists($manifestPath)) {
-            unlink($manifestPath);
+            @unlink($manifestPath); // Suppress permission errors
         }
 
         // Remove the build directory if it's empty
@@ -89,7 +92,7 @@ abstract class TestCase extends BaseTestCase
             $iterator = new \FilesystemIterator($buildDir, \FilesystemIterator::SKIP_DOTS);
 
             if (! $iterator->valid()) {
-                rmdir($buildDir);
+                @rmdir($buildDir); // Suppress permission errors
             }
         }
     }
