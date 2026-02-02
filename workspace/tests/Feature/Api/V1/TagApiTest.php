@@ -288,8 +288,8 @@ class TagApiTest extends TestCase
     {
         $response = $this->getJson('/api/v1/tags');
 
-        // Sanctum returns 403 when accessing protected resources without authentication
-        $response->assertStatus(403);
+        // Returns 401 when no authentication provided
+        $response->assertStatus(401);
     }
 
     public function test_guest_cannot_create_tag(): void
@@ -301,9 +301,8 @@ class TagApiTest extends TestCase
 
         $response = $this->postJson('/api/v1/tags', $tagData);
 
-        // Without authentication, user_id is not set, causing validation error
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['user_id']);
+        // Returns 401 when no authentication provided
+        $response->assertStatus(401);
     }
 
     public function test_guest_cannot_update_tag(): void
@@ -314,8 +313,8 @@ class TagApiTest extends TestCase
             'name' => 'Updated Name',
         ]);
 
-        // Sanctum returns 403 when accessing protected resources without authentication
-        $response->assertStatus(403);
+        // Returns 401 when no authentication provided
+        $response->assertStatus(401);
     }
 
     public function test_guest_cannot_delete_tag(): void
@@ -324,8 +323,8 @@ class TagApiTest extends TestCase
 
         $response = $this->deleteJson("/api/v1/tags/{$tag->id}");
 
-        // Sanctum returns 403 when accessing protected resources without authentication
-        $response->assertStatus(403);
+        // Returns 401 when no authentication provided
+        $response->assertStatus(401);
     }
 
     public function test_respects_pagination(): void
@@ -350,5 +349,60 @@ class TagApiTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonCount(100, 'data'); // Max is 100
+    }
+
+    public function test_cannot_view_another_users_tag(): void
+    {
+        $otherUser = User::factory()->create();
+        $tag = Tag::factory()->create(['user_id' => $otherUser->id]);
+
+        $response = $this->actingAs($this->user)
+            ->getJson("/api/v1/tags/{$tag->id}");
+
+        // Returns 403 when authenticated but trying to access another user's resource
+        $response->assertStatus(403);
+    }
+
+    public function test_cannot_update_another_users_tag(): void
+    {
+        $otherUser = User::factory()->create();
+        $tag = Tag::factory()->create(['user_id' => $otherUser->id]);
+
+        $response = $this->actingAs($this->user)
+            ->putJson("/api/v1/tags/{$tag->id}", [
+                'name' => 'Hacked Name',
+                'color' => '#FF0000',
+            ]);
+
+        // Returns 403 when authenticated but trying to update another user's resource
+        $response->assertStatus(403);
+    }
+
+    public function test_cannot_delete_another_users_tag(): void
+    {
+        $otherUser = User::factory()->create();
+        $tag = Tag::factory()->create(['user_id' => $otherUser->id]);
+
+        $response = $this->actingAs($this->user)
+            ->deleteJson("/api/v1/tags/{$tag->id}");
+
+        // Returns 403 when authenticated but trying to delete another user's resource
+        $response->assertStatus(403);
+    }
+
+    public function test_user_can_only_see_their_own_tags(): void
+    {
+        $otherUser = User::factory()->create();
+
+        // Create tags for both users
+        Tag::factory()->count(3)->create(['user_id' => $this->user->id]);
+        Tag::factory()->count(5)->create(['user_id' => $otherUser->id]);
+
+        $response = $this->actingAs($this->user)
+            ->getJson('/api/v1/tags');
+
+        // Should only see own tags
+        $response->assertStatus(200)
+            ->assertJsonCount(3, 'data');
     }
 }
