@@ -22,8 +22,6 @@ class AccountController extends Controller
      */
     public function index(Request $request): Response
     {
-        $this->authorize('viewAny', Account::class);
-
         $query = Account::query()->forUser($request->user()->id);
 
         // Apply filters
@@ -74,8 +72,6 @@ class AccountController extends Controller
      */
     public function create(): Response
     {
-        $this->authorize('create', Account::class);
-
         return Inertia::render('Accounts/Create');
     }
 
@@ -84,8 +80,6 @@ class AccountController extends Controller
      */
     public function store(StoreAccountRequest $request): RedirectResponse
     {
-        $this->authorize('create', Account::class);
-
         Account::create([
             'user_id' => $request->user()->id,
             ...$request->validated(),

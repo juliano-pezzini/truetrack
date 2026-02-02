@@ -7,7 +7,6 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreTagRequest;
 use App\Http\Requests\UpdateTagRequest;
 use App\Models\Tag;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -15,16 +14,12 @@ use Inertia\Response;
 
 class TagController extends Controller
 {
-    use AuthorizesRequests;
-
     /**
      * Display a listing of tags.
      */
     public function index(Request $request): Response
     {
-        $this->authorize('viewAny', Tag::class);
-
-        $query = Tag::where('user_id', $request->user()->id);
+        $query = Tag::query();
 
         // Apply search filter
         if ($request->has('filter')) {
@@ -65,8 +60,6 @@ class TagController extends Controller
      */
     public function create(): Response
     {
-        $this->authorize('create', Tag::class);
-
         return Inertia::render('Tags/Create');
     }
 
@@ -75,8 +68,6 @@ class TagController extends Controller
      */
     public function store(StoreTagRequest $request): RedirectResponse
     {
-        $this->authorize('create', Tag::class);
-
         Tag::create($request->validated());
 
         return redirect()->route('tags.index')
@@ -88,8 +79,6 @@ class TagController extends Controller
      */
     public function show(Tag $tag): Response
     {
-        $this->authorize('view', $tag);
-
         return Inertia::render('Tags/Show', [
             'tag' => $tag,
         ]);
@@ -100,8 +89,6 @@ class TagController extends Controller
      */
     public function edit(Tag $tag): Response
     {
-        $this->authorize('update', $tag);
-
         return Inertia::render('Tags/Edit', [
             'tag' => $tag,
         ]);
@@ -112,8 +99,6 @@ class TagController extends Controller
      */
     public function update(UpdateTagRequest $request, Tag $tag): RedirectResponse
     {
-        $this->authorize('update', $tag);
-
         $tag->update($request->validated());
 
         return redirect()->route('tags.index')
@@ -125,8 +110,6 @@ class TagController extends Controller
      */
     public function destroy(Tag $tag): RedirectResponse
     {
-        $this->authorize('delete', $tag);
-
         $tag->delete();
 
         return redirect()->route('tags.index')
