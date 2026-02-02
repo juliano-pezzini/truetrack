@@ -70,10 +70,10 @@ class TagControllerTest extends TestCase
     {
         Tag::factory()->create(['name' => 'Existing Tag']);
 
-        $response = $this->actingAs($this->user)            ->from(route('tags.create'))            ->post(route('tags.store'), [
-                'name' => 'Existing Tag',
-                'color' => '#3B82F6',
-            ]);
+        $response = $this->actingAs($this->user)->from(route('tags.create'))->post(route('tags.store'), [
+            'name' => 'Existing Tag',
+            'color' => '#3B82F6',
+        ]);
 
         $response->assertSessionHasErrors(['name']);
     }
@@ -194,9 +194,9 @@ class TagControllerTest extends TestCase
     {
         $response = $this->from(route('tags.create'))
             ->post(route('tags.store'), [
-            'name' => 'Test Tag',
-            'color' => '#3B82F6',
-        ]);
+                'name' => 'Test Tag',
+                'color' => '#3B82F6',
+            ]);
 
         $response->assertRedirect(route('login'));
     }
@@ -216,8 +216,8 @@ class TagControllerTest extends TestCase
 
         $response = $this->from(route('tags.edit', $tag))
             ->put(route('tags.update', $tag), [
-            'name' => 'Updated Name',
-        ]);
+                'name' => 'Updated Name',
+            ]);
 
         $response->assertRedirect(route('login'));
     }

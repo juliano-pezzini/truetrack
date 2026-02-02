@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Requests\ConvertPatternRequest;
+use App\Http\Resources\LearnedPatternResource;
 use App\Models\AutoCategoryRule;
 use App\Models\LearnedCategoryPattern;
 use App\Services\AutoCategoryLearningService;

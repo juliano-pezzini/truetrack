@@ -197,7 +197,7 @@ class TagApiTest extends TestCase
 
         // Direct policy test
         $policy = new \App\Policies\TagPolicy();
-        $this->assertTrue($policy->view($this->user, $dbTag), "Policy should allow user to view their own tag");
+        $this->assertTrue($policy->view($this->user, $dbTag), 'Policy should allow user to view their own tag');
 
         $response = $this->actingAs($this->user, 'sanctum')
             ->getJson("/api/v1/tags/{$dbTag->id}");

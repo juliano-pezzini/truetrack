@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Models\AutoCategoryRule;
 use App\Models\AutoCategorySuggestionLog;
 use App\Models\Category;
+use App\Models\Setting;
 use App\Models\Transaction;
 use Illuminate\Support\Collection;
 
@@ -214,7 +215,7 @@ class AutoCategorizationService
      */
     public function shouldAutoApply(int $confidenceScore): bool
     {
-        $threshold = setting('auto_apply_confidence_threshold', self::DEFAULT_AUTO_APPLY_THRESHOLD);
+        $threshold = (int) Setting::getValue('auto_apply_confidence_threshold', self::DEFAULT_AUTO_APPLY_THRESHOLD);
 
         return $confidenceScore >= $threshold;
     }
