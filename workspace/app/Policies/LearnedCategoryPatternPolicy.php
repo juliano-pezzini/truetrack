@@ -80,4 +80,22 @@ class LearnedCategoryPatternPolicy
     {
         return true;
     }
+
+    /**
+     * Determine whether the user can view their own learning statistics.
+     * (Service layer scopes data to authenticated user only)
+     */
+    public function viewStatistics(?User $user): bool
+    {
+        return $user !== null;
+    }
+
+    /**
+     * Determine whether the user can clear their own learned patterns.
+     * (Service layer scopes operations to authenticated user only)
+     */
+    public function clearAll(?User $user): bool
+    {
+        return $user !== null;
+    }
 }
