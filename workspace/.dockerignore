@@ -1,0 +1,62 @@
+# Development files
+node_modules/
+.git/
+.github/
+
+# Test files
+tests/
+coverage/
+*.test.js
+*.spec.js
+
+# Documentation
+*.md
+!README.md
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files (will be provided at runtime)
+.env
+.env.*
+!.env.example
+!.env.production
+
+# Build artifacts that will be regenerated
+vendor/
+public/hot
+storage/framework/cache/
+storage/framework/sessions/
+storage/framework/views/
+storage/logs/
+bootstrap/cache/*.php
+!bootstrap/cache/.gitkeep
+
+# Note: public/build/ is NOT ignored because it needs to be created
+# during the build process and then copied to the final image
+
+# Development compose file
+compose.yaml
+sail
+
+# Deployment and CI files
+deployment*.log
+*.log
+
+# Testing
+phpunit.xml
+phpstan.neon
+pint.json
+
+# Temporary files
+*.tmp
+*.bak
+*.cache

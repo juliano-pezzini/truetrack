@@ -1,0 +1,70 @@
+# Base PHP 8.5 Image for TrueTrack
+# Pre-built with all required extensions
+# Build once, use in all environments
+
+FROM php:8.5-fpm-alpine
+
+ARG WWWGROUP=1000
+
+# Install runtime libraries (keep these in final image)
+RUN apk add --no-cache \
+    postgresql-dev \
+    libpng \
+    libjpeg-turbo \
+    freetype \
+    libzip \
+    zip \
+    unzip \
+    git \
+    curl \
+    bash
+
+# Install build dependencies and compile all extensions
+RUN apk add --no-cache \
+    zlib-dev \
+    libpng-dev \
+    libjpeg-turbo-dev \
+    freetype-dev \
+    libzip-dev \
+    autoconf \
+    g++ \
+    make \
+    linux-headers \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && MAKEFLAGS="-j1" docker-php-ext-install pdo_pgsql \
+    && MAKEFLAGS="-j1" docker-php-ext-install pgsql \
+    && MAKEFLAGS="-j1" docker-php-ext-install gd \
+    && MAKEFLAGS="-j1" docker-php-ext-install zip \
+    && MAKEFLAGS="-j1" docker-php-ext-install pcntl \
+    && MAKEFLAGS="-j1" docker-php-ext-install bcmath \
+    && mkdir -p /usr/src/php/ext/redis \
+    && curl -fsSL https://github.com/phpredis/phpredis/archive/develop.tar.gz | tar xvz -C /usr/src/php/ext/redis --strip 1 \
+    && docker-php-ext-install redis \
+    && apk del --no-cache zlib-dev libpng-dev libjpeg-turbo-dev freetype-dev libzip-dev autoconf g++ make linux-headers
+
+# Configure OPcache for production
+RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.memory_consumption=256" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.interned_strings_buffer=16" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.max_accelerated_files=10000" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.validate_timestamps=0" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.save_comments=1" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.fast_shutdown=1" >> /usr/local/etc/php/conf.d/opcache.ini
+
+# Set production PHP settings
+RUN echo "memory_limit=512M" >> /usr/local/etc/php/conf.d/laravel.ini \
+    && echo "upload_max_filesize=20M" >> /usr/local/etc/php/conf.d/laravel.ini \
+    && echo "post_max_size=20M" >> /usr/local/etc/php/conf.d/laravel.ini \
+    && echo "max_execution_time=300" >> /usr/local/etc/php/conf.d/laravel.ini \
+    && echo "expose_php=Off" >> /usr/local/etc/php/conf.d/laravel.ini
+
+# Create application user
+RUN addgroup -g ${WWWGROUP} sail \
+    && adduser -D -u 1000 -G sail sail
+
+WORKDIR /var/www/html
+
+# Expose PHP-FPM port
+EXPOSE 9000
+
+CMD ["php-fpm"]

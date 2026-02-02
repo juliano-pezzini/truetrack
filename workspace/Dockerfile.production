@@ -1,0 +1,95 @@
+# Production Dockerfile for TrueTrack
+# Multi-stage build optimized for production
+
+# Stage 1: Composer dependencies
+FROM composer:2 AS composer-build
+
+WORKDIR /app
+
+# Install Alpine packages needed for GD and zip extensions
+# Keep runtime libraries (libpng, libjpeg-turbo, freetype, libzip)
+# Only delete -dev packages after build
+RUN apk add --no-cache \
+    libpng \
+    libjpeg-turbo \
+    freetype \
+    libzip \
+    zlib-dev \
+    libpng-dev \
+    libjpeg-turbo-dev \
+    freetype-dev \
+    libzip-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) gd zip \
+    && apk del --no-cache zlib-dev libpng-dev libjpeg-turbo-dev freetype-dev libzip-dev
+
+COPY composer.json composer.lock ./
+RUN composer install \
+    --no-dev \
+    --no-scripts \
+    --no-autoloader \
+    --prefer-dist \
+    --ignore-platform-req=ext-gd
+
+COPY . .
+RUN composer dump-autoload --optimize --classmap-authoritative
+
+# Stage 2: Node.js build (for Vite assets)
+FROM node:20-alpine AS node-build
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci --production=false
+
+COPY . .
+COPY --from=composer-build /app/vendor ./vendor
+
+# Run build and verify output
+RUN npm run build && \
+    ls -la public/build/ || (echo "Build directory not created!" && exit 1)
+
+# Stage 3: Production runtime
+# Using pre-built base image with all extensions
+FROM truetrack-php:8.5-fpm
+
+# Install additional tools needed for production
+RUN apk add --no-cache \
+    nginx \
+    supervisor
+
+WORKDIR /var/www/html
+
+# Copy application code
+COPY --chown=sail:sail . .
+
+# Copy production environment file
+COPY --chown=sail:sail .env.production .env
+
+# Copy optimized vendor from composer stage
+COPY --from=composer-build --chown=sail:sail /app/vendor ./vendor
+
+# Copy built assets from node stage
+COPY --from=node-build --chown=sail:sail /app/public/build ./public/build
+
+# Set permissions
+RUN chown -R sail:sail /var/www/html \
+    && chmod -R 755 /var/www/html/storage \
+    && chmod -R 755 /var/www/html/bootstrap/cache
+
+# Create necessary directories
+RUN mkdir -p storage/framework/{sessions,views,cache} \
+    && mkdir -p storage/logs \
+    && mkdir -p storage/app/{public,ofx_imports,xlsx_imports} \
+    && chown -R sail:sail storage bootstrap/cache
+
+USER sail
+
+# Expose PHP-FPM port
+EXPOSE 9000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s \
+    CMD php artisan health:check || exit 1
+
+CMD ["php-fpm"]

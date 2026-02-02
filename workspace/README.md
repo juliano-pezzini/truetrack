@@ -1,59 +1,300 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# TrueTrack - Personal Finance Management System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A modern personal finance management system built with Laravel 11, PostgreSQL, Inertia.js, and React 18+. Supports bank statement imports (OFX/XLSX), intelligent transaction matching, and comprehensive financial analytics.
 
-## About Laravel
+## 🚀 Features
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- ✅ Multi-account management (bank, credit card, wallet, transitional)
+- ✅ Transaction tracking with double-entry accounting principles
+- ✅ Bank statement import (OFX/QFX and XLSX/CSV formats)
+- ✅ Intelligent fuzzy matching with Levenshtein distance
+- ✅ Financial analytics dashboard with charts and projections
+- ✅ Hierarchical categories and flexible tagging
+- ✅ Role-based permissions system
+- ✅ Background job processing for imports
+- ✅ Monthly balance snapshots for performance
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 📋 Requirements
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- Docker Desktop (for local development)
+- PHP 8.2+ (for production)
+- PostgreSQL 15+
+- Redis 7+
+- Node.js 20+ (for asset compilation)
 
-## Learning Laravel
+---
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## 🏠 Development Environment
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### First-Time Setup
 
-## Laravel Sponsors
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd truetrack2/workspace
+   ```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+2. **Copy environment file**
+   ```bash
+   cp .env.example .env
+   ```
 
-### Premium Partners
+3. **Start development environment**
+   ```bash
+   docker compose up -d
+   ```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+4. **Install dependencies**
+   ```bash
+   docker compose exec truetrack composer install
+   docker compose exec truetrack npm install
+   ```
 
-## Contributing
+5. **Generate application key**
+   ```bash
+   docker compose exec truetrack php artisan key:generate
+   ```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+6. **Run migrations and seeders**
+   ```bash
+   docker compose exec truetrack php artisan migrate --seed
+   ```
 
-## Code of Conduct
+7. **Build frontend assets**
+   ```bash
+   docker compose exec truetrack npm run dev
+   ```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+8. **Access the application**
+   - Web: http://localhost
+   - PostgreSQL: localhost:5432
+   - Redis: localhost:6379
 
-## Security Vulnerabilities
+### Daily Development Commands
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+# Start services
+docker compose up -d
 
-## License
+# Stop services
+docker compose down
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+# View logs
+docker compose logs -f
+
+# Run tests
+docker compose exec truetrack php artisan test
+docker compose exec truetrack npm run test
+
+# Code quality
+docker compose exec truetrack ./vendor/bin/pint
+docker compose exec truetrack ./vendor/bin/phpstan analyse
+
+# Database operations
+docker compose exec truetrack php artisan migrate
+docker compose exec truetrack php artisan migrate:fresh --seed
+```
+
+---
+
+## 🏭 Production Environment (Local Testing)
+
+Test production configurations locally before deploying to cloud infrastructure.
+
+### Quick Start
+
+**Windows (PowerShell):**
+```powershell
+# First-time setup
+.\deploy-local-prod.ps1 init
+
+# View status
+.\deploy-local-prod.ps1 status
+
+# View logs
+.\deploy-local-prod.ps1 logs
+```
+
+**Linux/macOS (Bash):**
+```bash
+# Make script executable
+chmod +x deploy-local-prod.sh
+
+# First-time setup
+./deploy-local-prod.sh init
+
+# View status
+./deploy-local-prod.sh status
+```
+
+### Production Environment Details
+
+- **Web Interface:** http://localhost:8080
+- **PostgreSQL:** localhost:5433
+- **Redis:** localhost:6380
+- **Separate data volumes** (won't affect development data)
+- **Production optimizations** (OPcache, caching, etc.)
+- **Background workers** (queue, scheduler)
+
+### Production Commands
+
+```bash
+# Initialize (first time only)
+./deploy-local-prod.ps1 init
+
+# Update after code changes
+./deploy-local-prod.ps1 update
+
+# Restart services
+./deploy-local-prod.ps1 restart
+
+# Stop production environment
+./deploy-local-prod.ps1 down
+
+# View logs
+./deploy-local-prod.ps1 logs
+
+# Check status and health
+./deploy-local-prod.ps1 status
+```
+
+### Configuration
+
+Edit `.env.production` for production settings:
+- Database credentials
+- Redis configuration
+- Mail settings
+- Application settings
+- Performance tuning
+
+---
+
+## 🧪 Testing
+
+### Backend Tests (PHPUnit)
+
+```bash
+# Run all tests
+docker compose exec truetrack php artisan test
+
+# Run specific test suite
+docker compose exec truetrack php artisan test --testsuite=Feature
+docker compose exec truetrack php artisan test --testsuite=Unit
+
+# Run with coverage
+docker compose exec truetrack php artisan test --coverage
+```
+
+### Frontend Tests (Jest)
+
+```bash
+# Run all tests
+docker compose exec truetrack npm run test
+
+# Run in watch mode
+docker compose exec truetrack npm run test:watch
+
+# Run with coverage
+docker compose exec truetrack npm run test:coverage
+```
+
+### Code Quality
+
+```bash
+# Laravel Pint (code style)
+docker compose exec truetrack ./vendor/bin/pint
+
+# PHPStan (static analysis)
+docker compose exec truetrack ./vendor/bin/phpstan analyse
+```
+
+---
+
+## 📦 Project Structure
+
+```
+workspace/
+├── app/                    # Laravel application
+│   ├── Http/
+│   │   ├── Controllers/   # API and web controllers
+│   │   ├── Requests/      # Form validation
+│   │   └── Resources/     # API resources
+│   ├── Models/            # Eloquent models
+│   ├── Services/          # Business logic
+│   ├── Jobs/              # Background jobs
+│   └── Policies/          # Authorization
+├── database/
+│   ├── migrations/        # Database migrations
+│   ├── seeders/           # Database seeders
+│   └── factories/         # Model factories
+├── resources/
+│   ├── js/                # React components
+│   │   ├── Components/   # Reusable components
+│   │   ├── Pages/        # Inertia pages
+│   │   └── Layouts/      # Page layouts
+│   └── css/              # Stylesheets
+├── tests/
+│   ├── Feature/          # Feature tests
+│   ├── Unit/             # Unit tests
+│   └── fixtures/         # Test fixtures (OFX, XLSX)
+└── routes/
+    ├── api.php           # API routes
+    ├── web.php           # Web routes
+    └── auth.php          # Authentication routes
+```
+
+---
+
+## 🔐 Security
+
+- Role-based access control (RBAC)
+- Sanctum API authentication
+- CSRF protection
+- SQL injection prevention via Eloquent
+- XSS protection
+- Input validation on all endpoints
+- Secure password hashing (bcrypt)
+- Environment-based configuration
+
+---
+
+## 📚 Documentation
+
+- [Development Plan](../DEVELOPMENT_PLAN.md)
+- [Phase Documentation](../docs/phases/README.md)
+- [Copilot Instructions](../.github/copilot-instructions.md)
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Commit Conventions
+
+- `feat:` New feature
+- `fix:` Bug fix
+- `test:` Test additions/modifications
+- `refactor:` Code restructuring
+- `docs:` Documentation updates
+- `chore:` Maintenance tasks
+
+---
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](../LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- Built with [Laravel](https://laravel.com)
+- Frontend powered by [React](https://react.dev) and [Inertia.js](https://inertiajs.com)
+- Styled with [Tailwind CSS](https://tailwindcss.com)
+- OFX parsing by [asgrim/ofxparser](https://github.com/asgrim/ofxparser)
+- Excel import/export by [Maatwebsite/Laravel-Excel](https://laravel-excel.com)
