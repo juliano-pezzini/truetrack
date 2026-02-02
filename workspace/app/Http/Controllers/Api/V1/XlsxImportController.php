@@ -31,8 +31,6 @@ class XlsxImportController extends Controller
      */
     public function detectColumns(DetectXlsxColumnsRequest $request): JsonResponse
     {
-        $this->authorize('create', XlsxImport::class);
-
         $file = $request->file('file');
 
         $headers = $this->xlsxService->detectHeaders($file);
@@ -52,8 +50,6 @@ class XlsxImportController extends Controller
      */
     public function preview(PreviewXlsxImportRequest $request): JsonResponse
     {
-        $this->authorize('create', XlsxImport::class);
-
         $file = $request->file('file');
         $mappingConfig = $request->input('mapping_config');
 
@@ -158,8 +154,6 @@ class XlsxImportController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $this->authorize('viewAny', XlsxImport::class);
-
         $query = XlsxImport::query()
             ->where('user_id', $request->user()->id)
             ->with(['account', 'reconciliation']);

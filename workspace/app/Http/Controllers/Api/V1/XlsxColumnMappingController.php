@@ -22,8 +22,6 @@ class XlsxColumnMappingController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $this->authorize('viewAny', XlsxColumnMapping::class);
-
         $query = XlsxColumnMapping::query()
             ->where('user_id', $request->user()->id);
 
@@ -49,8 +47,6 @@ class XlsxColumnMappingController extends Controller
      */
     public function store(StoreXlsxColumnMappingRequest $request): JsonResponse
     {
-        $this->authorize('create', XlsxColumnMapping::class);
-
         $user = $request->user();
 
         // If setting as default, unset other defaults
