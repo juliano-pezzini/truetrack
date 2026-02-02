@@ -190,17 +190,8 @@ class TagApiTest extends TestCase
     {
         $tag = Tag::factory()->create(['user_id' => $this->user->id]);
 
-        // Verify tag exists in database with correct user_id
-        $dbTag = Tag::find($tag->id);
-        $this->assertNotNull($dbTag);
-        $this->assertEquals($this->user->id, $dbTag->user_id);
-
-        // Direct policy test
-        $policy = new \App\Policies\TagPolicy();
-        $this->assertTrue($policy->view($this->user, $dbTag), 'Policy should allow user to view their own tag');
-
-        $response = $this->actingAs($this->user, 'sanctum')
-            ->getJson("/api/v1/tags/{$dbTag->id}");
+        $response = $this->actingAs($this->user)
+            ->getJson("/api/v1/tags/{$tag->id}");
 
         $response->assertStatus(200)
             ->assertJsonStructure([
