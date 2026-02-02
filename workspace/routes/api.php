@@ -193,6 +193,7 @@ Route::prefix('v1')->group(function () {
 
         // Learned Patterns CRUD (using apiResource for proper model binding)
         Route::apiResource('learned-patterns', App\Http\Controllers\Api\V1\LearnedPatternController::class)
+            ->parameters(['learned-patterns' => 'learnedCategoryPattern'])
             ->names([
                 'index' => 'api.learned-patterns.index',
                 'show' => 'api.learned-patterns.show',
