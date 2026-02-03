@@ -12,6 +12,10 @@ export default function TestCoverageModal({ show, onClose }) {
     const [coverage, setCoverage] = useState(null);
     const [error, setError] = useState('');
 
+    const getCsrfToken = () => {
+        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    };
+
     const handleTest = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -22,9 +26,11 @@ export default function TestCoverageModal({ show, onClose }) {
             const response = await fetch('/api/v1/auto-category-rules/test-coverage', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${auth.token}`,
+                    'Accept': 'application/json',
                     'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': getCsrfToken(),
                 },
+                credentials: 'same-origin',
                 body: JSON.stringify({
                     from_date: fromDate,
                     to_date: toDate,

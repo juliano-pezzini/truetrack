@@ -5,17 +5,21 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import TextInput from '@/Components/TextInput';
 
-export default function AutoRuleForm({ rule, onSubmit, onCancel }) {
+export default function AutoRuleForm({ rule, onSubmit, onCancel, fixedCategory = null }) {
     const { auth } = usePage().props;
     const [formData, setFormData] = useState({
         pattern: '',
-        category_id: '',
+        category_id: fixedCategory?.id || '',
         priority: '',
     });
     const [categories, setCategories] = useState([]);
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
     const [overlappingWarnings, setOverlappingWarnings] = useState([]);
+
+    const getCsrfToken = () => {
+        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    };
 
     useEffect(() => {
         if (rule) {
@@ -24,16 +28,23 @@ export default function AutoRuleForm({ rule, onSubmit, onCancel }) {
                 category_id: rule.category_id ?? rule.category?.id ?? '',
                 priority: rule.priority ?? '',
             });
+        } else if (fixedCategory) {
+            setFormData(prev => ({
+                ...prev,
+                category_id: fixedCategory.id,
+            }));
         }
         fetchCategories();
-    }, [rule]);
+    }, [rule, fixedCategory]);
 
     const fetchCategories = async () => {
         try {
             const response = await fetch('/api/v1/categories', {
                 headers: {
-                    'Authorization': `Bearer ${auth.token}`,
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': getCsrfToken(),
                 },
+                credentials: 'same-origin',
             });
             const data = await response.json();
             setCategories(data.data || []);
@@ -46,8 +57,10 @@ export default function AutoRuleForm({ rule, onSubmit, onCancel }) {
         try {
             const response = await fetch('/api/v1/auto-category-rules', {
                 headers: {
-                    'Authorization': `Bearer ${auth.token}`,
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': getCsrfToken(),
                 },
+                credentials: 'same-origin',
             });
             const data = await response.json();
             const rules = data.data || [];
@@ -155,19 +168,33 @@ export default function AutoRuleForm({ rule, onSubmit, onCancel }) {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                     Category *
                 </label>
-                <select
-                    name="category_id"
-                    value={formData.category_id}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                >
-                    <option value="">Select a category</option>
-                    {categories.map(cat => (
-                        <option key={cat.id} value={cat.id}>
-                            {cat.name}
-                        </option>
-                    ))}
-                </select>
+                {fixedCategory ? (
+                    <div>
+                        <input
+                            type="text"
+                            value={fixedCategory.name}
+                            disabled
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                            This rule will be created for the selected category
+                        </p>
+                    </div>
+                ) : (
+                    <select
+                        name="category_id"
+                        value={formData.category_id}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    >
+                        <option value="">Select a category</option>
+                        {categories.map(cat => (
+                            <option key={cat.id} value={cat.id}>
+                                {cat.name}
+                            </option>
+                        ))}
+                    </select>
+                )}
                 {errors.category_id && <InputError message={errors.category_id} />}
             </div>
 
