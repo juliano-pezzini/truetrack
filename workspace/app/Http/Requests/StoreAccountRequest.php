@@ -29,7 +29,7 @@ class StoreAccountRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'type' => ['required', 'string', Rule::in(AccountType::values())],
             'description' => ['nullable', 'string', 'max:1000'],
-            'initial_balance' => ['required', 'numeric', 'decimal:0,2'],
+            'initial_balance' => ['nullable', 'numeric', 'decimal:0,2'],
             'is_active' => ['sometimes', 'boolean'],
         ];
     }
@@ -46,7 +46,6 @@ class StoreAccountRequest extends FormRequest
             'name.max' => 'The account name must not exceed 255 characters.',
             'type.required' => 'The account type is required.',
             'type.in' => 'The selected account type is invalid.',
-            'initial_balance.required' => 'The initial balance is required.',
             'initial_balance.numeric' => 'The balance must be a valid number.',
             'initial_balance.decimal' => 'The balance must have at most 2 decimal places.',
             'description.max' => 'The description must not exceed 1000 characters.',

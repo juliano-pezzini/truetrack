@@ -10,7 +10,7 @@ export default function Create({ auth }) {
         name: '',
         type: 'bank',
         description: '',
-        balance: '0.00',
+        initial_balance: '0.00',
         is_active: true,
     });
 
@@ -91,17 +91,16 @@ export default function Create({ auth }) {
 
                                 {/* Initial Balance */}
                                 <div className="mb-4">
-                                    <InputLabel htmlFor="balance" value="Initial Balance" />
+                                    <InputLabel htmlFor="initial_balance" value="Initial Balance" />
                                     <TextInput
-                                        id="balance"
+                                        id="initial_balance"
                                         type="number"
                                         step="0.01"
-                                        value={data.balance}
-                                        onChange={(e) => setData('balance', e.target.value)}
+                                        value={data.initial_balance}
+                                        onChange={(e) => setData('initial_balance', e.target.value)}
                                         className="mt-1 block w-full"
-                                        required
                                     />
-                                    <InputError message={errors.balance} className="mt-2" />
+                                    <InputError message={errors.initial_balance} className="mt-2" />
                                     <p className="mt-1 text-sm text-gray-600">
                                         For credit cards, use negative values to indicate debt.
                                     </p>
