@@ -66,10 +66,14 @@ export default function TestCoverageModal({ show, onClose }) {
                         </p>
 
                         <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label
+                                className="block text-sm font-medium text-gray-700 mb-2"
+                                htmlFor="coverage-from-date"
+                            >
                                 From Date
                             </label>
                             <TextInput
+                                id="coverage-from-date"
                                 type="date"
                                 value={fromDate}
                                 onChange={(e) => setFromDate(e.target.value)}
@@ -78,10 +82,14 @@ export default function TestCoverageModal({ show, onClose }) {
                         </div>
 
                         <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label
+                                className="block text-sm font-medium text-gray-700 mb-2"
+                                htmlFor="coverage-to-date"
+                            >
                                 To Date
                             </label>
                             <TextInput
+                                id="coverage-to-date"
                                 type="date"
                                 value={toDate}
                                 onChange={(e) => setToDate(e.target.value)}

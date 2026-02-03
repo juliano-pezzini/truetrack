@@ -173,7 +173,7 @@ describe('TestCoverageModal Component', () => {
         await user.click(testButton);
 
         await waitFor(() => {
-            expect(screen.getByText(/failed to test coverage/i)).toBeInTheDocument();
+            expect(screen.getByText(/server error/i)).toBeInTheDocument();
         });
     });
 

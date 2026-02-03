@@ -65,7 +65,7 @@ describe('AutoRuleForm Component', () => {
 
         expect(screen.getByPlaceholderText(/amazon, groceries, salary/i)).toHaveValue('');
         expect(screen.getByRole('combobox')).toHaveValue('');
-        expect(screen.getByPlaceholderText(/lower numbers = higher priority/i)).toHaveValue('');
+        expect(screen.getByPlaceholderText(/lower numbers = higher priority/i)).toHaveValue(null);
     });
 
     it('renders form with values for edit', () => {
@@ -78,8 +78,14 @@ describe('AutoRuleForm Component', () => {
         );
 
         expect(screen.getByPlaceholderText(/amazon, groceries, salary/i)).toHaveValue('amazon');
-        expect(screen.getByRole('combobox')).toHaveValue('1');
-        expect(screen.getByPlaceholderText(/lower numbers = higher priority/i)).toHaveValue(10);
+
+        const categorySelect = screen.getByRole('combobox');
+        const priorityInput = screen.getByPlaceholderText(/lower numbers = higher priority/i);
+
+        return waitFor(() => {
+            expect(categorySelect).toHaveValue('1');
+            expect(priorityInput).toHaveValue(10);
+        });
     });
 
     it('validates pattern field', async () => {
@@ -217,7 +223,9 @@ describe('AutoRuleForm Component', () => {
         const submitButton = screen.getByRole('button', { name: /create rule/i });
         await user.click(submitButton);
 
-        expect(submitButton).toBeDisabled();
+        await waitFor(() => {
+            expect(submitButton).toBeDisabled();
+        });
     });
 });
 

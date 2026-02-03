@@ -59,7 +59,7 @@ describe('ConvertPatternModal Component', () => {
     });
 
     it('displays keyword in monospace code element', () => {
-        const { container } = render(
+        render(
             <ConvertPatternModal
                 show={true}
                 pattern={mockPattern}
@@ -68,8 +68,7 @@ describe('ConvertPatternModal Component', () => {
             />
         );
 
-        const codeElement = container.querySelector('code');
-        expect(codeElement?.textContent).toBe('amazon');
+        expect(screen.getByText('amazon', { selector: 'code' })).toBeInTheDocument();
     });
 
     it('displays pattern metadata', () => {

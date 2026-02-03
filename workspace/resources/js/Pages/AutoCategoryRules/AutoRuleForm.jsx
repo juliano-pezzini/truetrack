@@ -21,8 +21,8 @@ export default function AutoRuleForm({ rule, onSubmit, onCancel }) {
         if (rule) {
             setFormData({
                 pattern: rule.pattern,
-                category_id: rule.category.id,
-                priority: rule.priority,
+                category_id: rule.category_id ?? rule.category?.id ?? '',
+                priority: rule.priority ?? '',
             });
         }
         fetchCategories();
@@ -111,7 +111,7 @@ export default function AutoRuleForm({ rule, onSubmit, onCancel }) {
                 return;
             }
 
-            onSubmit(formData);
+            await onSubmit(formData);
         } finally {
             setLoading(false);
         }

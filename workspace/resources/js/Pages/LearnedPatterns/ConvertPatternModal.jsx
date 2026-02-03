@@ -95,7 +95,6 @@ export default function ConvertPatternModal({ show, pattern, onClose, onSuccess 
                                     placeholder="e.g., 10 (lower = higher priority)"
                                     min="1"
                                     max="1000"
-                                    required
                                 />
                                 <p className="text-xs text-gray-500 mt-1">
                                     Rules are evaluated by priority (lowest first). Use gaps of 10 for easier
