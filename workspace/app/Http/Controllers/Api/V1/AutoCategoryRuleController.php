@@ -96,18 +96,18 @@ class AutoCategoryRuleController extends \App\Http\Controllers\Controller
     /**
      * Update an auto-category rule.
      */
-    public function update(UpdateAutoRuleRequest $request, AutoCategoryRule $auto_category_rule): JsonResponse
+    public function update(UpdateAutoRuleRequest $request, AutoCategoryRule $autoCategoryRule): JsonResponse
     {
-        $this->authorize('update', $auto_category_rule);
+        $this->authorize('update', $autoCategoryRule);
 
-        $auto_category_rule->update([
+        $autoCategoryRule->update([
             'pattern' => $request->input('pattern'),
             'category_id' => $request->input('category_id'),
             'priority' => $request->input('priority'),
         ]);
 
         return response()->json([
-            'data' => new AutoCategoryRuleResource($auto_category_rule),
+            'data' => new AutoCategoryRuleResource($autoCategoryRule),
             'message' => 'Rule updated successfully',
         ]);
     }
@@ -115,11 +115,11 @@ class AutoCategoryRuleController extends \App\Http\Controllers\Controller
     /**
      * Delete an auto-category rule.
      */
-    public function destroy(AutoCategoryRule $auto_category_rule): JsonResponse
+    public function destroy(AutoCategoryRule $autoCategoryRule): JsonResponse
     {
-        $this->authorize('delete', $auto_category_rule);
+        $this->authorize('delete', $autoCategoryRule);
 
-        $auto_category_rule->delete();
+        $autoCategoryRule->delete();
 
         return response()->json([
             'message' => 'Rule deleted successfully',
@@ -129,14 +129,14 @@ class AutoCategoryRuleController extends \App\Http\Controllers\Controller
     /**
      * Archive a rule.
      */
-    public function archive(AutoCategoryRule $auto_category_rule): JsonResponse
+    public function archive(AutoCategoryRule $autoCategoryRule): JsonResponse
     {
-        $this->authorize('archive', $auto_category_rule);
+        $this->authorize('archive', $autoCategoryRule);
 
-        $auto_category_rule->archive();
+        $autoCategoryRule->archive();
 
         return response()->json([
-            'data' => new AutoCategoryRuleResource($auto_category_rule),
+            'data' => new AutoCategoryRuleResource($autoCategoryRule),
             'message' => 'Rule archived successfully',
         ]);
     }
@@ -144,14 +144,14 @@ class AutoCategoryRuleController extends \App\Http\Controllers\Controller
     /**
      * Restore a rule from archive.
      */
-    public function restore(AutoCategoryRule $auto_category_rule): JsonResponse
+    public function restore(AutoCategoryRule $autoCategoryRule): JsonResponse
     {
-        $this->authorize('archive', $auto_category_rule);
+        $this->authorize('archive', $autoCategoryRule);
 
-        $auto_category_rule->restore();
+        $autoCategoryRule->restore();
 
         return response()->json([
-            'data' => new AutoCategoryRuleResource($auto_category_rule),
+            'data' => new AutoCategoryRuleResource($autoCategoryRule),
             'message' => 'Rule restored successfully',
         ]);
     }

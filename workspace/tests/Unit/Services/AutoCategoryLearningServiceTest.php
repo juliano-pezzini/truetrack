@@ -318,6 +318,6 @@ class AutoCategoryLearningServiceTest extends TestCase
         ]);
 
         // Pattern with higher occurrences should have higher confidence
-        $this->assertLessThan($pattern5->confidence_score, $pattern1->confidence_score);
+        $this->assertGreaterThan($pattern1->confidence_score, $pattern5->confidence_score);
     }
 }

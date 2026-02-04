@@ -76,7 +76,10 @@ class AutoCategoryRule extends Model
      */
     public function scopeArchived(Builder $query): Builder
     {
-        return $query->where('archived_at', '!=', null)->orWhere('is_active', false);
+        return $query->where(function (Builder $q): void {
+            $q->whereNotNull('archived_at')
+                ->orWhere('is_active', false);
+        });
     }
 
     /**
