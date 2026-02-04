@@ -201,19 +201,26 @@ class AutoCategoryLearningServiceTest extends TestCase
         $user = User::factory()->create();
         $category = Category::factory()->create(['user_id' => $user->id]);
 
-        LearnedCategoryPattern::factory(3)->create([
-            'user_id' => $user->id,
-            'category_id' => $category->id,
-            'confidence_score' => 90,
-            'occurrence_count' => 20,
-        ]);
+        // Create patterns with unique keywords to avoid constraint violation
+        for ($i = 0; $i < 3; $i++) {
+            LearnedCategoryPattern::factory()->create([
+                'user_id' => $user->id,
+                'category_id' => $category->id,
+                'keyword' => 'high_confidence_'.$i,
+                'confidence_score' => 90,
+                'occurrence_count' => 20,
+            ]);
+        }
 
-        LearnedCategoryPattern::factory(2)->create([
-            'user_id' => $user->id,
-            'category_id' => $category->id,
-            'confidence_score' => 50,
-            'occurrence_count' => 5,
-        ]);
+        for ($i = 0; $i < 2; $i++) {
+            LearnedCategoryPattern::factory()->create([
+                'user_id' => $user->id,
+                'category_id' => $category->id,
+                'keyword' => 'low_confidence_'.$i,
+                'confidence_score' => 50,
+                'occurrence_count' => 5,
+            ]);
+        }
 
         $topPatterns = $this->service->getTopPatterns($user->id, 3);
 
@@ -232,19 +239,26 @@ class AutoCategoryLearningServiceTest extends TestCase
         $user = User::factory()->create();
         $category = Category::factory()->create(['user_id' => $user->id]);
 
-        LearnedCategoryPattern::factory(2)->create([
-            'user_id' => $user->id,
-            'category_id' => $category->id,
-            'confidence_score' => 30,
-            'occurrence_count' => 5,
-        ]);
+        // Create patterns with unique keywords to avoid constraint violation
+        for ($i = 0; $i < 2; $i++) {
+            LearnedCategoryPattern::factory()->create([
+                'user_id' => $user->id,
+                'category_id' => $category->id,
+                'keyword' => 'underperforming_'.$i,
+                'confidence_score' => 30,
+                'occurrence_count' => 5,
+            ]);
+        }
 
-        LearnedCategoryPattern::factory(3)->create([
-            'user_id' => $user->id,
-            'category_id' => $category->id,
-            'confidence_score' => 80,
-            'occurrence_count' => 15,
-        ]);
+        for ($i = 0; $i < 3; $i++) {
+            LearnedCategoryPattern::factory()->create([
+                'user_id' => $user->id,
+                'category_id' => $category->id,
+                'keyword' => 'performing_'.$i,
+                'confidence_score' => 80,
+                'occurrence_count' => 15,
+            ]);
+        }
 
         $underperforming = $this->service->getUnderperformingPatterns(
             $user->id,

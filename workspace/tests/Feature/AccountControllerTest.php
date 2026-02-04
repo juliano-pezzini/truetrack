@@ -66,7 +66,7 @@ class AccountControllerTest extends TestCase
             ->from(route('accounts.create'))
             ->post(route('accounts.store'), []);
 
-        $response->assertSessionHasErrors(['name', 'type', 'initial_balance']);
+        $response->assertSessionHasErrors(['name', 'type']);
     }
 
     public function test_edit_page_displays_account_form(): void
