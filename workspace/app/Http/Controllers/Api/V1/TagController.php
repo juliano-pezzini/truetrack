@@ -23,7 +23,7 @@ class TagController extends Controller
      */
     public function index(Request $request): AnonymousResourceCollection
     {
-        $query = Tag::query();
+        $query = Tag::where('user_id', $request->user()->id);
 
         // Apply search filter
         if ($request->has('filter')) {
@@ -73,6 +73,8 @@ class TagController extends Controller
      */
     public function show(Tag $tag): TagResource
     {
+        $this->authorize('view', $tag);
+
         return new TagResource($tag);
     }
 
@@ -81,6 +83,8 @@ class TagController extends Controller
      */
     public function update(UpdateTagRequest $request, Tag $tag): TagResource
     {
+        $this->authorize('update', $tag);
+
         $tag->update($request->validated());
 
         return new TagResource($tag);
@@ -91,6 +95,8 @@ class TagController extends Controller
      */
     public function destroy(Tag $tag): JsonResponse
     {
+        $this->authorize('delete', $tag);
+
         $tag->delete();
 
         return response()->json(null, 204);

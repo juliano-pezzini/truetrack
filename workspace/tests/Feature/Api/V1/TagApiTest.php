@@ -23,7 +23,7 @@ class TagApiTest extends TestCase
 
     public function test_can_list_tags(): void
     {
-        Tag::factory()->count(5)->create();
+        Tag::factory()->count(5)->create(['user_id' => $this->user->id]);
 
         $response = $this->actingAs($this->user)
             ->getJson('/api/v1/tags');
@@ -47,9 +47,9 @@ class TagApiTest extends TestCase
 
     public function test_can_filter_tags_by_name(): void
     {
-        Tag::factory()->create(['name' => 'Essential']);
-        Tag::factory()->create(['name' => 'Entertainment']);
-        Tag::factory()->create(['name' => 'Business']);
+        Tag::factory()->create(['user_id' => $this->user->id, 'name' => 'Essential']);
+        Tag::factory()->create(['user_id' => $this->user->id, 'name' => 'Entertainment']);
+        Tag::factory()->create(['user_id' => $this->user->id, 'name' => 'Business']);
 
         $response = $this->actingAs($this->user)
             ->getJson('/api/v1/tags?filter[name]=ent');
@@ -60,9 +60,9 @@ class TagApiTest extends TestCase
 
     public function test_can_filter_tags_by_color(): void
     {
-        Tag::factory()->create(['name' => 'Red Tag', 'color' => '#EF4444']);
-        Tag::factory()->create(['name' => 'Blue Tag', 'color' => '#3B82F6']);
-        Tag::factory()->create(['name' => 'Green Tag', 'color' => '#10B981']);
+        Tag::factory()->create(['user_id' => $this->user->id, 'name' => 'Red Tag', 'color' => '#EF4444']);
+        Tag::factory()->create(['user_id' => $this->user->id, 'name' => 'Blue Tag', 'color' => '#3B82F6']);
+        Tag::factory()->create(['user_id' => $this->user->id, 'name' => 'Green Tag', 'color' => '#10B981']);
 
         $response = $this->actingAs($this->user)
             ->getJson('/api/v1/tags?filter[color]=%23EF4444');
@@ -74,9 +74,9 @@ class TagApiTest extends TestCase
 
     public function test_can_sort_tags(): void
     {
-        Tag::factory()->create(['name' => 'Zebra']);
-        Tag::factory()->create(['name' => 'Apple']);
-        Tag::factory()->create(['name' => 'Mango']);
+        Tag::factory()->create(['user_id' => $this->user->id, 'name' => 'Zebra']);
+        Tag::factory()->create(['user_id' => $this->user->id, 'name' => 'Apple']);
+        Tag::factory()->create(['user_id' => $this->user->id, 'name' => 'Mango']);
 
         $response = $this->actingAs($this->user)
             ->getJson('/api/v1/tags?sort=name');
@@ -89,8 +89,8 @@ class TagApiTest extends TestCase
 
     public function test_can_sort_tags_descending(): void
     {
-        Tag::factory()->create(['name' => 'Zebra']);
-        Tag::factory()->create(['name' => 'Apple']);
+        Tag::factory()->create(['user_id' => $this->user->id, 'name' => 'Zebra']);
+        Tag::factory()->create(['user_id' => $this->user->id, 'name' => 'Apple']);
 
         $response = $this->actingAs($this->user)
             ->getJson('/api/v1/tags?sort=-name');
@@ -145,7 +145,7 @@ class TagApiTest extends TestCase
 
     public function test_cannot_create_tag_with_duplicate_name(): void
     {
-        Tag::factory()->create(['name' => 'Existing Tag']);
+        Tag::factory()->create(['user_id' => $this->user->id, 'name' => 'Existing Tag']);
 
         $tagData = [
             'name' => 'Existing Tag',
@@ -187,7 +187,7 @@ class TagApiTest extends TestCase
 
     public function test_can_show_tag(): void
     {
-        $tag = Tag::factory()->create();
+        $tag = Tag::factory()->create(['user_id' => $this->user->id]);
 
         $response = $this->actingAs($this->user)
             ->getJson("/api/v1/tags/{$tag->id}");
@@ -209,6 +209,7 @@ class TagApiTest extends TestCase
     public function test_can_update_tag(): void
     {
         $tag = Tag::factory()->create([
+            'user_id' => $this->user->id,
             'name' => 'Old Name',
             'color' => '#EF4444',
         ]);
@@ -235,6 +236,7 @@ class TagApiTest extends TestCase
     public function test_can_partially_update_tag(): void
     {
         $tag = Tag::factory()->create([
+            'user_id' => $this->user->id,
             'name' => 'Original Name',
             'color' => '#EF4444',
         ]);
@@ -253,8 +255,8 @@ class TagApiTest extends TestCase
 
     public function test_cannot_update_tag_with_duplicate_name(): void
     {
-        Tag::factory()->create(['name' => 'Existing Tag']);
-        $tag = Tag::factory()->create(['name' => 'My Tag']);
+        Tag::factory()->create(['user_id' => $this->user->id, 'name' => 'Existing Tag']);
+        $tag = Tag::factory()->create(['user_id' => $this->user->id, 'name' => 'My Tag']);
 
         $updateData = [
             'name' => 'Existing Tag',
@@ -269,7 +271,7 @@ class TagApiTest extends TestCase
 
     public function test_can_delete_tag(): void
     {
-        $tag = Tag::factory()->create();
+        $tag = Tag::factory()->create(['user_id' => $this->user->id]);
 
         $response = $this->actingAs($this->user)
             ->deleteJson("/api/v1/tags/{$tag->id}");
@@ -285,6 +287,7 @@ class TagApiTest extends TestCase
     {
         $response = $this->getJson('/api/v1/tags');
 
+        // Returns 401 when no authentication provided
         $response->assertStatus(401);
     }
 
@@ -297,32 +300,35 @@ class TagApiTest extends TestCase
 
         $response = $this->postJson('/api/v1/tags', $tagData);
 
+        // Returns 401 when no authentication provided
         $response->assertStatus(401);
     }
 
     public function test_guest_cannot_update_tag(): void
     {
-        $tag = Tag::factory()->create();
+        $tag = Tag::factory()->create(['user_id' => $this->user->id]);
 
         $response = $this->putJson("/api/v1/tags/{$tag->id}", [
             'name' => 'Updated Name',
         ]);
 
+        // Returns 401 when no authentication provided
         $response->assertStatus(401);
     }
 
     public function test_guest_cannot_delete_tag(): void
     {
-        $tag = Tag::factory()->create();
+        $tag = Tag::factory()->create(['user_id' => $this->user->id]);
 
         $response = $this->deleteJson("/api/v1/tags/{$tag->id}");
 
+        // Returns 401 when no authentication provided
         $response->assertStatus(401);
     }
 
     public function test_respects_pagination(): void
     {
-        Tag::factory()->count(25)->create();
+        Tag::factory()->count(25)->create(['user_id' => $this->user->id]);
 
         $response = $this->actingAs($this->user)
             ->getJson('/api/v1/tags?per_page=10');
@@ -335,12 +341,67 @@ class TagApiTest extends TestCase
 
     public function test_pagination_has_maximum_limit(): void
     {
-        Tag::factory()->count(150)->create();
+        Tag::factory()->count(150)->create(['user_id' => $this->user->id]);
 
         $response = $this->actingAs($this->user)
             ->getJson('/api/v1/tags?per_page=200');
 
         $response->assertStatus(200)
             ->assertJsonCount(100, 'data'); // Max is 100
+    }
+
+    public function test_cannot_view_another_users_tag(): void
+    {
+        $otherUser = User::factory()->create();
+        $tag = Tag::factory()->create(['user_id' => $otherUser->id]);
+
+        $response = $this->actingAs($this->user)
+            ->getJson("/api/v1/tags/{$tag->id}");
+
+        // Returns 403 when authenticated but trying to access another user's resource
+        $response->assertStatus(403);
+    }
+
+    public function test_cannot_update_another_users_tag(): void
+    {
+        $otherUser = User::factory()->create();
+        $tag = Tag::factory()->create(['user_id' => $otherUser->id]);
+
+        $response = $this->actingAs($this->user)
+            ->putJson("/api/v1/tags/{$tag->id}", [
+                'name' => 'Hacked Name',
+                'color' => '#FF0000',
+            ]);
+
+        // Returns 403 when authenticated but trying to update another user's resource
+        $response->assertStatus(403);
+    }
+
+    public function test_cannot_delete_another_users_tag(): void
+    {
+        $otherUser = User::factory()->create();
+        $tag = Tag::factory()->create(['user_id' => $otherUser->id]);
+
+        $response = $this->actingAs($this->user)
+            ->deleteJson("/api/v1/tags/{$tag->id}");
+
+        // Returns 403 when authenticated but trying to delete another user's resource
+        $response->assertStatus(403);
+    }
+
+    public function test_user_can_only_see_their_own_tags(): void
+    {
+        $otherUser = User::factory()->create();
+
+        // Create tags for both users
+        Tag::factory()->count(3)->create(['user_id' => $this->user->id]);
+        Tag::factory()->count(5)->create(['user_id' => $otherUser->id]);
+
+        $response = $this->actingAs($this->user)
+            ->getJson('/api/v1/tags');
+
+        // Should only see own tags
+        $response->assertStatus(200)
+            ->assertJsonCount(3, 'data');
     }
 }

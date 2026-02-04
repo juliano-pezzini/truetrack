@@ -22,7 +22,7 @@ class TagPolicy
      */
     public function view(?User $user, Tag $tag): bool
     {
-        return true;
+        return $tag->user_id === $user->id;
     }
 
     /**
@@ -38,7 +38,7 @@ class TagPolicy
      */
     public function update(User $user, Tag $tag): bool
     {
-        return true;
+        return $tag->user_id === $user->id;
     }
 
     /**
@@ -46,7 +46,7 @@ class TagPolicy
      */
     public function delete(User $user, Tag $tag): bool
     {
-        return true;
+        return $tag->user_id === $user->id;
     }
 
     /**

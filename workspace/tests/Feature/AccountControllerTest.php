@@ -63,6 +63,7 @@ class AccountControllerTest extends TestCase
     public function test_store_validates_required_fields(): void
     {
         $response = $this->actingAs($this->user)
+            ->from(route('accounts.create'))
             ->post(route('accounts.store'), []);
 
         $response->assertSessionHasErrors(['name', 'type', 'initial_balance']);

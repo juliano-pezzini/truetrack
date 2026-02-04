@@ -168,6 +168,7 @@ class TransactionControllerTest extends TestCase
     public function test_store_validates_required_fields(): void
     {
         $response = $this->actingAs($this->user)
+            ->from(route('transactions.create'))
             ->post(route('transactions.store'), []);
 
         $response->assertSessionHasErrors(['account_id', 'type', 'amount', 'transaction_date']);

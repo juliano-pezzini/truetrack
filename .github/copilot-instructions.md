@@ -44,6 +44,13 @@ docker compose exec truetrack composer require package/name
 docker compose exec truetrack php artisan test
 docker compose exec truetrack ./vendor/bin/phpunit
 
+# Run tests in parallel (recommended for speed - 3-4x faster)
+docker compose exec truetrack php artisan test --parallel --processes=4
+
+# Run specific test suite in parallel
+docker compose exec truetrack php artisan test --testsuite=Unit --parallel
+docker compose exec truetrack php artisan test --testsuite=Feature --parallel
+
 # Run code quality tools
 docker compose exec truetrack ./vendor/bin/pint
 docker compose exec truetrack ./vendor/bin/phpstan analyse
