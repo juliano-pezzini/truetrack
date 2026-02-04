@@ -335,14 +335,12 @@ class LearnedPatternControllerTest extends TestCase
     }
 
     /**
-     * Test unauthenticated request is handled correctly.
-     * Note: In test environment, Sanctum middleware may not enforce 401 as expected.
+     * Test unauthenticated request returns 401.
      */
     public function test_unauthenticated_returns_401(): void
     {
         $response = $this->getJson('/api/v1/learned-patterns');
 
-        // Accept either 401 (proper Sanctum behavior) or 200 (test environment quirk)
-        $this->assertContains($response->status(), [200, 401, 403]);
+        $response->assertStatus(401);
     }
 }
