@@ -45,6 +45,7 @@ class TagControllerTest extends TestCase
         ];
 
         $response = $this->actingAs($this->user)
+            ->from(route('tags.create'))
             ->post(route('tags.store'), $tagData);
 
         $response->assertRedirect(route('tags.index'));
@@ -59,6 +60,7 @@ class TagControllerTest extends TestCase
     public function test_store_validates_required_fields(): void
     {
         $response = $this->actingAs($this->user)
+            ->from(route('tags.create'))
             ->post(route('tags.store'), []);
 
         $response->assertSessionHasErrors(['name', 'color']);
@@ -68,11 +70,10 @@ class TagControllerTest extends TestCase
     {
         Tag::factory()->create(['name' => 'Existing Tag']);
 
-        $response = $this->actingAs($this->user)
-            ->post(route('tags.store'), [
-                'name' => 'Existing Tag',
-                'color' => '#3B82F6',
-            ]);
+        $response = $this->actingAs($this->user)->from(route('tags.create'))->post(route('tags.store'), [
+            'name' => 'Existing Tag',
+            'color' => '#3B82F6',
+        ]);
 
         $response->assertSessionHasErrors(['name']);
     }
@@ -80,6 +81,7 @@ class TagControllerTest extends TestCase
     public function test_store_validates_color_format(): void
     {
         $response = $this->actingAs($this->user)
+            ->from(route('tags.create'))
             ->post(route('tags.store'), [
                 'name' => 'Test Tag',
                 'color' => 'invalid-color',
@@ -190,10 +192,11 @@ class TagControllerTest extends TestCase
 
     public function test_guest_cannot_store_tag(): void
     {
-        $response = $this->post(route('tags.store'), [
-            'name' => 'Test Tag',
-            'color' => '#3B82F6',
-        ]);
+        $response = $this->from(route('tags.create'))
+            ->post(route('tags.store'), [
+                'name' => 'Test Tag',
+                'color' => '#3B82F6',
+            ]);
 
         $response->assertRedirect(route('login'));
     }
@@ -211,9 +214,10 @@ class TagControllerTest extends TestCase
     {
         $tag = Tag::factory()->create();
 
-        $response = $this->put(route('tags.update', $tag), [
-            'name' => 'Updated Name',
-        ]);
+        $response = $this->from(route('tags.edit', $tag))
+            ->put(route('tags.update', $tag), [
+                'name' => 'Updated Name',
+            ]);
 
         $response->assertRedirect(route('login'));
     }
@@ -222,7 +226,8 @@ class TagControllerTest extends TestCase
     {
         $tag = Tag::factory()->create();
 
-        $response = $this->delete(route('tags.destroy', $tag));
+        $response = $this->from(route('tags.index'))
+            ->delete(route('tags.destroy', $tag));
 
         $response->assertRedirect(route('login'));
     }

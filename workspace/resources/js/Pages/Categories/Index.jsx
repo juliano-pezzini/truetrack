@@ -1,11 +1,29 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import Modal from '@/Components/Modal';
 import { useState } from 'react';
+import AutoRuleForm from '@/Pages/AutoCategoryRules/AutoRuleForm';
+import AutoRuleTable from '@/Pages/AutoCategoryRules/AutoRuleTable';
+import TestCoverageModal from '@/Pages/AutoCategoryRules/TestCoverageModal';
+import PrimaryButton from '@/Components/PrimaryButton';
+import SecondaryButton from '@/Components/SecondaryButton';
 
 export default function Index({ auth, categories, filters, categoryTypes }) {
     const [filterType, setFilterType] = useState(filters?.type || '');
     const [filterActive, setFilterActive] = useState(filters?.is_active ?? '');
     const [filterParentOnly, setFilterParentOnly] = useState(filters?.parent_only || false);
+    const [showAutoRulesModal, setShowAutoRulesModal] = useState(false);
+    const [selectedCategory, setSelectedCategory] = useState(null);
+    const [rules, setRules] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [showRuleForm, setShowRuleForm] = useState(false);
+    const [editingRule, setEditingRule] = useState(null);
+    const [error, setError] = useState(null);
+    const [showTestCoverageModal, setShowTestCoverageModal] = useState(false);
+
+    const getCsrfToken = () => {
+        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    };
 
     const typeOptions = [
         { value: '', label: 'All Types' },
@@ -54,6 +72,178 @@ export default function Index({ auth, categories, filters, categoryTypes }) {
 
     const getCategoryTypeClass = (type) => {
         return type === 'revenue' ? 'text-green-600 bg-green-100' : 'text-red-600 bg-red-100';
+    };
+
+    const openAutoRulesModal = async (category) => {
+        setSelectedCategory(category);
+        setShowAutoRulesModal(true);
+        setShowRuleForm(false);
+        setEditingRule(null);
+        await fetchRulesForCategory(category.id);
+    };
+
+    const closeAutoRulesModal = () => {
+        setShowAutoRulesModal(false);
+        setSelectedCategory(null);
+        setRules([]);
+        setShowRuleForm(false);
+        setEditingRule(null);
+        setError(null);
+    };
+
+    const fetchRulesForCategory = async (categoryId) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const params = new URLSearchParams({
+                'filter[category_id]': categoryId,
+                'filter[active]': '1',
+            });
+
+            const response = await fetch(`/api/v1/auto-category-rules?${params}`, {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': getCsrfToken(),
+                },
+                credentials: 'same-origin',
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch rules: ${response.status}`);
+            }
+
+            const data = await response.json();
+            setRules(data.data);
+        } catch (error) {
+            console.error('Failed to fetch rules:', error);
+            setError('Failed to load auto-category rules. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCreateRule = async (formData) => {
+        setError(null);
+        try {
+            const response = await fetch('/api/v1/auto-category-rules', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': getCsrfToken(),
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    ...formData,
+                    category_id: selectedCategory.id,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                const errorMessage = errorData.message || `Failed to create rule (${response.status})`;
+                setError(errorMessage);
+                throw new Error(errorMessage);
+            }
+
+            setShowRuleForm(false);
+            await fetchRulesForCategory(selectedCategory.id);
+        } catch (error) {
+            console.error('Error creating rule:', error);
+            if (!error.message.includes('Failed to create rule')) {
+                setError('An error occurred while creating the rule. Please try again.');
+            }
+        }
+    };
+
+    const handleUpdateRule = async (ruleId, formData) => {
+        setError(null);
+        try {
+            const response = await fetch(`/api/v1/auto-category-rules/${ruleId}`, {
+                method: 'PUT',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': getCsrfToken(),
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify(formData),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                const errorMessage = errorData.message || `Failed to update rule (${response.status})`;
+                setError(errorMessage);
+                throw new Error(errorMessage);
+            }
+
+            setEditingRule(null);
+            setShowRuleForm(false);
+            await fetchRulesForCategory(selectedCategory.id);
+        } catch (error) {
+            console.error('Error updating rule:', error);
+            if (!error.message.includes('Failed to update rule')) {
+                setError('An error occurred while updating the rule. Please try again.');
+            }
+        }
+    };
+
+    const handleDeleteRule = async (ruleId) => {
+        if (!confirm('Are you sure you want to delete this rule?')) return;
+
+        setError(null);
+        try {
+            const response = await fetch(`/api/v1/auto-category-rules/${ruleId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': getCsrfToken(),
+                },
+                credentials: 'same-origin',
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                const errorMessage = errorData.message || `Failed to delete rule (${response.status})`;
+                setError(errorMessage);
+                throw new Error(errorMessage);
+            }
+
+            await fetchRulesForCategory(selectedCategory.id);
+        } catch (error) {
+            console.error('Error deleting rule:', error);
+            if (!error.message.includes('Failed to delete rule')) {
+                setError('An error occurred while deleting the rule. Please try again.');
+            }
+        }
+    };
+
+    const handleArchiveRule = async (ruleId) => {
+        setError(null);
+        try {
+            const response = await fetch(`/api/v1/auto-category-rules/${ruleId}/archive`, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': getCsrfToken(),
+                },
+                credentials: 'same-origin',
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                const errorMessage = errorData.message || `Failed to archive rule (${response.status})`;
+                setError(errorMessage);
+                throw new Error(errorMessage);
+            }
+
+            await fetchRulesForCategory(selectedCategory.id);
+        } catch (error) {
+            console.error('Error archiving rule:', error);
+            if (!error.message.includes('Failed to archive rule')) {
+                setError('An error occurred while archiving the rule. Please try again.');
+            }
+        }
     };
 
     return (
@@ -218,6 +408,13 @@ export default function Index({ auth, categories, filters, categoryTypes }) {
                                                         </span>
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                        <button
+                                                            onClick={() => openAutoRulesModal(category)}
+                                                            className="text-purple-600 hover:text-purple-900 mr-4"
+                                                            title="Manage auto-categorization rules"
+                                                        >
+                                                            Auto Rules
+                                                        </button>
                                                         <Link
                                                             href={route('categories.edit', category.id)}
                                                             className="text-indigo-600 hover:text-indigo-900 mr-4"
@@ -270,6 +467,120 @@ export default function Index({ auth, categories, filters, categoryTypes }) {
                     </div>
                 </div>
             </div>
+
+            {/* Auto-Category Rules Modal */}
+            <Modal show={showAutoRulesModal} onClose={closeAutoRulesModal} maxWidth="4xl">
+                <div className="p-6">
+                    <div className="flex justify-between items-center mb-6">
+                        <div>
+                            <h2 className="text-2xl font-bold text-gray-900">
+                                Auto-Category Rules for "{selectedCategory?.name}"
+                            </h2>
+                            <p className="text-sm text-gray-600 mt-1">
+                                Manage automatic categorization rules for this category
+                            </p>
+                        </div>
+                        <div className="flex gap-2">
+                            <SecondaryButton
+                                onClick={() => setShowTestCoverageModal(true)}
+                            >
+                                Test Coverage
+                            </SecondaryButton>
+                            <PrimaryButton
+                                onClick={() => {
+                                    setEditingRule(null);
+                                    setShowRuleForm(true);
+                                }}
+                            >
+                                Add Rule
+                            </PrimaryButton>
+                        </div>
+                    </div>
+
+                    {error && (
+                        <div className="mb-4 rounded-md bg-red-50 p-4">
+                            <div className="flex">
+                                <div className="flex-shrink-0">
+                                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div className="ml-3">
+                                    <p className="text-sm font-medium text-red-800">{error}</p>
+                                </div>
+                                <div className="ml-auto pl-3">
+                                    <div className="-mx-1.5 -my-1.5">
+                                        <button
+                                            type="button"
+                                            onClick={() => setError(null)}
+                                            className="inline-flex rounded-md bg-red-50 p-1.5 text-red-500 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 focus:ring-offset-red-50"
+                                        >
+                                            <span className="sr-only">Dismiss</span>
+                                            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {showRuleForm ? (
+                        <div className="bg-gray-50 p-6 rounded-lg">
+                            <h3 className="text-lg font-semibold mb-4">
+                                {editingRule ? 'Edit Rule' : 'Create New Rule'}
+                            </h3>
+                            <AutoRuleForm
+                                rule={editingRule}
+                                fixedCategory={selectedCategory}
+                                onSubmit={(formData) => {
+                                    if (editingRule) {
+                                        handleUpdateRule(editingRule.id, formData);
+                                    } else {
+                                        handleCreateRule(formData);
+                                    }
+                                }}
+                                onCancel={() => {
+                                    setShowRuleForm(false);
+                                    setEditingRule(null);
+                                }}
+                            />
+                        </div>
+                    ) : (
+                        <div>
+                            {loading ? (
+                                <div className="text-center py-8">
+                                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                                    <p className="mt-2 text-gray-600">Loading rules...</p>
+                                </div>
+                            ) : (
+                                <AutoRuleTable
+                                    rules={rules}
+                                    onEdit={(rule) => {
+                                        setEditingRule(rule);
+                                        setShowRuleForm(true);
+                                    }}
+                                    onDelete={handleDeleteRule}
+                                    onArchive={handleArchiveRule}
+                                />
+                            )}
+                        </div>
+                    )}
+
+                    <div className="mt-6 flex justify-end">
+                        <SecondaryButton onClick={closeAutoRulesModal}>
+                            Close
+                        </SecondaryButton>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Test Coverage Modal */}
+            <TestCoverageModal
+                show={showTestCoverageModal}
+                onClose={() => setShowTestCoverageModal(false)}
+            />
         </AuthenticatedLayout>
     );
 }
