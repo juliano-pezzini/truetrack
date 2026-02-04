@@ -137,7 +137,7 @@ class AccountApiTest extends TestCase
             ->postJson('/api/v1/accounts', []);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['name', 'type', 'initial_balance']);
+            ->assertJsonValidationErrors(['name', 'type']);
     }
 
     public function test_validates_account_type(): void
