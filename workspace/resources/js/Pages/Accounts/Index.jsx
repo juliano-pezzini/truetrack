@@ -161,10 +161,16 @@ export default function Index({ auth, accounts, filters }) {
                                                     Type
                                                 </th>
                                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Balance
+                                                    Initial Balance
+                                                </th>
+                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Current Balance
                                                 </th>
                                                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                     Status
+                                                </th>
+                                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Quick Actions
                                                 </th>
                                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                     Actions
@@ -189,6 +195,9 @@ export default function Index({ auth, accounts, filters }) {
                                                             {account.type_label}
                                                         </span>
                                                     </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                                                        {formatCurrency(account.initial_balance)}
+                                                    </td>
                                                     <td className={`px-6 py-4 whitespace-nowrap text-right text-sm font-medium ${getBalanceClass(account.balance)}`}>
                                                         {formatCurrency(account.balance)}
                                                     </td>
@@ -202,6 +211,28 @@ export default function Index({ auth, accounts, filters }) {
                                                                 Inactive
                                                             </span>
                                                         )}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                        <div className="flex flex-col gap-1">
+                                                            <Link
+                                                                href={route('imports.index', { account: account.id })}
+                                                                className="text-xs text-indigo-600 hover:text-indigo-900 hover:underline"
+                                                            >
+                                                                📄 Import Statement
+                                                            </Link>
+                                                            <Link
+                                                                href={route('transactions.index', { account: account.id })}
+                                                                className="text-xs text-indigo-600 hover:text-indigo-900 hover:underline"
+                                                            >
+                                                                💰 Transactions
+                                                            </Link>
+                                                            <Link
+                                                                href={route('reconciliations.index', { account: account.id })}
+                                                                className="text-xs text-indigo-600 hover:text-indigo-900 hover:underline"
+                                                            >
+                                                                ✓ Reconciliations
+                                                            </Link>
+                                                        </div>
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                         <Link

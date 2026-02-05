@@ -22,7 +22,7 @@ const AMOUNT_STRATEGIES = [
     { value: 'type_column', label: 'Amount + Type Column', description: 'Amount column with separate type indicator' },
 ];
 
-export default function XlsxColumnMapper({ headers, suggestedMapping, accountId, onMappingConfirmed, onBack }) {
+export default function XlsxColumnMapper({ headers, suggestedMapping, detectedNumberFormat, formatConfidence, accountId, onMappingConfirmed, onBack }) {
     const [mappingConfig, setMappingConfig] = useState({
         date_column: suggestedMapping?.date_column || '',
         description_column: suggestedMapping?.description_column || '',
@@ -34,6 +34,7 @@ export default function XlsxColumnMapper({ headers, suggestedMapping, accountId,
         category_column: suggestedMapping?.category_column || '',
         settled_date_column: suggestedMapping?.settled_date_column || '',
         tags_column: suggestedMapping?.tags_column || '',
+        number_format: detectedNumberFormat || 'us',
     });
 
     const [errors, setErrors] = useState({});
@@ -128,6 +129,49 @@ export default function XlsxColumnMapper({ headers, suggestedMapping, accountId,
             <div>
                 <InputLabel value="Load Saved Mapping (Optional)" />
                 <SavedMappingSelector accountId={accountId} onMappingSelected={handleLoadMapping} />
+            </div>
+
+            {/* Number Format Selection */}
+            <div className="rounded-lg border-2 border-blue-200 bg-blue-50 p-4">
+                <h3 className="mb-2 text-sm font-semibold text-blue-900">Number Format</h3>
+                <p className="mb-3 text-xs text-blue-700">
+                    {formatConfidence > 0
+                        ? `Auto-detected: ${mappingConfig.number_format === 'br' ? 'Brazilian' : 'US/UK'} format (${formatConfidence}% confidence)`
+                        : 'Select the number format used in your file'}
+                </p>
+                <div className="space-y-2">
+                    <label className="flex items-center space-x-3 rounded border border-blue-300 bg-white p-3 cursor-pointer hover:bg-blue-100">
+                        <input
+                            type="radio"
+                            name="number_format"
+                            value="us"
+                            checked={mappingConfig.number_format === 'us'}
+                            onChange={(e) => handleFieldChange('number_format', e.target.value)}
+                            className="h-4 w-4 text-blue-600"
+                        />
+                        <div className="flex-1">
+                            <div className="font-medium text-gray-900">US/UK Format</div>
+                            <div className="text-xs text-gray-600">Example: 1,234.56 (comma as thousand separator, dot as decimal)</div>
+                        </div>
+                    </label>
+                    <label className="flex items-center space-x-3 rounded border border-blue-300 bg-white p-3 cursor-pointer hover:bg-blue-100">
+                        <input
+                            type="radio"
+                            name="number_format"
+                            value="br"
+                            checked={mappingConfig.number_format === 'br'}
+                            onChange={(e) => handleFieldChange('number_format', e.target.value)}
+                            className="h-4 w-4 text-blue-600"
+                        />
+                        <div className="flex-1">
+                            <div className="font-medium text-gray-900">Brazilian/European Format</div>
+                            <div className="text-xs text-gray-600">Example: 1.234,56 (dot as thousand separator, comma as decimal)</div>
+                        </div>
+                    </label>
+                </div>
+                <p className="mt-2 text-xs text-blue-600">
+                    💡 Tip: Check the preview to verify amounts are parsed correctly
+                </p>
             </div>
 
             {/* Amount Strategy Selection */}

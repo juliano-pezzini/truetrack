@@ -76,6 +76,80 @@ class XlsxImportService
     }
 
     /**
+     * Detect number format from sample data.
+     *
+     * @param  array<string>  $sampleValues
+     * @return array{format: string, confidence: int}
+     */
+    public function detectNumberFormat(array $sampleValues): array
+    {
+        $commaAsDecimal = 0;
+        $dotAsDecimal = 0;
+        $totalSamples = 0;
+
+        foreach ($sampleValues as $value) {
+            $value = trim((string) $value);
+            if (empty($value) || ! preg_match('/[0-9]/', $value)) {
+                continue;
+            }
+
+            $totalSamples++;
+
+            // Pattern: X,XX (comma as decimal with 2 digits)
+            if (preg_match('/,\d{2}$/', $value)) {
+                $commaAsDecimal++;
+            }
+
+            // Pattern: X.XX (dot as decimal with 2 digits)
+            if (preg_match('/\.\d{2}$/', $value)) {
+                $dotAsDecimal++;
+            }
+        }
+
+        if ($totalSamples === 0) {
+            return ['format' => 'us', 'confidence' => 0];
+        }
+
+        // Determine format based on majority
+        if ($commaAsDecimal > $dotAsDecimal) {
+            $confidence = (int) (($commaAsDecimal / $totalSamples) * 100);
+
+            return ['format' => 'br', 'confidence' => min($confidence, 95)];
+        }
+
+        if ($dotAsDecimal > $commaAsDecimal) {
+            $confidence = (int) (($dotAsDecimal / $totalSamples) * 100);
+
+            return ['format' => 'us', 'confidence' => min($confidence, 95)];
+        }
+
+        // Default to US format with low confidence
+        return ['format' => 'us', 'confidence' => 30];
+    }
+
+    /**
+     * Parse localized number to float.
+     */
+    private function parseLocalizedNumber(string $value, string $format = 'us'): float
+    {
+        $value = trim($value);
+
+        // Remove currency symbols and whitespace
+        $value = preg_replace('/[^0-9,.-]/', '', $value);
+
+        if ($format === 'br' || $format === 'eu') {
+            // Brazilian/European: 1.234,56 -> remove dots (thousand separator), replace comma with dot
+            $value = str_replace('.', '', $value);
+            $value = str_replace(',', '.', $value);
+        } else {
+            // US/UK: 1,234.56 -> remove commas (thousand separator)
+            $value = str_replace(',', '', $value);
+        }
+
+        return (float) $value;
+    }
+
+    /**
      * Guess column mapping using smart heuristics.
      *
      * @param  array<string>  $headers
@@ -306,7 +380,7 @@ class XlsxImportService
         return [
             'transaction_date' => $transactionDate->format('Y-m-d'),
             'description' => $description,
-            'amount' => abs($amount),
+            'amount' => (float) abs($amount),
             'type' => $type,
             'category_name' => $categoryColumn ? ($row[$categoryColumn] ?? null) : null,
             'settled_date' => $settledDateColumn && isset($row[$settledDateColumn])
@@ -362,11 +436,12 @@ class XlsxImportService
 
         // Strategy B: Separate debit/credit columns
         if (! empty($mappingConfig['debit_column']) && ! empty($mappingConfig['credit_column'])) {
+            $numberFormat = $mappingConfig['number_format'] ?? 'us';
             $debit = $row[$mappingConfig['debit_column']] ?? '';
             $credit = $row[$mappingConfig['credit_column']] ?? '';
 
-            $debitValue = is_numeric($debit) ? (float) $debit : 0.0;
-            $creditValue = is_numeric($credit) ? (float) $credit : 0.0;
+            $debitValue = $this->parseLocalizedNumber((string) $debit, $numberFormat);
+            $creditValue = $this->parseLocalizedNumber((string) $credit, $numberFormat);
 
             $hasDebit = $debitValue > 0;
             $hasCredit = $creditValue > 0;
@@ -384,7 +459,8 @@ class XlsxImportService
 
         // Strategy A: Single amount column (negative = debit)
         if (! empty($mappingConfig['amount_column'])) {
-            $amount = (float) ($row[$mappingConfig['amount_column']] ?? 0);
+            $numberFormat = $mappingConfig['number_format'] ?? 'us';
+            $amount = $this->parseLocalizedNumber((string) ($row[$mappingConfig['amount_column']] ?? '0'), $numberFormat);
 
             return $amount < 0 ? 'debit' : 'credit';
         }
@@ -397,17 +473,19 @@ class XlsxImportService
      */
     private function extractAmount(array $row, array $mappingConfig): float
     {
+        $numberFormat = $mappingConfig['number_format'] ?? 'us';
+
         // Separate columns
         if (! empty($mappingConfig['debit_column']) && ! empty($mappingConfig['credit_column'])) {
-            $debit = (float) ($row[$mappingConfig['debit_column']] ?? 0);
-            $credit = (float) ($row[$mappingConfig['credit_column']] ?? 0);
+            $debit = $this->parseLocalizedNumber((string) ($row[$mappingConfig['debit_column']] ?? '0'), $numberFormat);
+            $credit = $this->parseLocalizedNumber((string) ($row[$mappingConfig['credit_column']] ?? '0'), $numberFormat);
 
             return $debit ?: $credit;
         }
 
         // Single column
         if (! empty($mappingConfig['amount_column'])) {
-            return (float) ($row[$mappingConfig['amount_column']] ?? 0);
+            return $this->parseLocalizedNumber((string) ($row[$mappingConfig['amount_column']] ?? '0'), $numberFormat);
         }
 
         throw new InvalidRowDataException('No amount column configured');
@@ -521,15 +599,16 @@ class XlsxImportService
         $filename = 'error_report_'.time().'.csv';
         $path = 'xlsx_imports/errors/'.$filename;
 
-        $csv = "Row Number,Field,Error Message,Raw Value\n";
+        $csv = "Row Number,Field,Error Message,Raw Value,Complete Row Data\n";
 
         foreach ($errors as $error) {
             $csv .= sprintf(
-                "%d,%s,%s,%s\n",
+                '"%d","%s","%s","%s","%s"'."\n",
                 $error['row_number'],
-                $error['field'],
-                str_replace('"', '""', $error['message']),
-                str_replace('"', '""', $error['raw_value'] ?? '')
+                str_replace('"', '""', $error['field'] ?? ''),
+                str_replace('"', '""', $error['error_message'] ?? $error['message'] ?? ''),
+                str_replace('"', '""', (string) ($error['raw_value'] ?? '')),
+                str_replace('"', '""', $error['row_data'] ?? '')
             );
         }
 

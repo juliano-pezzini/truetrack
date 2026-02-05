@@ -65,6 +65,33 @@ export default function XlsxImportHistory({ imports, accounts }) {
         window.open(`/api/v1/xlsx-imports/${importId}/error-report`, '_blank');
     };
 
+    const handleRetry = (importId) => {
+        if (!confirm('Retry this failed import? This will reprocess the file with the same configuration.')) {
+            return;
+        }
+
+        fetch(`/api/v1/xlsx-imports/${importId}/retry`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                'Accept': 'application/json',
+            },
+        })
+            .then((response) => response.json())
+            .then((data) => {
+                if (data.message) {
+                    alert(data.message);
+                    // Reload the page to show updated status
+                    router.reload();
+                }
+            })
+            .catch((error) => {
+                console.error('Retry failed:', error);
+                alert('Failed to retry import. Please try again.');
+            });
+    };
+
     return (
         <div className="space-y-6">
             {/* Filters */}
@@ -168,7 +195,18 @@ export default function XlsxImportHistory({ imports, accounts }) {
                                         {importRecord.account?.name || '—'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                        {getStatusBadge(importRecord.status)}
+                                        <div className="flex items-center gap-2">
+                                            {getStatusBadge(importRecord.status)}
+                                            {importRecord.status === 'failed' && (
+                                                <button
+                                                    onClick={() => handleRetry(importRecord.id)}
+                                                    className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                                                    title="Retry this failed import"
+                                                >
+                                                    Retry
+                                                </button>
+                                            )}
+                                        </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                                         {importRecord.processed_count} / {importRecord.total_count}

@@ -115,13 +115,18 @@ Route::prefix('v1')->group(function () {
             ->name('api.xlsx-imports.download');
         Route::get('/xlsx-imports/{xlsxImport}/error-report', [App\Http\Controllers\Api\V1\XlsxImportController::class, 'errorReport'])
             ->name('api.xlsx-imports.error-report');
+        Route::post('/xlsx-imports/{xlsxImport}/retry', [App\Http\Controllers\Api\V1\XlsxImportController::class, 'retry'])
+            ->name('api.xlsx-imports.retry');
+        Route::post('/xlsx-imports/{xlsxImport}/reimport', [App\Http\Controllers\Api\V1\XlsxImportController::class, 'reimport'])
+            ->name('api.xlsx-imports.reimport');
 
         Route::apiResource('xlsx-imports', App\Http\Controllers\Api\V1\XlsxImportController::class)
-            ->only(['index', 'store', 'show'])
+            ->only(['index', 'store', 'show', 'destroy'])
             ->names([
                 'index' => 'api.xlsx-imports.index',
                 'store' => 'api.xlsx-imports.store',
                 'show' => 'api.xlsx-imports.show',
+                'destroy' => 'api.xlsx-imports.destroy',
             ]);
 
         // XLSX Column Mapping management

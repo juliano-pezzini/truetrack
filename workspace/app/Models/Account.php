@@ -42,6 +42,15 @@ class Account extends Model
     ];
 
     /**
+     * The accessors to append to the model's array form.
+     *
+     * @var array<int, string>
+     */
+    protected $appends = [
+        'type_label',
+    ];
+
+    /**
      * Get the user that owns the account.
      */
     public function user(): BelongsTo
@@ -97,5 +106,15 @@ class Account extends Model
     public function scopeForUser($query, int $userId)
     {
         return $query->where('user_id', $userId);
+    }
+
+    /**
+     * Get the human-readable type label.
+     */
+    protected function typeLabel(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            get: fn() => $this->type->label(),
+        );
     }
 }

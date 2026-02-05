@@ -32,7 +32,7 @@ class XlsxImportResource extends JsonResource
                 ? round(($this->processed_count / $this->total_count) * 100, 2)
                 : 0,
             'error_message' => $this->error_message,
-            'has_error_report' => $this->error_report_path !== null,
+            'has_errors' => $this->error_report_path !== null,
             'account' => new AccountResource($this->whenLoaded('account')),
             'reconciliation' => new ReconciliationResource($this->whenLoaded('reconciliation')),
             'created_at' => $this->created_at?->toIso8601String(),

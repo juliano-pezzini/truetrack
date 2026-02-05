@@ -13,6 +13,8 @@ export default function XlsxImportUpload({ accounts, activeImportsCount, maxImpo
     const [step, setStep] = useState(1); // 1: Upload, 2: Map, 3: Preview, 4: Confirm
     const [detectedHeaders, setDetectedHeaders] = useState([]);
     const [suggestedMapping, setSuggestedMapping] = useState(null);
+    const [detectedNumberFormat, setDetectedNumberFormat] = useState('us');
+    const [formatConfidence, setFormatConfidence] = useState(0);
     const [previewData, setPreviewData] = useState(null);
     const [validationSummary, setValidationSummary] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -49,6 +51,8 @@ export default function XlsxImportUpload({ accounts, activeImportsCount, maxImpo
             const response = await axios.post('/api/v1/xlsx-imports/detect-columns', formData);
             setDetectedHeaders(response.data.data.headers);
             setSuggestedMapping(response.data.data.suggested_mapping);
+            setDetectedNumberFormat(response.data.data.detected_number_format || 'us');
+            setFormatConfidence(response.data.data.format_confidence || 0);
             setStep(2);
         } catch (error) {
             console.error('Column detection failed:', error);
@@ -304,6 +308,8 @@ export default function XlsxImportUpload({ accounts, activeImportsCount, maxImpo
                 <XlsxColumnMapper
                     headers={detectedHeaders}
                     suggestedMapping={suggestedMapping}
+                    detectedNumberFormat={detectedNumberFormat}
+                    formatConfidence={formatConfidence}
                     accountId={data.account_id}
                     onMappingConfirmed={handleMappingConfirmed}
                     onBack={handleBack}

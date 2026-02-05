@@ -240,7 +240,7 @@ class ProcessXlsxImport implements ShouldQueue
                     if ($reconciliation) {
                         $matches = $reconciliationService->findMatchingTransactionsWithConfidence(
                             $this->accountId,
-                            $transaction->amount,
+                            (float) $transaction->amount,
                             Carbon::parse($transaction->transaction_date),
                             $transaction->description
                         );
@@ -250,8 +250,8 @@ class ProcessXlsxImport implements ShouldQueue
                                 DB::table('reconciliation_transaction')->insert([
                                     'reconciliation_id' => $reconciliation->id,
                                     'transaction_id' => $transaction->id,
-                                    'is_matched' => true,
-                                    'matched_at' => now(),
+                                    'created_at' => now(),
+                                    'updated_at' => now(),
                                 ]);
                                 break;
                             }
@@ -266,6 +266,42 @@ class ProcessXlsxImport implements ShouldQueue
                         'field' => $e->getField(),
                         'error_message' => $e->getMessage(),
                         'raw_value' => $e->getRawValue(),
+                        'row_data' => json_encode($rowData),
+                    ];
+                    $skippedCount++;
+                } catch (\Illuminate\Validation\ValidationException $e) {
+                    // Catch validation errors from AccountingService
+                    $firstError = collect($e->errors())->flatten()->first();
+                    $fieldName = collect($e->errors())->keys()->first();
+
+                    $errors[] = [
+                        'row_number' => $rowNumber,
+                        'field' => $fieldName,
+                        'error_message' => $firstError,
+                        'raw_value' => $row[$mappingConfig[$fieldName.'_column'] ?? $fieldName] ?? 'N/A',
+                        'row_data' => json_encode($rowData),
+                    ];
+                    $skippedCount++;
+                } catch (\InvalidArgumentException $e) {
+                    // Catch InvalidArgumentException from AccountingService validation
+                    \Log::info("Caught InvalidArgumentException for row {$rowNumber}: " . $e->getMessage());
+                    $errors[] = [
+                        'row_number' => $rowNumber,
+                        'field' => 'validation',
+                        'error_message' => $e->getMessage(),
+                        'raw_value' => isset($transactionData) ? json_encode($transactionData) : 'N/A',
+                        'row_data' => json_encode($rowData),
+                    ];
+                    $skippedCount++;
+                } catch (\Exception $e) {
+                    // Catch any other errors
+                    \Log::info("Caught generic Exception for row {$rowNumber}: " . get_class($e) . " - " . $e->getMessage());
+                    $errors[] = [
+                        'row_number' => $rowNumber,
+                        'field' => 'general',
+                        'error_message' => $e->getMessage(),
+                        'raw_value' => 'See row data',
+                        'row_data' => json_encode($rowData),
                     ];
                     $skippedCount++;
                 }
@@ -284,18 +320,38 @@ class ProcessXlsxImport implements ShouldQueue
 
             // Generate error report if there are errors
             $errorReportPath = null;
+            $errorSummary = null;
             if (! empty($errors)) {
+                \Log::info("Processing " . count($errors) . " errors for XLSX import {$this->xlsxImportId}");
                 $errorReportPath = $xlsxService->generateErrorReport($errors);
+
+                // Create a user-friendly error summary
+                $errorCount = count($errors);
+                $firstFewErrors = array_slice($errors, 0, 3);
+                $errorMessages = array_map(function ($error) {
+                    return "Row {$error['row_number']}: {$error['error_message']}";
+                }, $firstFewErrors);
+
+                $errorSummary = $errorCount === 1
+                    ? $errorMessages[0]
+                    : implode('; ', $errorMessages) . ($errorCount > 3 ? " (and " . ($errorCount - 3) . " more errors)" : "");
+
+                \Log::info("Error summary created: {$errorSummary}");
             }
 
-            // Mark as completed
-            DB::transaction(function () use ($xlsxImport, $processedCount, $skippedCount, $duplicateCount, $errorReportPath) {
+            // Mark as completed or failed based on results
+            // If no rows were successfully processed, mark as failed
+            $finalStatus = $processedCount > 0 ? 'completed' : 'failed';
+            $finalErrorMessage = $processedCount > 0 ? $errorSummary : ($errorSummary ?: 'All rows failed validation');
+
+            DB::transaction(function () use ($xlsxImport, $processedCount, $skippedCount, $duplicateCount, $errorReportPath, $finalErrorMessage, $finalStatus) {
                 $xlsxImport->update([
-                    'status' => 'completed',
+                    'status' => $finalStatus,
                     'processed_count' => $processedCount,
                     'skipped_count' => $skippedCount,
                     'duplicate_count' => $duplicateCount,
                     'error_report_path' => $errorReportPath,
+                    'error_message' => $finalErrorMessage,
                 ]);
             });
 
