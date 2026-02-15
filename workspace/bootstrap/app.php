@@ -16,6 +16,11 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
+        
+        // Ensure CSRF protection is enabled for web routes
+        $middleware->validateCsrfTokens(except: [
+            // Add any routes that should skip CSRF here if needed
+        ]);
 
         // Enable session-based authentication for API routes (for same-domain requests)
         $middleware->api(prepend: [
