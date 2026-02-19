@@ -16,8 +16,20 @@ class StoreXlsxImportRequest extends FormRequest
      */
     public function authorize(): bool
     {
+        // User must be authenticated
+        if (! $this->user()) {
+            return false;
+        }
+
         // Check if user owns the account
-        $account = Account::find($this->input('account_id'));
+        $accountId = $this->input('account_id');
+        
+        if (! $accountId) {
+            // If no account_id provided yet, let validation handle it
+            return true;
+        }
+
+        $account = Account::find($accountId);
 
         return $account && $account->user_id === $this->user()->id;
     }
