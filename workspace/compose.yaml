@@ -1,11 +1,6 @@
 services:
     truetrack:
-        build:
-            context: './vendor/laravel/sail/runtimes/8.5'
-            dockerfile: Dockerfile
-            args:
-                WWWGROUP: '${WWWGROUP}'
-        image: 'sail-8.5/app'
+        image: 'laravelsail/php85-composer:latest'
         extra_hosts:
             - 'host.docker.internal:host-gateway'
         ports:
@@ -65,12 +60,7 @@ services:
             retries: 3
             timeout: 5s
     queue-worker:
-        build:
-            context: './vendor/laravel/sail/runtimes/8.5'
-            dockerfile: Dockerfile
-            args:
-                WWWGROUP: '${WWWGROUP}'
-        image: 'sail-8.5/app'
+        image: 'laravelsail/php85-composer:latest'
         extra_hosts:
             - 'host.docker.internal:host-gateway'
         environment:
