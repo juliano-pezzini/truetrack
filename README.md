@@ -46,6 +46,14 @@ True Track My Money is a cloud-based personal finance management solution that u
 ```bash
 git clone https://github.com/YOUR_USERNAME/truetrack.git
 cd truetrack/workspace
+
+# Install Composer (create .vendor folder, needed to create the containers)
+docker run --rm -u "$(id -u):$(id -g)" -v "$(pwd):/app" -w /app composer:latest composer install --ignore-platform-reqs
+docker compose up -d # Create the containers, first time will delay a lot
+docker compose exec truetrack php artisan migrate # Create the database
+docker compose exec truetrack php artisan key:generate
+docker compose exec truetrack npm install
+docker compose exec truetrack npm run build
 ```
 
 2. **Start Docker containers**
