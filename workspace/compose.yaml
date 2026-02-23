@@ -19,6 +19,7 @@ services:
         depends_on:
             - pgsql
             - redis
+        command: php artisan serve --host=0.0.0.0 --port=80
     pgsql:
         image: 'postgres:18-alpine'
         ports:
