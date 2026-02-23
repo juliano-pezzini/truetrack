@@ -1,6 +1,6 @@
 services:
     truetrack:
-        image: 'laravelsail/php85-composer:latest'
+        image: 'laravelsail/php84-composer:latest'
         extra_hosts:
             - 'host.docker.internal:host-gateway'
         ports:
@@ -60,7 +60,7 @@ services:
             retries: 3
             timeout: 5s
     queue-worker:
-        image: 'laravelsail/php85-composer:latest'
+        image: 'laravelsail/php84-composer:latest'
         extra_hosts:
             - 'host.docker.internal:host-gateway'
         environment:
