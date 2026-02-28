@@ -13,6 +13,14 @@
 
         <!-- Scripts -->
         @routes
+        <script>
+            // If the host header is rewritten (e.g. Codespaces preview), the URL
+            // baked into the Ziggy payload will be incorrect.  Override it on the
+            // client using the actual origin so `route()` calls resolve properly.
+            if (typeof Ziggy !== 'undefined' && window.location) {
+                Ziggy.url = window.location.origin;
+            }
+        </script>
         @viteReactRefresh
         @vite(['resources/js/app.jsx', "resources/js/Pages/{$page['component']}.jsx"])
         @inertiaHead
