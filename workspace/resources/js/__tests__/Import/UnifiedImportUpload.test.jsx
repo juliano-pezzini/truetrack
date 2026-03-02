@@ -12,7 +12,7 @@ jest.mock('@inertiajs/react', () => ({
         data: {
             file: null,
             account_id: '',
-            force: false,
+            force_reimport: false,
         },
         setData: mockSetData,
         post: mockPost,

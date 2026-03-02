@@ -32,8 +32,10 @@ class StoreXlsxImportRequest extends FormRequest
         $account = Account::find($accountId);
 
         if (! $account) {
-            // Let validation rules (exists:accounts,id) handle invalid account ids
-            return true;
+            // Return false for non-existent accounts to ensure consistent 403 response
+            // regardless of whether an account ID exists or belongs to another user,
+            // preventing authenticated users from enumerating valid account IDs.
+            return false;
         }
 
         return $account->user_id === $this->user()->id;

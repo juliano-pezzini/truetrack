@@ -53,11 +53,11 @@ export default function ImportHistoryCard({ importData, type, onDelete }) {
     };
 
     const handleDownloadFile = () => {
-        window.open(route('api.xlsx-imports.download', id), '_blank');
+        window.open(route('api.xlsx-imports.download', id), '_blank', 'noopener,noreferrer');
     };
 
     const handleDownloadErrorReport = () => {
-        window.open(route('api.xlsx-imports.error-report', id), '_blank');
+        window.open(route('api.xlsx-imports.error-report', id), '_blank', 'noopener,noreferrer');
     };
 
     const canCancel = type === 'ofx' && (status === 'pending' || status === 'processing');

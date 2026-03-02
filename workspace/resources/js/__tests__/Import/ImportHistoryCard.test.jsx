@@ -327,7 +327,7 @@ describe('ImportHistoryCard', () => {
             await user.click(downloadButton);
 
             await waitFor(() => {
-                expect(global.open).toHaveBeenCalledWith('/api/v1/xlsx-imports/123/download', '_blank');
+                expect(global.open).toHaveBeenCalledWith('/api/v1/xlsx-imports/123/download', '_blank', 'noopener,noreferrer');
             });
         });
 
@@ -392,7 +392,7 @@ describe('ImportHistoryCard', () => {
             await user.click(errorReportButton);
 
             await waitFor(() => {
-                expect(global.open).toHaveBeenCalledWith('/api/v1/xlsx-imports/123/error-report', '_blank');
+                expect(global.open).toHaveBeenCalledWith('/api/v1/xlsx-imports/123/error-report', '_blank', 'noopener,noreferrer');
             });
         });
     });

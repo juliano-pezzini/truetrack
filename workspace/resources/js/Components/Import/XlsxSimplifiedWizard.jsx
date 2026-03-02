@@ -298,8 +298,8 @@ export default function XlsxSimplifiedWizard({
                                 {/* Info Box */}
                                 <div className="rounded-md bg-blue-50 p-3">
                                     <p className="text-xs text-blue-800">
-                                        <strong>Note:</strong> A reconciliation will be created automatically.
-                                        The system will attempt to match existing transactions (100% confidence required for auto-match).
+                                        <strong>Note:</strong> This import will not automatically create a reconciliation.
+                                        After the import completes, you can create and run a reconciliation from the Reconciliations screen.
                                     </p>
                                 </div>
                             </div>

@@ -88,6 +88,7 @@ export default function ImportProgress({ importData, type = 'ofx' }) {
             <div className="relative h-2 w-full overflow-hidden rounded-full bg-gray-200">
                 <div
                     role="progressbar"
+                    aria-label="Import progress"
                     aria-valuenow={progressPercentage}
                     aria-valuemin="0"
                     aria-valuemax="100"
