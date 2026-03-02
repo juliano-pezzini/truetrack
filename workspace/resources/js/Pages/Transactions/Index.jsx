@@ -74,11 +74,11 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
     };
 
     const getTypeClass = (type) => {
-        return type === 'debit' ? 'text-green-600' : 'text-red-600';
+        return type === 'credit' ? 'text-green-600' : 'text-red-600';
     };
 
     const getTypeBadge = (type) => {
-        const bgClass = type === 'debit' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+        const bgClass = type === 'credit' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
         return (
             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${bgClass}`}>
                 {type.toUpperCase()}

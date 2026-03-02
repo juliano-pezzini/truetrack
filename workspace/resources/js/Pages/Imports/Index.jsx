@@ -1,11 +1,10 @@
-import { Head, usePage, router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import OfxImportUpload from '@/Components/OfxImport/OfxImportUpload';
-import XlsxImportUpload from '@/Components/XlsxImport/XlsxImportUpload';
+import UnifiedImportUpload from '@/Components/Import/UnifiedImportUpload';
+import ImportHistoryCard from '@/Components/Import/ImportHistoryCard';
 import { useState, useEffect } from 'react';
 
 export default function Index({ auth, accounts, imports }) {
-    const [fileType, setFileType] = useState(null);
     const [activeTab, setActiveTab] = useState('all');
 
     const handleUploadSuccess = () => {
@@ -30,6 +29,17 @@ export default function Index({ auth, accounts, imports }) {
         (imp) => imp.status === 'processing' || imp.status === 'pending'
     );
 
+    // Auto-refresh if there are active imports
+    useEffect(() => {
+        if (!hasActiveImports) return;
+
+        const interval = setInterval(() => {
+            router.reload({ preserveScroll: true, only: ['imports'] });
+        }, 5000); // Refresh every 5 seconds
+
+        return () => clearInterval(interval);
+    }, [hasActiveImports]);
+
     return (
         <AuthenticatedLayout
             user={auth.user}
@@ -43,25 +53,11 @@ export default function Index({ auth, accounts, imports }) {
 
             <div className="py-12">
                 <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
-                    {/* OFX/QFX Upload Section */}
-                    <OfxImportUpload
+                    {/* Unified Upload Section */}
+                    <UnifiedImportUpload
                         accounts={accounts}
                         onSuccess={handleUploadSuccess}
                     />
-
-                    {/* XLSX/CSV Upload Section */}
-                    <div className="rounded-lg bg-white p-6 shadow-sm">
-                        <XlsxImportUpload
-                            accounts={accounts}
-                            activeImportsCount={imports.filter(
-                                (imp) =>
-                                    imp.status === 'processing' ||
-                                    imp.status === 'pending'
-                            ).length}
-                            maxImports={5}
-                            onImportStarted={handleUploadSuccess}
-                        />
-                    </div>
 
                     {/* Active Imports Alert */}
                     {hasActiveImports && (
@@ -143,111 +139,12 @@ export default function Index({ auth, accounts, imports }) {
                                 </p>
                             ) : (
                                 filteredImports.map((importData) => (
-                                    <div
+                                    <ImportHistoryCard
                                         key={`${importData.type}-${importData.id}`}
-                                        className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
-                                    >
-                                        <div className="space-y-2">
-                                            {/* Header with type badge */}
-                                            <div className="flex items-start justify-between">
-                                                <div className="flex-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <h4 className="font-semibold text-gray-900">
-                                                            {importData.filename}
-                                                        </h4>
-                                                        <span
-                                                            className={`rounded px-2 py-0.5 text-xs font-medium ${
-                                                                importData.type === 'ofx'
-                                                                    ? 'bg-blue-100 text-blue-800'
-                                                                    : 'bg-green-100 text-green-800'
-                                                            }`}
-                                                        >
-                                                            {importData.type === 'ofx' ? 'OFX' : 'XLSX/CSV'}
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-sm text-gray-600">
-                                                        {importData.account?.name || 'Unknown Account'}
-                                                    </p>
-                                                    <p className="text-xs text-gray-500">
-                                                        {new Date(importData.created_at).toLocaleString()}
-                                                    </p>
-                                                </div>
-                                                {/* Status badge */}
-                                                <span
-                                                    className={`rounded px-3 py-1 text-xs font-semibold ${
-                                                        importData.status === 'completed'
-                                                            ? 'bg-green-100 text-green-800'
-                                                            : importData.status === 'processing'
-                                                            ? 'bg-blue-100 text-blue-800'
-                                                            : importData.status === 'failed'
-                                                            ? 'bg-red-100 text-red-800'
-                                                            : 'bg-gray-100 text-gray-800'
-                                                    }`}
-                                                >
-                                                    {importData.status}
-                                                </span>
-                                            </div>
-
-                                            {/* Progress/Stats */}
-                                            {importData.status === 'processing' && (
-                                                <div className="mt-2">
-                                                    <div className="mb-1 flex justify-between text-xs text-gray-600">
-                                                        <span>Processing...</span>
-                                                        <span>{importData.progress}%</span>
-                                                    </div>
-                                                    <div className="h-2 overflow-hidden rounded-full bg-gray-200">
-                                                        <div
-                                                            className="h-full bg-blue-600 transition-all"
-                                                            style={{ width: `${importData.progress}%` }}
-                                                        ></div>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {importData.status === 'completed' && (
-                                                <div className="text-sm text-gray-600">
-                                                    <span>Processed: {importData.processed_count || 0}</span>
-                                                    {importData.type === 'ofx' && importData.matched_count !== undefined && (
-                                                        <span className="ml-4">
-                                                            Matched: {importData.matched_count}
-                                                        </span>
-                                                    )}
-                                                    {importData.type === 'xlsx' && (
-                                                        <>
-                                                            {importData.skipped_count > 0 && (
-                                                                <span className="ml-4 text-yellow-600">
-                                                                    Skipped: {importData.skipped_count}
-                                                                </span>
-                                                            )}
-                                                            {importData.duplicate_count > 0 && (
-                                                                <span className="ml-4 text-orange-600">
-                                                                    Duplicates: {importData.duplicate_count}
-                                                                </span>
-                                                            )}
-                                                        </>
-                                                    )}
-                                                </div>
-                                            )}
-
-                                            {importData.status === 'failed' && importData.error_message && (
-                                                <div className="rounded bg-red-50 p-2 text-sm text-red-700">
-                                                    {importData.error_message}
-                                                </div>
-                                            )}
-
-                                            {/* Actions */}
-                                            {importData.reconciliation_id && (
-                                                <div className="mt-2">
-                                                    <a
-                                                        href={route('reconciliations.show', importData.reconciliation_id)}
-                                                        className="text-sm text-indigo-600 hover:text-indigo-800"
-                                                    >
-                                                        View Reconciliation →
-                                                    </a>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
+                                        importData={importData}
+                                        type={importData.type}
+                                        onDelete={handleUploadSuccess}
+                                    />
                                 ))
                             )}
                         </div>
