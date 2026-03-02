@@ -4,7 +4,7 @@ import SecondaryButton from '@/Components/SecondaryButton';
 // Maximum number of preview rows to display
 const MAX_PREVIEW_ROWS = 5;
 
-export default function XlsxPreviewTable({ previewData, validationSummary, onConfirm, onBack }) {
+export default function XlsxPreviewTable({ previewData, validationSummary, onConfirm, onBack, isProcessing = false }) {
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
@@ -139,11 +139,11 @@ export default function XlsxPreviewTable({ previewData, validationSummary, onCon
 
             {/* Action Buttons */}
             <div className="flex justify-between pt-4">
-                <SecondaryButton onClick={onBack}>
+                <SecondaryButton onClick={onBack} disabled={isProcessing}>
                     Back to Mapping
                 </SecondaryButton>
-                <PrimaryButton onClick={onConfirm}>
-                    Looks Good! Continue
+                <PrimaryButton onClick={onConfirm} disabled={isProcessing}>
+                    {isProcessing ? 'Processing...' : 'Looks Good! Continue'}
                 </PrimaryButton>
             </div>
         </div>

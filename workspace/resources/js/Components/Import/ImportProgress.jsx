@@ -1,9 +1,25 @@
 export default function ImportProgress({ importData, type = 'ofx' }) {
-    const { processed_count, total_count, status, skipped_count, duplicate_count } = importData;
+    const {
+        processed_count = 0,
+        total_count,
+        status,
+        skipped_count = 0,
+        duplicate_count = 0,
+        progress,
+        progress_percentage,
+    } = importData;
 
     const getProgressPercentage = () => {
-        if (total_count === 0) return 0;
-        return Math.round((processed_count / total_count) * 100);
+        if (typeof progress === 'number') {
+            return Math.round(progress);
+        }
+        if (typeof progress_percentage === 'number') {
+            return Math.round(progress_percentage);
+        }
+        if (typeof total_count === 'number' && total_count > 0) {
+            return Math.round((processed_count / total_count) * 100);
+        }
+        return 0;
     };
 
     const getStatusColor = () => {
@@ -51,7 +67,7 @@ export default function ImportProgress({ importData, type = 'ofx' }) {
         }
     };
 
-    const progress = getProgressPercentage();
+    const progressPercentage = getProgressPercentage();
     const isActive = status === 'processing' || status === 'pending';
 
     return (
@@ -61,7 +77,7 @@ export default function ImportProgress({ importData, type = 'ofx' }) {
                 <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getStatusBadgeColor()}`}>
                     {getStatusText()}
                 </span>
-                {isActive && (
+                {isActive && typeof total_count === 'number' && (
                     <span className="text-sm font-medium text-gray-600">
                         {processed_count} / {total_count}
                     </span>
@@ -71,20 +87,26 @@ export default function ImportProgress({ importData, type = 'ofx' }) {
             {/* Progress Bar */}
             <div className="relative h-2 w-full overflow-hidden rounded-full bg-gray-200">
                 <div
+                    role="progressbar"
+                    aria-valuenow={progressPercentage}
+                    aria-valuemin="0"
+                    aria-valuemax="100"
                     className={`h-full transition-all duration-300 ${getStatusColor()} ${
-                        isActive && progress < 100 ? 'animate-pulse' : ''
+                        isActive && progressPercentage < 100 ? 'animate-pulse' : ''
                     }`}
-                    style={{ width: `${progress}%` }}
+                    style={{ width: `${progressPercentage}%` }}
                 />
             </div>
 
             {/* Stats for XLSX imports */}
             {type === 'xlsx' && (status === 'completed' || status === 'processing') && (
                 <div className="grid grid-cols-4 gap-2 text-center">
-                    <div className="rounded-lg bg-blue-50 p-2">
-                        <div className="text-xs text-gray-600">Total</div>
-                        <div className="text-lg font-semibold text-blue-900">{total_count}</div>
-                    </div>
+                    {typeof total_count === 'number' && (
+                        <div className="rounded-lg bg-blue-50 p-2">
+                            <div className="text-xs text-gray-600">Total</div>
+                            <div className="text-lg font-semibold text-blue-900">{total_count}</div>
+                        </div>
+                    )}
                     <div className="rounded-lg bg-green-50 p-2">
                         <div className="text-xs text-gray-600">Processed</div>
                         <div className="text-lg font-semibold text-green-900">{processed_count}</div>

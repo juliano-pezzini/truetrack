@@ -1,5 +1,4 @@
 import InputLabel from '@/Components/InputLabel';
-import InputError from '@/Components/InputError';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 

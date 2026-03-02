@@ -23,7 +23,7 @@ class StoreXlsxImportRequest extends FormRequest
 
         // Check if user owns the account
         $accountId = $this->input('account_id');
-        
+
         if (! $accountId) {
             // If no account_id provided yet, let validation handle it
             return true;
@@ -31,7 +31,12 @@ class StoreXlsxImportRequest extends FormRequest
 
         $account = Account::find($accountId);
 
-        return $account && $account->user_id === $this->user()->id;
+        if (! $account) {
+            // Let validation rules (exists:accounts,id) handle invalid account ids
+            return true;
+        }
+
+        return $account->user_id === $this->user()->id;
     }
 
     /**

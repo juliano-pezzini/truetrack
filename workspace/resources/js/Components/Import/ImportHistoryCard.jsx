@@ -4,7 +4,19 @@ import SecondaryButton from '@/Components/SecondaryButton';
 import DangerButton from '@/Components/DangerButton';
 
 export default function ImportHistoryCard({ importData, type, onDelete }) {
-    const { id, filename, account, created_at, status, reconciliation, error_report_path } = importData;
+    const {
+        id,
+        filename,
+        account,
+        created_at,
+        status,
+        reconciliation,
+        reconciliation_id,
+        error_report_path,
+        has_errors,
+        has_error_report,
+    } = importData;
+    const reconciliationId = reconciliation?.id ?? reconciliation_id;
 
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleString('en-US', {
@@ -17,8 +29,8 @@ export default function ImportHistoryCard({ importData, type, onDelete }) {
     };
 
     const handleViewReconciliation = () => {
-        if (reconciliation) {
-            router.visit(route('reconciliations.show', reconciliation.id));
+        if (reconciliationId) {
+            router.visit(route('reconciliations.show', reconciliationId));
         }
     };
 
@@ -41,16 +53,19 @@ export default function ImportHistoryCard({ importData, type, onDelete }) {
     };
 
     const handleDownloadFile = () => {
-        window.open(`/api/v1/xlsx-imports/${id}/download`, '_blank');
+        window.open(route('api.xlsx-imports.download', id), '_blank');
     };
 
     const handleDownloadErrorReport = () => {
-        window.open(`/api/v1/xlsx-imports/${id}/error-report`, '_blank');
+        window.open(route('api.xlsx-imports.error-report', id), '_blank');
     };
 
-    const canCancel = status === 'pending' || status === 'processing';
-    const canViewReconciliation = status === 'completed' && reconciliation;
-    const hasErrorReport = type === 'xlsx' && status === 'completed' && error_report_path;
+    const canCancel = type === 'ofx' && (status === 'pending' || status === 'processing');
+    const canViewReconciliation = status === 'completed' && Boolean(reconciliationId);
+    const hasErrorReport =
+        type === 'xlsx' &&
+        status === 'completed' &&
+        Boolean(error_report_path || has_error_report || has_errors);
 
     // Type badge styling
     const getTypeBadge = () => {
@@ -128,9 +143,9 @@ export default function ImportHistoryCard({ importData, type, onDelete }) {
                 {/* Footer */}
                 <div className="flex items-center justify-between border-t pt-2 text-xs text-gray-500">
                     <span>Uploaded {formatDate(created_at)}</span>
-                    {status === 'completed' && reconciliation && (
+                    {status === 'completed' && reconciliationId && (
                         <span className="rounded bg-green-100 px-2 py-1 text-green-700">
-                            Reconciliation #{reconciliation.id}
+                            Reconciliation #{reconciliationId}
                         </span>
                     )}
                 </div>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useForm, router } from '@inertiajs/react';
+import { useForm } from '@inertiajs/react';
 import FileDropZone from './FileDropZone';
 import OfxImportOptions from './OfxImportOptions';
 import XlsxSimplifiedWizard from './XlsxSimplifiedWizard';
@@ -68,7 +68,7 @@ export default function UnifiedImportUpload({ accounts, onSuccess }) {
     };
 
     return (
-        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="relative rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
             {/* Loading Overlay */}
             {processing && (
                 <div className="absolute inset-0 z-50 flex items-center justify-center rounded-lg bg-white bg-opacity-90">

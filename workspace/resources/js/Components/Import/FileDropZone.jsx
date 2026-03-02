@@ -40,6 +40,7 @@ export default function FileDropZone({
         const files = e.target.files;
         if (files.length > 0) {
             handleFile(files[0]);
+            e.target.value = '';
         }
     };
 
@@ -79,6 +80,7 @@ export default function FileDropZone({
                 onChange={handleFileInput}
                 className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                 disabled={disabled}
+                data-testid="file-input"
             />
 
             {selectedFile ? (

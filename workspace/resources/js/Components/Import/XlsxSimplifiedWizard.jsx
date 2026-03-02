@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import InputLabel from '@/Components/InputLabel';
-import InputError from '@/Components/InputError';
-import PrimaryButton from '@/Components/PrimaryButton';
-import SecondaryButton from '@/Components/SecondaryButton';
 import XlsxColumnMapper from '@/Components/XlsxImport/XlsxColumnMapper';
 import XlsxPreviewTable from '@/Components/XlsxImport/XlsxPreviewTable';
 
@@ -42,7 +39,7 @@ export default function XlsxSimplifiedWizard({
         formData.append('file', file);
 
         try {
-            const response = await axios.post('/api/v1/xlsx-imports/detect-columns', formData);
+            const response = await axios.post(route('api.xlsx-imports.detect-columns'), formData);
             setDetectedHeaders(response.data.data.headers);
             setSuggestedMapping(response.data.data.suggested_mapping);
         } catch (err) {
@@ -54,6 +51,11 @@ export default function XlsxSimplifiedWizard({
     };
 
     const handleMappingConfirmed = async (config) => {
+        if (!selectedAccount) {
+            setError('Please select an account before continuing to preview.');
+            return;
+        }
+
         setMappingConfig(config);
         setError(null);
         setIsProcessing(true);
@@ -74,7 +76,7 @@ export default function XlsxSimplifiedWizard({
         });
 
         try {
-            const response = await axios.post('/api/v1/xlsx-imports/preview', formData, {
+            const response = await axios.post(route('api.xlsx-imports.preview'), formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
@@ -127,7 +129,7 @@ export default function XlsxSimplifiedWizard({
             // Get CSRF token
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
             
-            const response = await axios.post('/api/v1/xlsx-imports', formData, {
+            const response = await axios.post(route('api.xlsx-imports.store'), formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                     'X-CSRF-TOKEN': csrfToken,
@@ -138,7 +140,7 @@ export default function XlsxSimplifiedWizard({
         } catch (err) {
             console.error('Import submission failed:', err);
             
-            if (err.response?.data?.error === 'DUPLICATE_IMPORT') {
+            if (err.response?.status === 409 || err.response?.data?.requires_confirmation) {
                 setError('This file has already been imported. Check "Force Reimport" to override.');
             } else if (err.response?.status === 403) {
                 setError('Access denied. Please make sure you are logged in and have permission to import.');
@@ -214,13 +216,21 @@ export default function XlsxSimplifiedWizard({
                     {/* Column Mapper */}
                     {detectedHeaders.length > 0 && (
                         <div className="rounded-lg border border-gray-200 bg-white p-6">
-                            <XlsxColumnMapper
-                                headers={detectedHeaders}
-                                suggestedMapping={suggestedMapping}
-                                accountId={selectedAccount}
-                                onMappingConfirmed={handleMappingConfirmed}
-                                onBack={onCancel}
-                            />
+                            {!selectedAccount ? (
+                                <div className="rounded-md bg-yellow-50 p-3">
+                                    <p className="text-sm text-yellow-800">
+                                        Please select an account before continuing to mapping and preview.
+                                    </p>
+                                </div>
+                            ) : (
+                                <XlsxColumnMapper
+                                    headers={detectedHeaders}
+                                    suggestedMapping={suggestedMapping}
+                                    accountId={selectedAccount}
+                                    onMappingConfirmed={handleMappingConfirmed}
+                                    onBack={onCancel}
+                                />
+                            )}
                         </div>
                     )}
                 </div>
@@ -229,73 +239,87 @@ export default function XlsxSimplifiedWizard({
             {/* Step 2: Preview + Confirm */}
             {step === 2 && (
                 <div className="space-y-6">
+                    {/* Loading Overlay */}
+                    {isProcessing && (
+                        <div className="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center">
+                            <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-indigo-600"></div>
+                            <p className="mt-4 text-sm font-medium text-gray-700">
+                                Starting import... This may take a few moments.
+                            </p>
+                        </div>
+                    )}
                     {/* Options */}
-                    <div className="rounded-lg border border-gray-200 bg-white p-6">
-                        <h4 className="mb-4 text-base font-semibold text-gray-900">
-                            Import Options
-                        </h4>
+                    {!isProcessing && (
+                        <div className="rounded-lg border border-gray-200 bg-white p-6">
+                            <h4 className="mb-4 text-base font-semibold text-gray-900">
+                                Import Options
+                            </h4>
 
-                        <div className="space-y-4">
-                            {/* Save Mapping */}
-                            <div>
+                            <div className="space-y-4">
+                                {/* Save Mapping */}
+                                <div>
+                                    <div className="flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            id="save_mapping"
+                                            checked={saveMapping}
+                                            onChange={(e) => setSaveMapping(e.target.checked)}
+                                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                        />
+                                        <label htmlFor="save_mapping" className="ml-2 block text-sm text-gray-700">
+                                            Save this column mapping for future imports
+                                        </label>
+                                    </div>
+                                    {saveMapping && (
+                                        <input
+                                            type="text"
+                                            placeholder="Mapping name (optional)"
+                                            value={mappingName}
+                                            onChange={(e) => setMappingName(e.target.value)}
+                                            className="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                        />
+                                    )}
+                                </div>
+
+                                {/* Force Reimport */}
                                 <div className="flex items-center">
                                     <input
                                         type="checkbox"
-                                        id="save_mapping"
-                                        checked={saveMapping}
-                                        onChange={(e) => setSaveMapping(e.target.checked)}
+                                        id="force_reimport"
+                                        checked={forceReimport}
+                                        onChange={(e) => setForceReimport(e.target.checked)}
                                         className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                                     />
-                                    <label htmlFor="save_mapping" className="ml-2 block text-sm text-gray-700">
-                                        Save this column mapping for future imports
+                                    <label htmlFor="force_reimport" className="ml-2 block text-sm text-gray-700">
+                                        Force reimport (ignore duplicate check)
                                     </label>
                                 </div>
-                                {saveMapping && (
-                                    <input
-                                        type="text"
-                                        placeholder="Mapping name (optional)"
-                                        value={mappingName}
-                                        onChange={(e) => setMappingName(e.target.value)}
-                                        className="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                    />
-                                )}
-                            </div>
 
-                            {/* Force Reimport */}
-                            <div className="flex items-center">
-                                <input
-                                    type="checkbox"
-                                    id="force_reimport"
-                                    checked={forceReimport}
-                                    onChange={(e) => setForceReimport(e.target.checked)}
-                                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                />
-                                <label htmlFor="force_reimport" className="ml-2 block text-sm text-gray-700">
-                                    Force reimport (ignore duplicate check)
-                                </label>
-                            </div>
-
-                            {/* Info Box */}
-                            <div className="rounded-md bg-blue-50 p-3">
-                                <p className="text-xs text-blue-800">
-                                    <strong>Note:</strong> A reconciliation will be created automatically.
-                                    The system will attempt to match existing transactions (100% confidence required for auto-match).
-                                </p>
+                                {/* Info Box */}
+                                <div className="rounded-md bg-blue-50 p-3">
+                                    <p className="text-xs text-blue-800">
+                                        <strong>Note:</strong> A reconciliation will be created automatically.
+                                        The system will attempt to match existing transactions (100% confidence required for auto-match).
+                                    </p>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* Preview Table */}
-                    <div className="rounded-lg border border-gray-200 bg-white p-6">
-                        {previewData && (
-                            <XlsxPreviewTable
-                                previewData={previewData}
-                                validationSummary={validationSummary}
-                                onConfirm={handleConfirmImport}
-                                onBack={handleBackToMapping}
-                            />
-                        )}
-                    </div>
+                    {!isProcessing && (
+                        <div className="rounded-lg border border-gray-200 bg-white p-6">
+                            {previewData && (
+                                <XlsxPreviewTable
+                                    previewData={previewData}
+                                    validationSummary={validationSummary}
+                                    onConfirm={handleConfirmImport}
+                                    onBack={handleBackToMapping}
+                                    isProcessing={isProcessing}
+                                />
+                            )}
+                        </div>
+                    )}
                 </div>
             )}
         </div>
