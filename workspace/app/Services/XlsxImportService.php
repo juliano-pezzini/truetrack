@@ -10,6 +10,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Shared\Date as PhpSpreadsheetDate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
@@ -541,10 +542,47 @@ class XlsxImportService
     /**
      * Parse date from various formats.
      */
-    private function parseDate(string $dateString): ?Carbon
+    private function parseDate(mixed $dateValue): ?Carbon
     {
-        if (empty($dateString)) {
+        if ($dateValue === null) {
             return null;
+        }
+
+        if ($dateValue instanceof Carbon) {
+            return $dateValue;
+        }
+
+        if ($dateValue instanceof \DateTimeInterface) {
+            return Carbon::instance(\DateTime::createFromInterface($dateValue));
+        }
+
+        if (is_int($dateValue) || is_float($dateValue)) {
+            if ($dateValue > 0 && $dateValue <= 2958465) {
+                return Carbon::instance(PhpSpreadsheetDate::excelToDateTimeObject((float) $dateValue));
+            }
+
+            $dateValue = (string) $dateValue;
+        }
+
+        $dateString = trim((string) $dateValue);
+        if ($dateString === '') {
+            return null;
+        }
+
+        if (preg_match('/^\d{8}$/', $dateString) === 1) {
+            try {
+                return Carbon::createFromFormat('Ymd', $dateString);
+            } catch (\Exception $e) {
+                // Continue with other parsers
+            }
+        }
+
+        if (is_numeric($dateString)) {
+            $numericValue = (float) $dateString;
+
+            if ($numericValue > 0 && $numericValue <= 2958465) {
+                return Carbon::instance(PhpSpreadsheetDate::excelToDateTimeObject($numericValue));
+            }
         }
 
         // Try common formats
