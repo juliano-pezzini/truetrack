@@ -154,4 +154,25 @@ class XlsxImportServiceTest extends TestCase
         $this->assertEquals('Food', $transaction['category_name']);
         $this->assertEquals(['groceries', 'shopping'], $transaction['tags']);
     }
+
+    public function test_extracts_transaction_from_row_with_excel_numeric_date(): void
+    {
+        $row = [
+            'Date' => 46037.0,
+            'Description' => 'Pagamento fatura',
+            'Amount' => '-120.50',
+        ];
+        $mappingConfig = [
+            'date_column' => 'Date',
+            'description_column' => 'Description',
+            'amount_column' => 'Amount',
+        ];
+
+        $transaction = $this->service->extractTransactionFromRow($row, $mappingConfig);
+
+        $this->assertEquals('2026-01-15', $transaction['transaction_date']);
+        $this->assertEquals('Pagamento fatura', $transaction['description']);
+        $this->assertEquals(120.50, $transaction['amount']);
+        $this->assertEquals('debit', $transaction['type']);
+    }
 }
