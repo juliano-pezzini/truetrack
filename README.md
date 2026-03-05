@@ -51,6 +51,7 @@ cd truetrack/workspace
 **Install Composer (create .vendor folder, needed to create the containers)**
 ```bash
 docker run --rm -u "$(id -u):$(id -g)" -v "$(pwd):/app" -w /app composer:latest composer install --ignore-platform-reqs
+cp .env.example .env
 docker compose up -d # Create the containers, first time will delay a lot
 docker compose exec truetrack php artisan migrate # Create the database
 docker compose exec truetrack php artisan key:generate
