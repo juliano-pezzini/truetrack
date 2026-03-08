@@ -157,7 +157,7 @@ class XlsxImportServiceTest extends TestCase
 
     public function test_extracts_transaction_with_integer_excel_date(): void
     {
-        // Excel serial date 45678 corresponds to 2025-01-15
+        // Excel serial date 45678 (example numeric date value from Excel)
         $row = [
             'Date' => 45678,
             'Description' => 'Grocery Shopping',
@@ -181,7 +181,7 @@ class XlsxImportServiceTest extends TestCase
 
     public function test_extracts_transaction_with_float_excel_date(): void
     {
-        // Excel serial date 45678.75 corresponds to 2025-01-15 18:00:00
+        // Excel serial date 45678.75 (numeric with time component)
         $row = [
             'Date' => 45678.75,
             'Description' => 'Grocery Shopping',
