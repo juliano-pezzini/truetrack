@@ -206,9 +206,9 @@ class XlsxImportServiceTest extends TestCase
 
     public function test_extracts_transaction_with_null_date(): void
     {
-        // When date is null, parseDate returns null, which causes an error when calling format()
-        // This is a bug in the service - it should handle null dates gracefully
-        $this->expectException(\Error::class);
+        // When date is null, should throw InvalidRowDataException (date is required)
+        $this->expectException(\App\Exceptions\InvalidRowDataException::class);
+        $this->expectExceptionMessage('Transaction date is required');
 
         $row = [
             'Date' => null,

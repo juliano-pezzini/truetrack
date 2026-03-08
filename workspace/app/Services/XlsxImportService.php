@@ -290,6 +290,11 @@ class XlsxImportService
             throw new InvalidRowDataException("Invalid date format: {$row[$dateColumn]}");
         }
 
+        // Validate date is not null (date is required)
+        if ($transactionDate === null) {
+            throw new InvalidRowDataException('Transaction date is required');
+        }
+
         // Get description
         $description = trim($row[$descriptionColumn] ?? '');
         if (empty($description)) {
