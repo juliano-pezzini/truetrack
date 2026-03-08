@@ -18,10 +18,6 @@ export default function AutoCategoryRules() {
     const [page, setPage] = useState(1);
     const [error, setError] = useState(null);
 
-    const getCsrfToken = () => {
-        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    };
-
     useEffect(() => {
         fetchRules();
     }, [filter, page]);
@@ -38,7 +34,6 @@ export default function AutoCategoryRules() {
             const response = await fetch(`/api/v1/auto-category-rules?${params}`, {
                 headers: {
                     'Accept': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
                 },
                 credentials: 'same-origin',
             });
@@ -65,7 +60,6 @@ export default function AutoCategoryRules() {
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
                 },
                 credentials: 'same-origin',
                 body: JSON.stringify(formData),
@@ -96,7 +90,6 @@ export default function AutoCategoryRules() {
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
                 },
                 credentials: 'same-origin',
                 body: JSON.stringify(formData),
@@ -129,7 +122,6 @@ export default function AutoCategoryRules() {
                 method: 'DELETE',
                 headers: {
                     'Accept': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
                 },
                 credentials: 'same-origin',
             });
@@ -157,7 +149,6 @@ export default function AutoCategoryRules() {
                 method: 'POST',
                 headers: {
                     'Accept': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
                 },
                 credentials: 'same-origin',
             });

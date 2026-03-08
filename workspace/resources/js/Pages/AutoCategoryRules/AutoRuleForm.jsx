@@ -17,10 +17,6 @@ export default function AutoRuleForm({ rule, onSubmit, onCancel, fixedCategory =
     const [loading, setLoading] = useState(false);
     const [overlappingWarnings, setOverlappingWarnings] = useState([]);
 
-    const getCsrfToken = () => {
-        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    };
-
     useEffect(() => {
         if (rule) {
             setFormData({
@@ -42,7 +38,6 @@ export default function AutoRuleForm({ rule, onSubmit, onCancel, fixedCategory =
             const response = await fetch('/api/v1/categories', {
                 headers: {
                     'Accept': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
                 },
                 credentials: 'same-origin',
             });
@@ -58,7 +53,6 @@ export default function AutoRuleForm({ rule, onSubmit, onCancel, fixedCategory =
             const response = await fetch('/api/v1/auto-category-rules', {
                 headers: {
                     'Accept': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
                 },
                 credentials: 'same-origin',
             });

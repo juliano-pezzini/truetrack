@@ -21,10 +21,6 @@ export default function Index({ auth, categories, filters, categoryTypes }) {
     const [error, setError] = useState(null);
     const [showTestCoverageModal, setShowTestCoverageModal] = useState(false);
 
-    const getCsrfToken = () => {
-        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    };
-
     const typeOptions = [
         { value: '', label: 'All Types' },
         ...categoryTypes.map(type => ({ value: type.value, label: type.label })),
@@ -103,7 +99,6 @@ export default function Index({ auth, categories, filters, categoryTypes }) {
             const response = await fetch(`/api/v1/auto-category-rules?${params}`, {
                 headers: {
                     'Accept': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
                 },
                 credentials: 'same-origin',
             });
@@ -130,7 +125,6 @@ export default function Index({ auth, categories, filters, categoryTypes }) {
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
                 },
                 credentials: 'same-origin',
                 body: JSON.stringify({
@@ -164,7 +158,6 @@ export default function Index({ auth, categories, filters, categoryTypes }) {
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
                 },
                 credentials: 'same-origin',
                 body: JSON.stringify(formData),
@@ -197,7 +190,6 @@ export default function Index({ auth, categories, filters, categoryTypes }) {
                 method: 'DELETE',
                 headers: {
                     'Accept': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
                 },
                 credentials: 'same-origin',
             });
@@ -225,7 +217,6 @@ export default function Index({ auth, categories, filters, categoryTypes }) {
                 method: 'POST',
                 headers: {
                     'Accept': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
                 },
                 credentials: 'same-origin',
             });

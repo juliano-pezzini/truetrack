@@ -12,10 +12,6 @@ export default function TestCoverageModal({ show, onClose }) {
     const [coverage, setCoverage] = useState(null);
     const [error, setError] = useState('');
 
-    const getCsrfToken = () => {
-        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    };
-
     const handleTest = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -28,7 +24,6 @@ export default function TestCoverageModal({ show, onClose }) {
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
                 },
                 credentials: 'same-origin',
                 body: JSON.stringify({
