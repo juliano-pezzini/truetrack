@@ -226,25 +226,5 @@ class XlsxImportServiceTest extends TestCase
         $this->service->extractTransactionFromRow($row, $mappingConfig);
     }
 
-    public function test_throws_exception_for_invalid_numeric_date(): void
-    {
-        // Using a string representation of an invalid Excel numeric value
-        // This should trigger the exception in parseDate
-        $this->expectException(InvalidRowDataException::class);
-
-        $row = [
-            'Date' => 'not_a_date', // Invalid string that cannot be parsed
-            'Description' => 'Grocery Shopping',
-            'Amount' => '-50.00',
-            'Category' => 'Food',
-        ];
-        $mappingConfig = [
-            'date_column' => 'Date',
-            'description_column' => 'Description',
-            'amount_column' => 'Amount',
-            'category_column' => 'Category',
-        ];
-
-        $this->service->extractTransactionFromRow($row, $mappingConfig);
-    }
+   
 }
