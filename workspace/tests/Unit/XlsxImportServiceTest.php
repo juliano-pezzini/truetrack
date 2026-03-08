@@ -157,9 +157,9 @@ class XlsxImportServiceTest extends TestCase
 
     public function test_extracts_transaction_with_integer_excel_date(): void
     {
-        // Excel serial date 45678 (example numeric date value from Excel)
+        // Excel serial date 45658 = 2025-01-01
         $row = [
-            'Date' => 45678,
+            'Date' => 45658,
             'Description' => 'Grocery Shopping',
             'Amount' => '-50.00',
             'Category' => 'Food',
@@ -173,7 +173,7 @@ class XlsxImportServiceTest extends TestCase
 
         $transaction = $this->service->extractTransactionFromRow($row, $mappingConfig);
 
-        $this->assertNotNull($transaction['transaction_date']);
+        $this->assertEquals('2025-01-01', $transaction['transaction_date']);
         $this->assertEquals('Grocery Shopping', $transaction['description']);
         $this->assertEquals(50.00, $transaction['amount']);
         $this->assertEquals('debit', $transaction['type']);
@@ -181,9 +181,9 @@ class XlsxImportServiceTest extends TestCase
 
     public function test_extracts_transaction_with_float_excel_date(): void
     {
-        // Excel serial date 45678.75 (numeric with time component)
+        // Excel serial date 45658.5 = 2025-01-01 12:00:00 (with time component)
         $row = [
-            'Date' => 45678.75,
+            'Date' => 45658.5,
             'Description' => 'Grocery Shopping',
             'Amount' => '-50.00',
             'Category' => 'Food',
@@ -197,7 +197,8 @@ class XlsxImportServiceTest extends TestCase
 
         $transaction = $this->service->extractTransactionFromRow($row, $mappingConfig);
 
-        $this->assertNotNull($transaction['transaction_date']);
+        // Date portion should be 2025-01-01 (time is stripped in format)
+        $this->assertEquals('2025-01-01', $transaction['transaction_date']);
         $this->assertEquals('Grocery Shopping', $transaction['description']);
         $this->assertEquals(50.00, $transaction['amount']);
         $this->assertEquals('debit', $transaction['type']);
@@ -211,6 +212,28 @@ class XlsxImportServiceTest extends TestCase
 
         $row = [
             'Date' => null,
+            'Description' => 'Grocery Shopping',
+            'Amount' => '-50.00',
+            'Category' => 'Food',
+        ];
+        $mappingConfig = [
+            'date_column' => 'Date',
+            'description_column' => 'Description',
+            'amount_column' => 'Amount',
+            'category_column' => 'Category',
+        ];
+
+        $this->service->extractTransactionFromRow($row, $mappingConfig);
+    }
+
+    public function test_throws_exception_for_invalid_numeric_date(): void
+    {
+        // Using a string representation of an invalid Excel numeric value
+        // This should trigger the exception in parseDate
+        $this->expectException(\App\Exceptions\InvalidRowDataException::class);
+
+        $row = [
+            'Date' => 'not_a_date', // Invalid string that cannot be parsed
             'Description' => 'Grocery Shopping',
             'Amount' => '-50.00',
             'Category' => 'Food',
