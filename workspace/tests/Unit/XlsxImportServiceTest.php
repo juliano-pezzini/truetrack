@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit;
 
-use App\Exceptions\InvalidRowDataException;
 use App\Services\XlsxImportService;
 use Carbon\Carbon;
 use PHPUnit\Framework\TestCase;
@@ -225,6 +224,4 @@ class XlsxImportServiceTest extends TestCase
 
         $this->service->extractTransactionFromRow($row, $mappingConfig);
     }
-
-   
 }
