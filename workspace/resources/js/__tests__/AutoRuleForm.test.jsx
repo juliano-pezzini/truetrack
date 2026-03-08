@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AutoRuleForm from '../../../resources/js/Pages/AutoCategoryRules/AutoRuleForm';
+import axios from 'axios';
 
 
 jest.mock('@inertiajs/react', () => ({
@@ -12,6 +13,8 @@ jest.mock('@inertiajs/react', () => ({
         },
     }),
 }));
+
+jest.mock('axios');
 
 describe('AutoRuleForm Component', () => {
     const mockCategories = [
@@ -33,25 +36,16 @@ describe('AutoRuleForm Component', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
-        global.fetch = jest.fn((url) => {
+        axios.get.mockImplementation((url) => {
             if (url.includes('/api/v1/categories')) {
-                return Promise.resolve({
-                    ok: true,
-                    json: () => Promise.resolve({ data: mockCategories }),
-                });
+                return Promise.resolve({ data: { data: mockCategories } });
             }
 
             if (url.includes('/api/v1/auto-category-rules')) {
-                return Promise.resolve({
-                    ok: true,
-                    json: () => Promise.resolve({ data: [] }),
-                });
+                return Promise.resolve({ data: { data: [] } });
             }
 
-            return Promise.resolve({
-                ok: true,
-                json: () => Promise.resolve({}),
-            });
+            return Promise.resolve({ data: {} });
         });
     });
 
@@ -83,6 +77,7 @@ describe('AutoRuleForm Component', () => {
         const priorityInput = screen.getByPlaceholderText(/lower numbers = higher priority/i);
 
         return waitFor(() => {
+            expect(screen.getByRole('option', { name: 'Groceries' })).toBeInTheDocument();
             expect(categorySelect).toHaveValue('1');
             expect(priorityInput).toHaveValue(10);
         });
@@ -124,30 +119,22 @@ describe('AutoRuleForm Component', () => {
     it('detects overlapping patterns', async () => {
         const user = userEvent.setup();
 
-        global.fetch = jest.fn((url) => {
+        axios.get.mockImplementation((url) => {
             if (url.includes('/api/v1/categories')) {
-                return Promise.resolve({
-                    ok: true,
-                    json: () => Promise.resolve({ data: mockCategories }),
-                });
+                return Promise.resolve({ data: { data: mockCategories } });
             }
 
             if (url.includes('/api/v1/auto-category-rules')) {
                 return Promise.resolve({
-                    ok: true,
-                    json: () =>
-                        Promise.resolve({
-                            data: [
-                                { id: 2, pattern: 'amazon store', priority: 20 },
-                            ],
-                        }),
+                    data: {
+                        data: [
+                            { id: 2, pattern: 'amazon store', priority: 20 },
+                        ],
+                    },
                 });
             }
 
-            return Promise.resolve({
-                ok: true,
-                json: () => Promise.resolve({}),
-            });
+            return Promise.resolve({ data: {} });
         });
 
         render(
@@ -173,6 +160,10 @@ describe('AutoRuleForm Component', () => {
                 onCancel={mockOnCancel}
             />
         );
+
+        await waitFor(() => {
+            expect(screen.getByRole('option', { name: 'Groceries' })).toBeInTheDocument();
+        });
 
         await user.type(screen.getByPlaceholderText(/amazon, groceries, salary/i), 'amazon');
         await user.selectOptions(screen.getByRole('combobox'), '1');
@@ -215,6 +206,10 @@ describe('AutoRuleForm Component', () => {
                 onCancel={mockOnCancel}
             />
         );
+
+        await waitFor(() => {
+            expect(screen.getByRole('option', { name: 'Groceries' })).toBeInTheDocument();
+        });
 
         await user.type(screen.getByPlaceholderText(/amazon, groceries, salary/i), 'amazon');
         await user.selectOptions(screen.getByRole('combobox'), '1');
