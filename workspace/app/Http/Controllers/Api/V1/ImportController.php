@@ -11,6 +11,7 @@ use App\Models\XlsxImport;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class ImportController extends Controller
 {
@@ -20,16 +21,22 @@ class ImportController extends Controller
     public function index(Request $request): JsonResponse
     {
         $userId = Auth::id();
-        $perPage = min((int) $request->input('per_page', 15), 50); // Max 50 items
-        $page = (int) $request->input('page', 1);
+        $perPage = max(1, min((int) $request->input('per_page', 15), 50)); // Min 1, max 50 items
+        $page = max(1, (int) $request->input('page', 1));
 
         // Build queries for both types
         $ofxQuery = OfxImport::query()
-            ->with(['account', 'reconciliation'])
+            ->with([
+                'account',
+                'reconciliation' => fn ($query) => $query->withCount('transactions'),
+            ])
             ->forUser($userId);
 
         $xlsxQuery = XlsxImport::query()
-            ->with(['account', 'reconciliation'])
+            ->with([
+                'account',
+                'reconciliation' => fn ($query) => $query->withCount('transactions'),
+            ])
             ->forUser($userId);
 
         // Apply common filters
@@ -47,6 +54,12 @@ class ImportController extends Controller
 
         // Type filter - fetch only one type if specified
         $typeFilter = $request->input('filter.type');
+        if ($typeFilter !== null && ! in_array($typeFilter, ['ofx', 'xlsx'], true)) {
+            return response()->json([
+                'message' => 'Invalid filter.type. Must be "ofx" or "xlsx".',
+            ], 422);
+        }
+
         $fetchOfx = ! $typeFilter || $typeFilter === 'ofx';
         $fetchXlsx = ! $typeFilter || $typeFilter === 'xlsx';
 
@@ -55,29 +68,82 @@ class ImportController extends Controller
         $xlsxTotal = $fetchXlsx ? $xlsxQuery->count() : 0;
         $total = $ofxTotal + $xlsxTotal;
 
-        // Fetch both collections ordered by created_at desc
-        $ofxImports = $fetchOfx
-            ? $ofxQuery->orderBy('created_at', 'desc')->get()
-            : collect([]);
+        // Manual pagination offsets
+        $offset = ($page - 1) * $perPage;
 
-        $xlsxImports = $fetchXlsx
-            ? $xlsxQuery->orderBy('created_at', 'desc')->get()
-            : collect([]);
+        // Build lightweight ID queries for database-level pagination
+        $ofxIdsQuery = DB::table('ofx_imports')
+            ->selectRaw("id, created_at, 'ofx' as import_type")
+            ->where('user_id', $userId);
 
-        // Merge and sort
-        $allImports = $ofxImports->concat($xlsxImports)
-            ->sortByDesc('created_at')
+        $xlsxIdsQuery = DB::table('xlsx_imports')
+            ->selectRaw("id, created_at, 'xlsx' as import_type")
+            ->where('user_id', $userId);
+
+        if ($request->has('filter.account_id')) {
+            $accountId = $request->input('filter.account_id');
+            $ofxIdsQuery->where('account_id', $accountId);
+            $xlsxIdsQuery->where('account_id', $accountId);
+        }
+
+        if ($request->has('filter.status')) {
+            $status = $request->input('filter.status');
+            $ofxIdsQuery->where('status', $status);
+            $xlsxIdsQuery->where('status', $status);
+        }
+
+        if ($fetchOfx && $fetchXlsx) {
+            $unionIdsQuery = $ofxIdsQuery->unionAll($xlsxIdsQuery);
+
+            $pageRows = DB::query()
+                ->fromSub($unionIdsQuery, 'imports')
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->offset($offset)
+                ->limit($perPage)
+                ->get();
+        } elseif ($fetchOfx) {
+            $pageRows = $ofxIdsQuery
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->offset($offset)
+                ->limit($perPage)
+                ->get();
+        } elseif ($fetchXlsx) {
+            $pageRows = $xlsxIdsQuery
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->offset($offset)
+                ->limit($perPage)
+                ->get();
+        } else {
+            $pageRows = collect();
+        }
+
+        $ofxPageIds = $pageRows->where('import_type', 'ofx')->pluck('id')->all();
+        $xlsxPageIds = $pageRows->where('import_type', 'xlsx')->pluck('id')->all();
+
+        $ofxImports = ! empty($ofxPageIds)
+            ? $ofxQuery->whereIn('id', $ofxPageIds)->get()->keyBy('id')
+            : collect();
+
+        $xlsxImports = ! empty($xlsxPageIds)
+            ? $xlsxQuery->whereIn('id', $xlsxPageIds)->get()->keyBy('id')
+            : collect();
+
+        $paginatedImports = $pageRows->map(function (object $row) use ($ofxImports, $xlsxImports) {
+            return $row->import_type === 'ofx'
+                ? $ofxImports->get($row->id)
+                : $xlsxImports->get($row->id);
+        })
+            ->filter()
             ->values();
 
-        // Manual pagination
-        $offset = ($page - 1) * $perPage;
-        $paginatedImports = $allImports->slice($offset, $perPage)->values();
-
         // Transform to resources
-        $data = ImportResource::collection($paginatedImports);
+        $data = ImportResource::collection($paginatedImports)->resolve($request);
 
         // Build pagination metadata
-        $lastPage = (int) ceil($total / $perPage);
+        $lastPage = max(1, (int) ceil($total / $perPage));
         $from = $offset + 1;
         $to = min($offset + $paginatedImports->count(), $total);
 
@@ -107,20 +173,19 @@ class ImportController extends Controller
     {
         $userId = Auth::id();
 
-        // Validate type
-        if (! in_array($type, ['ofx', 'xlsx'], true)) {
-            return response()->json([
-                'message' => 'Invalid import type. Must be "ofx" or "xlsx".',
-            ], 400);
-        }
-
         // Fetch appropriate model
         if ($type === 'ofx') {
-            $import = OfxImport::with(['account', 'reconciliation'])
+            $import = OfxImport::with([
+                'account',
+                'reconciliation' => fn ($query) => $query->withCount('transactions'),
+            ])
                 ->forUser($userId)
                 ->findOrFail($id);
         } else {
-            $import = XlsxImport::with(['account', 'reconciliation'])
+            $import = XlsxImport::with([
+                'account',
+                'reconciliation' => fn ($query) => $query->withCount('transactions'),
+            ])
                 ->forUser($userId)
                 ->findOrFail($id);
         }

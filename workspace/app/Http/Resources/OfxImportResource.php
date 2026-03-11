@@ -24,7 +24,7 @@ class OfxImportResource extends JsonResource
         if ($this->relationLoaded('reconciliation') && $this->reconciliation !== null) {
             /** @var \App\Models\Reconciliation $reconciliation */
             $reconciliation = $this->reconciliation;
-            $matchedCount = $reconciliation->transactions()->count();
+            $matchedCount = (int) ($reconciliation->transactions_count ?? 0);
         }
 
         return [

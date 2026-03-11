@@ -222,7 +222,9 @@ class ImportResourceTest extends TestCase
             'reconciliation_id' => $reconciliation->id,
         ]);
 
-        $import->load('reconciliation');
+        $import->load([
+            'reconciliation' => fn ($query) => $query->withCount('transactions'),
+        ]);
 
         $resource = new ImportResource($import);
         $array = $resource->resolve(Request::create('/'));

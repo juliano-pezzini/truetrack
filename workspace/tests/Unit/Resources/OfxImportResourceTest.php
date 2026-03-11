@@ -118,7 +118,9 @@ class OfxImportResourceTest extends TestCase
             'reconciliation_id' => $reconciliation->id,
         ]);
 
-        $import->load('reconciliation');
+        $import->load([
+            'reconciliation' => fn ($query) => $query->withCount('transactions'),
+        ]);
 
         $resource = new OfxImportResource($import);
         $array = $resource->resolve(Request::create('/'));

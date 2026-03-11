@@ -59,7 +59,7 @@ class ImportResource extends JsonResource
             if ($model->relationLoaded('reconciliation') && $model->reconciliation !== null) {
                 /** @var \App\Models\Reconciliation $reconciliation */
                 $reconciliation = $model->reconciliation;
-                $matchedCount = $reconciliation->transactions()->count();
+                $matchedCount = (int) ($reconciliation->transactions_count ?? 0);
             }
             $data['matched_count'] = $matchedCount;
         }

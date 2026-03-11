@@ -153,6 +153,15 @@ class ImportControllerTest extends TestCase
             ->assertJsonCount(3, 'data');
     }
 
+    public function test_index_returns_422_for_invalid_type_filter(): void
+    {
+        $response = $this->actingAs($this->user, 'sanctum')
+            ->getJson('/api/v1/imports?filter[type]=csv');
+
+        $response->assertStatus(422)
+            ->assertJsonPath('message', 'Invalid filter.type. Must be "ofx" or "xlsx".');
+    }
+
     public function test_index_pagination_works_correctly(): void
     {
         // Create 25 imports (should paginate)
@@ -397,6 +406,47 @@ class ImportControllerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonCount(50, 'data'); // Should be capped at 50
+    }
+
+    public function test_index_clamps_per_page_to_minimum_one(): void
+    {
+        OfxImport::factory()->count(3)->create([
+            'user_id' => $this->user->id,
+            'account_id' => $this->account->id,
+        ]);
+
+        $response = $this->actingAs($this->user, 'sanctum')
+            ->getJson('/api/v1/imports?per_page=0');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('meta.per_page', 1)
+            ->assertJsonCount(1, 'data');
+    }
+
+    public function test_index_clamps_page_to_minimum_one(): void
+    {
+        OfxImport::factory()->count(5)->create([
+            'user_id' => $this->user->id,
+            'account_id' => $this->account->id,
+        ]);
+
+        $response = $this->actingAs($this->user, 'sanctum')
+            ->getJson('/api/v1/imports?per_page=2&page=-5');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('meta.current_page', 1)
+            ->assertJsonCount(2, 'data');
+    }
+
+    public function test_index_sets_last_page_to_one_when_no_results(): void
+    {
+        $response = $this->actingAs($this->user, 'sanctum')
+            ->getJson('/api/v1/imports');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('meta.total', 0)
+            ->assertJsonPath('meta.last_page', 1)
+            ->assertJsonPath('links.last', route('api.imports.index', ['page' => 1]));
     }
 
     public function test_unauthenticated_user_cannot_access_imports(): void
