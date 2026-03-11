@@ -4,13 +4,13 @@ import InputLabel from '@/Components/InputLabel';
 import XlsxColumnMapper from '@/Components/XlsxImport/XlsxColumnMapper';
 import XlsxPreviewTable from '@/Components/XlsxImport/XlsxPreviewTable';
 
-export default function XlsxSimplifiedWizard({ 
+export default function XlsxSimplifiedWizard({
     file,
-    accounts, 
+    accounts,
     selectedAccount,
     onAccountChange,
     onComplete,
-    onCancel 
+    onCancel
 }) {
     const [step, setStep] = useState(1); // 1: Upload + Mapping, 2: Preview + Confirm
     const [detectedHeaders, setDetectedHeaders] = useState([]);
@@ -126,20 +126,16 @@ export default function XlsxSimplifiedWizard({
         }
 
         try {
-            // Get CSRF token
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-            
             const response = await axios.post(route('api.xlsx-imports.store'), formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
-                    'X-CSRF-TOKEN': csrfToken,
                 },
             });
             // Success! Return the import data
             onComplete(response.data.data);
         } catch (err) {
             console.error('Import submission failed:', err);
-            
+
             if (err.response?.status === 409 || err.response?.data?.requires_confirmation) {
                 setError('This file has already been imported. Check "Force Reimport" to override.');
             } else if (err.response?.status === 403) {

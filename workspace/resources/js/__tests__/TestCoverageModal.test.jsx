@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import TestCoverageModal from '../../../resources/js/Pages/AutoCategoryRules/TestCoverageModal';
+import axios from 'axios';
 
 
 jest.mock('@inertiajs/react', () => ({
@@ -12,6 +13,8 @@ jest.mock('@inertiajs/react', () => ({
         },
     }),
 }));
+
+jest.mock('axios');
 
 describe('TestCoverageModal Component', () => {
     const mockOnClose = jest.fn();
@@ -52,12 +55,7 @@ describe('TestCoverageModal Component', () => {
 
     it('submits form with valid dates', async () => {
         const user = userEvent.setup();
-        global.fetch = jest.fn(() =>
-            Promise.resolve({
-                json: () => Promise.resolve({ data: mockCoverageResult }),
-                ok: true,
-            })
-        );
+        axios.post.mockResolvedValueOnce({ data: { data: mockCoverageResult } });
 
         render(<TestCoverageModal show={true} onClose={mockOnClose} />);
 
@@ -71,18 +69,13 @@ describe('TestCoverageModal Component', () => {
         await user.click(testButton);
 
         await waitFor(() => {
-            expect(global.fetch).toHaveBeenCalled();
+            expect(axios.post).toHaveBeenCalled();
         });
     });
 
     it('displays coverage results', async () => {
         const user = userEvent.setup();
-        global.fetch = jest.fn(() =>
-            Promise.resolve({
-                json: () => Promise.resolve({ data: mockCoverageResult }),
-                ok: true,
-            })
-        );
+        axios.post.mockResolvedValueOnce({ data: { data: mockCoverageResult } });
 
         render(<TestCoverageModal show={true} onClose={mockOnClose} />);
 
@@ -103,12 +96,7 @@ describe('TestCoverageModal Component', () => {
 
     it('displays coverage percentage correctly', async () => {
         const user = userEvent.setup();
-        global.fetch = jest.fn(() =>
-            Promise.resolve({
-                json: () => Promise.resolve({ data: mockCoverageResult }),
-                ok: true,
-            })
-        );
+        axios.post.mockResolvedValueOnce({ data: { data: mockCoverageResult } });
 
         render(<TestCoverageModal show={true} onClose={mockOnClose} />);
 
@@ -128,12 +116,7 @@ describe('TestCoverageModal Component', () => {
 
     it('displays category breakdown', async () => {
         const user = userEvent.setup();
-        global.fetch = jest.fn(() =>
-            Promise.resolve({
-                json: () => Promise.resolve({ data: mockCoverageResult }),
-                ok: true,
-            })
-        );
+        axios.post.mockResolvedValueOnce({ data: { data: mockCoverageResult } });
 
         render(<TestCoverageModal show={true} onClose={mockOnClose} />);
 
@@ -154,12 +137,9 @@ describe('TestCoverageModal Component', () => {
 
     it('handles API errors gracefully', async () => {
         const user = userEvent.setup();
-        global.fetch = jest.fn(() =>
-            Promise.resolve({
-                json: () => Promise.resolve({ message: 'Server error' }),
-                ok: false,
-            })
-        );
+        axios.post.mockRejectedValueOnce({
+            response: { data: { message: 'Server error' } },
+        });
 
         render(<TestCoverageModal show={true} onClose={mockOnClose} />);
 
@@ -179,18 +159,8 @@ describe('TestCoverageModal Component', () => {
 
     it('shows loading state during request', async () => {
         const user = userEvent.setup();
-        global.fetch = jest.fn(
-            () =>
-                new Promise(resolve =>
-                    setTimeout(
-                        () =>
-                            resolve({
-                                json: () => Promise.resolve({ data: mockCoverageResult }),
-                                ok: true,
-                            }),
-                        100
-                    )
-                )
+        axios.post.mockImplementationOnce(
+            () => new Promise(resolve => setTimeout(() => resolve({ data: { data: mockCoverageResult } }), 100))
         );
 
         render(<TestCoverageModal show={true} onClose={mockOnClose} />);

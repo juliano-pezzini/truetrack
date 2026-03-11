@@ -10,6 +10,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
@@ -289,6 +290,11 @@ class XlsxImportService
             throw new InvalidRowDataException("Invalid date format: {$row[$dateColumn]}");
         }
 
+        // Validate date is not null (date is required)
+        if ($transactionDate === null) {
+            throw new InvalidRowDataException('Transaction date is required');
+        }
+
         // Get description
         $description = trim($row[$descriptionColumn] ?? '');
         if (empty($description)) {
@@ -541,9 +547,23 @@ class XlsxImportService
     /**
      * Parse date from various formats.
      */
-    private function parseDate(string $dateString): ?Carbon
+    private function parseDate(string|int|float|null $dateValue): ?Carbon
     {
-        if (empty($dateString)) {
+        if ($dateValue === null || $dateValue === '') {
+            return null;
+        }
+
+        // Excel date cells are often exposed as numeric serial values.
+        if (is_int($dateValue) || is_float($dateValue)) {
+            try {
+                return Carbon::instance(ExcelDate::excelToDateTimeObject($dateValue));
+            } catch (\Exception $e) {
+                throw new \Exception("Unable to parse Excel serial date: {$dateValue}");
+            }
+        }
+
+        $dateString = trim($dateValue);
+        if ($dateString === '') {
             return null;
         }
 

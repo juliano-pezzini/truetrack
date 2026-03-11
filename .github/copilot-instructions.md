@@ -138,6 +138,12 @@ docker compose exec truetrack bash
    - Hooks: camelCase with `use` prefix (e.g., `useAccountBalance.js`)
    - Utilities: camelCase (e.g., `formatCurrency.js`)
 
+5. **CSRF/XSRF for API calls (CRITICAL)**:
+   - For browser requests to stateful `/api/v1` routes, prefer **axios** (configured in `resources/js/bootstrap.js` with `withCredentials` + `withXSRFToken`).
+   - **Do not** manually set `X-CSRF-TOKEN` from `<meta name="csrf-token">` in React components; it can become stale after session/token regeneration and trigger 419 errors.
+   - If `fetch` must be used for POST/PUT/PATCH/DELETE, ensure `X-XSRF-TOKEN` is sent from the `XSRF-TOKEN` cookie.
+   - Keep `credentials`/cookies enabled for same-origin requests that depend on session authentication.
+
 ## API Design Principles
 
 ### Versioning & Structure
