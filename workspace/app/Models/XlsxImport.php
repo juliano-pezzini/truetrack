@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property-read string $type
+ */
 class XlsxImport extends Model
 {
     use HasFactory;
@@ -49,6 +53,16 @@ class XlsxImport extends Model
         'mapping_config' => 'array',
         'is_forced' => 'boolean',
     ];
+
+    /**
+     * Get the import type (always 'xlsx' for this model).
+     */
+    protected function type(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => 'xlsx',
+        );
+    }
 
     /**
      * Check if import is completed.

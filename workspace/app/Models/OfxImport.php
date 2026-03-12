@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property-read string $type
+ */
 class OfxImport extends Model
 {
     use HasFactory;
@@ -40,6 +44,16 @@ class OfxImport extends Model
         'processed_count' => 'integer',
         'total_count' => 'integer',
     ];
+
+    /**
+     * Get the import type (always 'ofx' for this model).
+     */
+    protected function type(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => 'ofx',
+        );
+    }
 
     /**
      * Get the account associated with this import.
