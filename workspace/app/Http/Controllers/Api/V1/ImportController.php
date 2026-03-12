@@ -41,7 +41,6 @@ class ImportController extends Controller
             ])
             ->forUser($userId);
 
-
         // Type filter - fetch only one type if specified
         $typeFilter = $request->input('filter.type');
         $fetchOfx = true;
