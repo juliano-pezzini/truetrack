@@ -73,6 +73,34 @@ class ImportControllerTest extends TestCase
             ->assertJsonPath('data.2.type', 'ofx');
     }
 
+    public function test_index_uses_deterministic_order_for_same_timestamp(): void
+    {
+        $createdAt = now()->startOfSecond();
+
+        $ofxImport = OfxImport::factory()->create([
+            'user_id' => $this->user->id,
+            'account_id' => $this->account->id,
+            'created_at' => $createdAt,
+            'updated_at' => $createdAt,
+        ]);
+
+        $xlsxImport = XlsxImport::factory()->create([
+            'user_id' => $this->user->id,
+            'account_id' => $this->account->id,
+            'created_at' => $createdAt,
+            'updated_at' => $createdAt,
+        ]);
+
+        $response = $this->actingAs($this->user, 'sanctum')
+            ->getJson('/api/v1/imports');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.0.type', 'ofx')
+            ->assertJsonPath('data.0.id', $ofxImport->id)
+            ->assertJsonPath('data.1.type', 'xlsx')
+            ->assertJsonPath('data.1.id', $xlsxImport->id);
+    }
+
     public function test_index_filters_by_account_id(): void
     {
         $account2 = Account::factory()->for($this->user)->create();

@@ -23,6 +23,8 @@ class ImportController extends Controller
         $userId = Auth::id();
         $perPage = max(1, min((int) $request->input('per_page', 15), 50)); // Min 1, max 50 items
         $page = max(1, (int) $request->input('page', 1));
+        $accountId = $request->input('filter.account_id');
+        $status = $request->input('filter.status');
 
         // Build queries for both types
         $ofxQuery = OfxImport::query()
@@ -39,37 +41,23 @@ class ImportController extends Controller
             ])
             ->forUser($userId);
 
-        // Apply common filters
-        if ($request->has('filter.account_id')) {
-            $accountId = $request->input('filter.account_id');
-            $ofxQuery->where('account_id', $accountId);
-            $xlsxQuery->where('account_id', $accountId);
-        }
-
-        if ($request->has('filter.status')) {
-            $status = $request->input('filter.status');
-            $ofxQuery->where('status', $status);
-            $xlsxQuery->where('status', $status);
-        }
 
         // Type filter - fetch only one type if specified
         $typeFilter = $request->input('filter.type');
-        if ($typeFilter !== null && ! in_array($typeFilter, ['ofx', 'xlsx'], true)) {
-            return response()->json([
-                'message' => 'Invalid filter.type. Must be "ofx" or "xlsx".',
-            ], 422);
+        $fetchOfx = true;
+        $fetchXlsx = true;
+
+        if ($typeFilter !== null) {
+            if ($typeFilter === 'ofx') {
+                $fetchXlsx = false;
+            } elseif ($typeFilter === 'xlsx') {
+                $fetchOfx = false;
+            } else {
+                return response()->json([
+                    'message' => 'Invalid filter.type. Must be "ofx" or "xlsx".',
+                ], 422);
+            }
         }
-
-        $fetchOfx = ! $typeFilter || $typeFilter === 'ofx';
-        $fetchXlsx = ! $typeFilter || $typeFilter === 'xlsx';
-
-        // Get total counts (for pagination metadata)
-        $ofxTotal = $fetchOfx ? $ofxQuery->count() : 0;
-        $xlsxTotal = $fetchXlsx ? $xlsxQuery->count() : 0;
-        $total = $ofxTotal + $xlsxTotal;
-
-        // Manual pagination offsets
-        $offset = ($page - 1) * $perPage;
 
         // Build lightweight ID queries for database-level pagination
         $ofxIdsQuery = DB::table('ofx_imports')
@@ -80,17 +68,23 @@ class ImportController extends Controller
             ->selectRaw("id, created_at, 'xlsx' as import_type")
             ->where('user_id', $userId);
 
-        if ($request->has('filter.account_id')) {
-            $accountId = $request->input('filter.account_id');
+        if ($accountId !== null) {
             $ofxIdsQuery->where('account_id', $accountId);
             $xlsxIdsQuery->where('account_id', $accountId);
         }
 
-        if ($request->has('filter.status')) {
-            $status = $request->input('filter.status');
+        if ($status !== null) {
             $ofxIdsQuery->where('status', $status);
             $xlsxIdsQuery->where('status', $status);
         }
+
+        // Get total counts (for pagination metadata)
+        $ofxTotal = $fetchOfx ? (clone $ofxIdsQuery)->count() : 0;
+        $xlsxTotal = $fetchXlsx ? (clone $xlsxIdsQuery)->count() : 0;
+        $total = $ofxTotal + $xlsxTotal;
+
+        // Manual pagination offsets
+        $offset = ($page - 1) * $perPage;
 
         if ($fetchOfx && $fetchXlsx) {
             $unionIdsQuery = $ofxIdsQuery->unionAll($xlsxIdsQuery);
@@ -98,6 +92,7 @@ class ImportController extends Controller
             $pageRows = DB::query()
                 ->fromSub($unionIdsQuery, 'imports')
                 ->orderByDesc('created_at')
+                ->orderBy('import_type')
                 ->orderByDesc('id')
                 ->offset($offset)
                 ->limit($perPage)
