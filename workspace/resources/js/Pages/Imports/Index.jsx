@@ -2,10 +2,12 @@ import { Head, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import UnifiedImportUpload from '@/Components/Import/UnifiedImportUpload';
 import ImportHistoryCard from '@/Components/Import/ImportHistoryCard';
+import { buildPaginationItems } from './pagination';
 import { useEffect } from 'react';
 
 export default function Index({ auth, accounts, imports, filters }) {
     const { data: importList, meta } = imports;
+    const paginationItems = buildPaginationItems(meta.current_page, meta.last_page);
 
     const hasActiveImports = importList.some(
         (imp) => imp.status === 'processing' || imp.status === 'pending'
@@ -48,8 +50,6 @@ export default function Index({ auth, accounts, imports, filters }) {
             preserveScroll: true,
         });
     };
-
-    const pages = Array.from({ length: meta.last_page }, (_, i) => i + 1);
 
     return (
         <AuthenticatedLayout
@@ -191,19 +191,28 @@ export default function Index({ auth, accounts, imports, filters }) {
                                 </button>
 
                                 <div className="flex gap-1">
-                                    {pages.map((p) => (
-                                        <button
-                                            key={p}
-                                            onClick={() => goToPage(p)}
-                                            className={`min-w-[2rem] rounded-md px-2 py-1.5 text-sm font-medium ${
-                                                p === meta.current_page
-                                                    ? 'bg-indigo-600 text-white'
-                                                    : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
-                                            }`}
-                                        >
-                                            {p}
-                                        </button>
-                                    ))}
+                                    {paginationItems.map((item) =>
+                                        item.type === 'ellipsis' ? (
+                                            <span
+                                                key={item.key}
+                                                className="min-w-[2rem] px-2 py-1.5 text-center text-sm font-medium text-gray-400"
+                                            >
+                                                ...
+                                            </span>
+                                        ) : (
+                                            <button
+                                                key={item.value}
+                                                onClick={() => goToPage(item.value)}
+                                                className={`min-w-[2rem] rounded-md px-2 py-1.5 text-sm font-medium ${
+                                                    item.value === meta.current_page
+                                                        ? 'bg-indigo-600 text-white'
+                                                        : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                                                }`}
+                                            >
+                                                {item.value}
+                                            </button>
+                                        )
+                                    )}
                                 </div>
 
                                 <button
