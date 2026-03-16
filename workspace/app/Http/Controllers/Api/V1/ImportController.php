@@ -8,13 +8,17 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\ImportResource;
 use App\Models\OfxImport;
 use App\Models\XlsxImport;
+use App\Services\ImportHistoryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 class ImportController extends Controller
 {
+    public function __construct(
+        private readonly ImportHistoryService $importHistoryService,
+    ) {}
+
     /**
      * Display unified listing of imports (OFX + XLSX).
      */
@@ -25,21 +29,6 @@ class ImportController extends Controller
         $page = max(1, (int) $request->input('page', 1));
         $accountId = $request->input('filter.account_id');
         $status = $request->input('filter.status');
-
-        // Build queries for both types
-        $ofxQuery = OfxImport::query()
-            ->with([
-                'account',
-                'reconciliation' => fn ($query) => $query->withCount('transactions'),
-            ])
-            ->forUser($userId);
-
-        $xlsxQuery = XlsxImport::query()
-            ->with([
-                'account',
-                'reconciliation' => fn ($query) => $query->withCount('transactions'),
-            ])
-            ->forUser($userId);
 
         // Type filter - fetch only one type if specified
         $typeFilter = $request->input('filter.type');
@@ -58,104 +47,29 @@ class ImportController extends Controller
             }
         }
 
-        // Build lightweight ID queries for database-level pagination
-        $ofxIdsQuery = DB::table('ofx_imports')
-            ->selectRaw("id, created_at, 'ofx' as import_type")
-            ->where('user_id', $userId);
-
-        $xlsxIdsQuery = DB::table('xlsx_imports')
-            ->selectRaw("id, created_at, 'xlsx' as import_type")
-            ->where('user_id', $userId);
-
-        if ($accountId !== null) {
-            $ofxIdsQuery->where('account_id', $accountId);
-            $xlsxIdsQuery->where('account_id', $accountId);
-        }
-
-        if ($status !== null) {
-            $ofxIdsQuery->where('status', $status);
-            $xlsxIdsQuery->where('status', $status);
-        }
-
-        // Get total counts (for pagination metadata)
-        $ofxTotal = $fetchOfx ? (clone $ofxIdsQuery)->count() : 0;
-        $xlsxTotal = $fetchXlsx ? (clone $xlsxIdsQuery)->count() : 0;
-        $total = $ofxTotal + $xlsxTotal;
-
-        // Manual pagination offsets
-        $offset = ($page - 1) * $perPage;
-
-        if ($fetchOfx && $fetchXlsx) {
-            $unionIdsQuery = $ofxIdsQuery->unionAll($xlsxIdsQuery);
-
-            $pageRows = DB::query()
-                ->fromSub($unionIdsQuery, 'imports')
-                ->orderByDesc('created_at')
-                ->orderBy('import_type')
-                ->orderByDesc('id')
-                ->offset($offset)
-                ->limit($perPage)
-                ->get();
-        } elseif ($fetchOfx) {
-            $pageRows = $ofxIdsQuery
-                ->orderByDesc('created_at')
-                ->orderByDesc('id')
-                ->offset($offset)
-                ->limit($perPage)
-                ->get();
-        } elseif ($fetchXlsx) {
-            $pageRows = $xlsxIdsQuery
-                ->orderByDesc('created_at')
-                ->orderByDesc('id')
-                ->offset($offset)
-                ->limit($perPage)
-                ->get();
-        } else {
-            $pageRows = collect();
-        }
-
-        $ofxPageIds = $pageRows->where('import_type', 'ofx')->pluck('id')->all();
-        $xlsxPageIds = $pageRows->where('import_type', 'xlsx')->pluck('id')->all();
-
-        $ofxImports = ! empty($ofxPageIds)
-            ? $ofxQuery->whereIn('id', $ofxPageIds)->get()->keyBy('id')
-            : collect();
-
-        $xlsxImports = ! empty($xlsxPageIds)
-            ? $xlsxQuery->whereIn('id', $xlsxPageIds)->get()->keyBy('id')
-            : collect();
-
-        $paginatedImports = $pageRows->map(function (object $row) use ($ofxImports, $xlsxImports) {
-            return $row->import_type === 'ofx'
-                ? $ofxImports->get($row->id)
-                : $xlsxImports->get($row->id);
-        })
-            ->filter()
-            ->values();
+        $pagination = $this->importHistoryService->paginate(
+            userId: $userId,
+            page: $page,
+            perPage: $perPage,
+            accountId: $accountId,
+            status: $status,
+            fetchOfx: $fetchOfx,
+            fetchXlsx: $fetchXlsx,
+        );
+        $paginatedImports = $pagination['imports'];
+        $meta = $pagination['meta'];
 
         // Transform to resources
         $data = ImportResource::collection($paginatedImports)->resolve($request);
 
-        // Build pagination metadata
-        $lastPage = max(1, (int) ceil($total / $perPage));
-        $from = $offset + 1;
-        $to = min($offset + $paginatedImports->count(), $total);
-
         return response()->json([
             'data' => $data,
-            'meta' => [
-                'current_page' => $page,
-                'from' => $total > 0 ? $from : null,
-                'last_page' => $lastPage,
-                'per_page' => $perPage,
-                'to' => $total > 0 ? $to : null,
-                'total' => $total,
-            ],
+            'meta' => $meta,
             'links' => [
                 'first' => route('api.imports.index', array_merge($request->query(), ['page' => 1])),
-                'last' => route('api.imports.index', array_merge($request->query(), ['page' => $lastPage])),
+                'last' => route('api.imports.index', array_merge($request->query(), ['page' => $meta['last_page']])),
                 'prev' => $page > 1 ? route('api.imports.index', array_merge($request->query(), ['page' => $page - 1])) : null,
-                'next' => $page < $lastPage ? route('api.imports.index', array_merge($request->query(), ['page' => $page + 1])) : null,
+                'next' => $page < $meta['last_page'] ? route('api.imports.index', array_merge($request->query(), ['page' => $page + 1])) : null,
             ],
         ]);
     }
