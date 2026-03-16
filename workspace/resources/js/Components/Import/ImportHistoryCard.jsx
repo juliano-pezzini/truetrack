@@ -3,18 +3,17 @@ import ImportProgress from './ImportProgress';
 import SecondaryButton from '@/Components/SecondaryButton';
 import DangerButton from '@/Components/DangerButton';
 
-export default function ImportHistoryCard({ importData, type, onDelete }) {
+export default function ImportHistoryCard({ importData, onDelete }) {
     const {
         id,
+        type,
         filename,
         account,
         created_at,
         status,
         reconciliation,
         reconciliation_id,
-        error_report_path,
         has_errors,
-        has_error_report,
     } = importData;
     const reconciliationId = reconciliation?.id ?? reconciliation_id;
 
@@ -65,7 +64,7 @@ export default function ImportHistoryCard({ importData, type, onDelete }) {
     const hasErrorReport =
         type === 'xlsx' &&
         status === 'completed' &&
-        Boolean(error_report_path || has_error_report || has_errors);
+        Boolean(has_errors);
 
     // Type badge styling
     const getTypeBadge = () => {
