@@ -546,7 +546,7 @@ class XlsxImportService
                 "%d,%s,%s,%s\n",
                 $error['row_number'],
                 $error['field'],
-                str_replace('"', '""', $error['message']),
+                str_replace('"', '""', (string) ($error['error_message'] ?? $error['message'] ?? '')),
                 str_replace('"', '""', $error['raw_value'] ?? '')
             );
         }

@@ -77,17 +77,32 @@ class ProcessXlsxImport implements ShouldQueue
             $decompressedPath = $compressedPath;
 
             if (str_ends_with($xlsxImport->file_path, '.gz')) {
-                $compressedContent = Storage::get($xlsxImport->file_path);
-                $decompressedContent = gzdecode($compressedContent);
-
-                if ($decompressedContent === false) {
-                    throw new \RuntimeException('Failed to decompress XLSX archive.');
+                $gzResource = gzopen($compressedPath, 'rb');
+                if ($gzResource === false) {
+                    throw new \RuntimeException('Failed to open compressed XLSX archive for reading.');
                 }
 
                 $decompressedPath = sys_get_temp_dir().'/'.uniqid('xlsx_', true).'.xlsx';
+                $outputResource = fopen($decompressedPath, 'wb');
+                if ($outputResource === false) {
+                    gzclose($gzResource);
+                    throw new \RuntimeException('Failed to create temporary XLSX file for processing.');
+                }
 
-                if (file_put_contents($decompressedPath, $decompressedContent) === false) {
-                    throw new \RuntimeException('Failed to write temporary XLSX file for processing.');
+                try {
+                    while (! gzeof($gzResource)) {
+                        $chunk = gzread($gzResource, 8192);
+                        if ($chunk === false) {
+                            throw new \RuntimeException('Failed to read from compressed XLSX archive.');
+                        }
+
+                        if (fwrite($outputResource, $chunk) === false) {
+                            throw new \RuntimeException('Failed to write temporary XLSX file for processing.');
+                        }
+                    }
+                } finally {
+                    gzclose($gzResource);
+                    fclose($outputResource);
                 }
             }
 
@@ -308,6 +323,10 @@ class ProcessXlsxImport implements ShouldQueue
                 unlink($decompressedPath);
             }
         } catch (Throwable $e) {
+            if (isset($decompressedPath, $compressedPath) && $decompressedPath !== $compressedPath && file_exists($decompressedPath)) {
+                unlink($decompressedPath);
+            }
+
             // Mark as failed
             DB::transaction(function () use ($xlsxImport, $e) {
                 $xlsxImport->update([
