@@ -2,10 +2,14 @@ import { Head, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import UnifiedImportUpload from '@/Components/Import/UnifiedImportUpload';
 import ImportHistoryCard from '@/Components/Import/ImportHistoryCard';
+import ImportTabs from '@/Components/Import/ImportTabs';
 import { buildPaginationItems } from './pagination';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function Index({ auth, accounts, imports, filters }) {
+    const [activeTab, setActiveTab] = useState('import');
+    const [hasVisitedHistory, setHasVisitedHistory] = useState(false);
+
     const { data: importList, meta } = imports;
     const paginationItems = buildPaginationItems(meta.current_page, meta.last_page);
 
@@ -23,6 +27,12 @@ export default function Index({ auth, accounts, imports, filters }) {
 
         return () => clearInterval(interval);
     }, [hasActiveImports]);
+
+    useEffect(() => {
+        if (activeTab === 'history') {
+            setHasVisitedHistory(true);
+        }
+    }, [activeTab]);
 
     const buildParams = (overrides = {}) => {
         const merged = { ...filters, ...overrides };
@@ -64,12 +74,6 @@ export default function Index({ auth, accounts, imports, filters }) {
 
             <div className="py-12">
                 <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
-                    {/* Unified Upload Section */}
-                    <UnifiedImportUpload
-                        accounts={accounts}
-                        onSuccess={handleUploadSuccess}
-                    />
-
                     {/* Active Imports Alert */}
                     {hasActiveImports && (
                         <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
@@ -98,8 +102,33 @@ export default function Index({ auth, accounts, imports, filters }) {
                         </div>
                     )}
 
+                    <ImportTabs
+                        activeTab={activeTab}
+                        onTabChange={setActiveTab}
+                    />
+
+                    {activeTab === 'import' && (
+                        <div
+                            role="tabpanel"
+                            id="panel-import"
+                            aria-labelledby="tab-import"
+                        >
+                            {/* Unified Upload Section */}
+                            <UnifiedImportUpload
+                                accounts={accounts}
+                                onSuccess={handleUploadSuccess}
+                            />
+                        </div>
+                    )}
+
                     {/* Import History */}
-                    <div className="rounded-lg bg-white p-6 shadow-sm">
+                    {activeTab === 'history' && hasVisitedHistory && (
+                    <div
+                        role="tabpanel"
+                        id="panel-history"
+                        aria-labelledby="tab-history"
+                        className="rounded-lg bg-white p-6 shadow-sm"
+                    >
                         <div className="mb-4 flex items-center justify-between">
                             <h3 className="text-lg font-semibold text-gray-900">
                                 Import History
@@ -225,6 +254,7 @@ export default function Index({ auth, accounts, imports, filters }) {
                             </div>
                         )}
                     </div>
+                    )}
                 </div>
             </div>
         </AuthenticatedLayout>
