@@ -77,14 +77,18 @@ class ProcessXlsxImport implements ShouldQueue
             $decompressedPath = $compressedPath;
 
             if (str_ends_with($xlsxImport->file_path, '.gz')) {
-                $decompressedPath = sys_get_temp_dir().'/'.uniqid('xlsx_').'.xlsx';
-                $gz = gzopen($compressedPath, 'rb');
-                $out = fopen($decompressedPath, 'wb');
-                while (! gzeof($gz)) {
-                    fwrite($out, gzread($gz, 4096));
+                $compressedContent = Storage::get($xlsxImport->file_path);
+                $decompressedContent = gzdecode($compressedContent);
+
+                if ($decompressedContent === false) {
+                    throw new \RuntimeException('Failed to decompress XLSX archive.');
                 }
-                gzclose($gz);
-                fclose($out);
+
+                $decompressedPath = sys_get_temp_dir().'/'.uniqid('xlsx_', true).'.xlsx';
+
+                if (file_put_contents($decompressedPath, $decompressedContent) === false) {
+                    throw new \RuntimeException('Failed to write temporary XLSX file for processing.');
+                }
             }
 
             // Parse the spreadsheet

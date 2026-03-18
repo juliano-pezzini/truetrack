@@ -59,6 +59,11 @@ class ImportHistoryService
         $ofxTotal = $fetchOfx ? (clone $ofxIdsQuery)->count() : 0;
         $xlsxTotal = $fetchXlsx ? (clone $xlsxIdsQuery)->count() : 0;
         $total = $ofxTotal + $xlsxTotal;
+        $page = max(1, $page);
+        $lastPage = (int) max(1, (int) ceil($total / $perPage));
+        if ($page > $lastPage) {
+            $page = $lastPage;
+        }
         $offset = ($page - 1) * $perPage;
 
         if ($fetchOfx && $fetchXlsx) {
@@ -109,8 +114,6 @@ class ImportHistoryService
             })
             ->filter()
             ->values();
-
-        $lastPage = max(1, (int) ceil($total / $perPage));
 
         return [
             'imports' => $paginatedImports,
