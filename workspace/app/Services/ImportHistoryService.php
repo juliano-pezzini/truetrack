@@ -115,7 +115,7 @@ class ImportHistoryService
             ->filter()
             ->values();
 
-        return [
+         return [
             'imports' => $paginatedImports,
             'meta' => [
                 'current_page' => $page,
