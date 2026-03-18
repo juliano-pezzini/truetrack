@@ -2,30 +2,14 @@ import { Head, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import UnifiedImportUpload from '@/Components/Import/UnifiedImportUpload';
 import ImportHistoryCard from '@/Components/Import/ImportHistoryCard';
-import { useState, useEffect } from 'react';
+import { buildPaginationItems } from './pagination';
+import { useEffect } from 'react';
 
-export default function Index({ auth, accounts, imports }) {
-    const [activeTab, setActiveTab] = useState('all');
+export default function Index({ auth, accounts, imports, filters }) {
+    const { data: importList, meta } = imports;
+    const paginationItems = buildPaginationItems(meta.current_page, meta.last_page);
 
-    const handleUploadSuccess = () => {
-        // Refresh the data while preserving the SPA experience
-        router.reload({ preserveScroll: true });
-    };
-
-    // Filter imports based on active tab
-    const filteredImports = imports.filter((imp) => {
-        if (activeTab === 'all') return true;
-        if (activeTab === 'ofx') return imp.type === 'ofx';
-        if (activeTab === 'xlsx') return imp.type === 'xlsx';
-        return true;
-    });
-
-    // Count imports by type
-    const ofxCount = imports.filter((imp) => imp.type === 'ofx').length;
-    const xlsxCount = imports.filter((imp) => imp.type === 'xlsx').length;
-
-    // Check for active imports
-    const hasActiveImports = imports.some(
+    const hasActiveImports = importList.some(
         (imp) => imp.status === 'processing' || imp.status === 'pending'
     );
 
@@ -39,6 +23,33 @@ export default function Index({ auth, accounts, imports }) {
 
         return () => clearInterval(interval);
     }, [hasActiveImports]);
+
+    const buildParams = (overrides = {}) => {
+        const merged = { ...filters, ...overrides };
+        const params = {};
+        if (merged.type) params['filter[type]'] = merged.type;
+        if (merged.account_id) params['filter[account_id]'] = merged.account_id;
+        if (merged.status) params['filter[status]'] = merged.status;
+        return params;
+    };
+
+    const handleFilterChange = (key, value) => {
+        router.get(route('imports.index'), buildParams({ [key]: value }), {
+            preserveState: true,
+            preserveScroll: true,
+        });
+    };
+
+    const handleUploadSuccess = () => {
+        router.reload({ preserveScroll: true });
+    };
+
+    const goToPage = (page) => {
+        router.get(route('imports.index'), { ...buildParams(), page }, {
+            preserveState: true,
+            preserveScroll: true,
+        });
+    };
 
     return (
         <AuthenticatedLayout
@@ -87,67 +98,132 @@ export default function Index({ auth, accounts, imports }) {
                         </div>
                     )}
 
-                    {/* Import History with Tabs */}
+                    {/* Import History */}
                     <div className="rounded-lg bg-white p-6 shadow-sm">
                         <div className="mb-4 flex items-center justify-between">
                             <h3 className="text-lg font-semibold text-gray-900">
                                 Import History
                             </h3>
+                            {meta.total > 0 && (
+                                <span className="text-sm text-gray-500">
+                                    {meta.from}–{meta.to} of {meta.total}
+                                </span>
+                            )}
                         </div>
 
-                        {/* Tabs */}
-                        <div className="mb-4 border-b border-gray-200">
-                            <nav className="-mb-px flex space-x-8">
-                                <button
-                                    onClick={() => setActiveTab('all')}
-                                    className={`${
-                                        activeTab === 'all'
-                                            ? 'border-indigo-500 text-indigo-600'
-                                            : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                                    } whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium`}
+                        {/* Filters */}
+                        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">
+                                    Type
+                                </label>
+                                <select
+                                    className="block w-full rounded-md border-gray-300 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    value={filters.type}
+                                    onChange={(e) => handleFilterChange('type', e.target.value)}
                                 >
-                                    All Imports ({imports.length})
-                                </button>
-                                <button
-                                    onClick={() => setActiveTab('ofx')}
-                                    className={`${
-                                        activeTab === 'ofx'
-                                            ? 'border-indigo-500 text-indigo-600'
-                                            : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                                    } whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium`}
+                                    <option value="">All Types</option>
+                                    <option value="ofx">OFX / QFX</option>
+                                    <option value="xlsx">XLSX / CSV</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">
+                                    Account
+                                </label>
+                                <select
+                                    className="block w-full rounded-md border-gray-300 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    value={filters.account_id}
+                                    onChange={(e) => handleFilterChange('account_id', e.target.value)}
                                 >
-                                    OFX Imports ({ofxCount})
-                                </button>
-                                <button
-                                    onClick={() => setActiveTab('xlsx')}
-                                    className={`${
-                                        activeTab === 'xlsx'
-                                            ? 'border-indigo-500 text-indigo-600'
-                                            : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                                    } whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium`}
+                                    <option value="">All Accounts</option>
+                                    {accounts.map((acc) => (
+                                        <option key={acc.id} value={acc.id}>
+                                            {acc.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">
+                                    Status
+                                </label>
+                                <select
+                                    className="block w-full rounded-md border-gray-300 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    value={filters.status}
+                                    onChange={(e) => handleFilterChange('status', e.target.value)}
                                 >
-                                    XLSX/CSV Imports ({xlsxCount})
-                                </button>
-                            </nav>
+                                    <option value="">All Statuses</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="processing">Processing</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="failed">Failed</option>
+                                </select>
+                            </div>
                         </div>
 
                         {/* Import List */}
                         <div className="space-y-4">
-                            {filteredImports.length === 0 ? (
+                            {importList.length === 0 ? (
                                 <p className="py-8 text-center text-sm text-gray-500">
                                     No imports found.
                                 </p>
                             ) : (
-                                filteredImports.map((importData) => (
+                                importList.map((importData) => (
                                     <ImportHistoryCard
                                         key={`${importData.type}-${importData.id}`}
                                         importData={importData}
-                                        type={importData.type}
                                         onDelete={handleUploadSuccess}
                                     />
                                 ))
                             )}
                         </div>
+
+                        {/* Pagination */}
+                        {meta.last_page > 1 && (
+                            <div className="mt-6 flex items-center justify-between border-t pt-4">
+                                <button
+                                    onClick={() => goToPage(meta.current_page - 1)}
+                                    disabled={meta.current_page <= 1}
+                                    className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                    Previous
+                                </button>
+
+                                <div className="flex gap-1">
+                                    {paginationItems.map((item) =>
+                                        item.type === 'ellipsis' ? (
+                                            <span
+                                                key={item.key}
+                                                className="min-w-[2rem] px-2 py-1.5 text-center text-sm font-medium text-gray-400"
+                                            >
+                                                ...
+                                            </span>
+                                        ) : (
+                                            <button
+                                                key={item.value}
+                                                onClick={() => goToPage(item.value)}
+                                                className={`min-w-[2rem] rounded-md px-2 py-1.5 text-sm font-medium ${
+                                                    item.value === meta.current_page
+                                                        ? 'bg-indigo-600 text-white'
+                                                        : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                                                }`}
+                                            >
+                                                {item.value}
+                                            </button>
+                                        )
+                                    )}
+                                </div>
+
+                                <button
+                                    onClick={() => goToPage(meta.current_page + 1)}
+                                    disabled={meta.current_page >= meta.last_page}
+                                    className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
