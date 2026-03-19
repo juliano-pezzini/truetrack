@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Resources;
 
+use App\Models\Account;
 use App\Models\OfxImport;
 use App\Models\XlsxImport;
 use Illuminate\Http\Request;
@@ -37,7 +38,19 @@ class ImportResource extends JsonResource
             'id' => $this->resource->id,
             'type' => $this->resource->type, // Uses model accessor
             'filename' => $this->resource->filename,
-            'account' => new AccountResource($this->whenLoaded('account')),
+            'account' => $this->whenLoaded('account', function () {
+                /** @var Account|null $account */
+                $account = $this->resource->account;
+                if ($account === null) {
+                    return;
+                }
+
+                return [
+                    'id' => $account->id,
+                    'name' => $account->name,
+                    'type' => $account->type,
+                ];
+            }),
             'status' => $this->resource->status,
             'progress' => $this->resource->total_count > 0
                 ? round(($this->resource->processed_count / $this->resource->total_count) * 100, 2)

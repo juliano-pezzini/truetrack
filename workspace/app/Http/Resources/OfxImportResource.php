@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Resources;
 
+use App\Models\Account;
 use App\Models\OfxImport;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -38,7 +39,19 @@ class OfxImportResource extends JsonResource
                 ? round(($this->processed_count / $this->total_count) * 100, 2)
                 : 0,
             'error_message' => $this->error_message,
-            'account' => new AccountResource($this->whenLoaded('account')),
+            'account' => $this->whenLoaded('account', function () {
+                /** @var Account|null $account */
+                $account = $this->account;
+                if ($account === null) {
+                    return;
+                }
+
+                return [
+                    'id' => $account->id,
+                    'name' => $account->name,
+                    'type' => $account->type,
+                ];
+            }),
             'reconciliation' => new ReconciliationResource($this->whenLoaded('reconciliation')),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),

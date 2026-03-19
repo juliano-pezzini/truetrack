@@ -6,16 +6,19 @@ import ImportTabs from '@/Components/Import/ImportTabs';
 import { buildPaginationItems } from './pagination';
 import { useEffect, useState } from 'react';
 
-export default function Index({ auth, accounts, imports, filters }) {
+export default function Index({ auth, accounts, imports, filters, activeImportsCount }) {
     const [activeTab, setActiveTab] = useState('import');
     const [hasVisitedHistory, setHasVisitedHistory] = useState(false);
 
     const { data: importList, meta } = imports;
     const paginationItems = buildPaginationItems(meta.current_page, meta.last_page);
 
-    const hasActiveImports = importList.some(
-        (imp) => imp.status === 'processing' || imp.status === 'pending'
-    );
+    const hasActiveImports =
+        typeof activeImportsCount === 'number'
+            ? activeImportsCount > 0
+            : importList.some(
+                  (imp) => imp.status === 'processing' || imp.status === 'pending'
+              );
 
     // Auto-refresh if there are active imports
     useEffect(() => {
