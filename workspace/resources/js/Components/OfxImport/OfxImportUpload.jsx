@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useForm } from '@inertiajs/react';
+import axios from 'axios';
 import InputLabel from '@/Components/InputLabel';
 import InputError from '@/Components/InputError';
 import PrimaryButton from '@/Components/PrimaryButton';
@@ -7,7 +8,11 @@ import SecondaryButton from '@/Components/SecondaryButton';
 
 export default function OfxImportUpload({ accounts, onSuccess }) {
     const [selectedFile, setSelectedFile] = useState(null);
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const [processing, setProcessing] = useState(false);
+    const [errors, setErrors] = useState({});
+    const [submitError, setSubmitError] = useState(null);
+
+    const { data, setData, reset } = useForm({
         file: null,
         account_id: '',
         force_reimport: false,
@@ -19,22 +24,47 @@ export default function OfxImportUpload({ accounts, onSuccess }) {
         setData('file', file);
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
-        post(route('api.ofx-imports.store'), {
-            forceFormData: true,
-            onSuccess: () => {
-                reset();
-                setSelectedFile(null);
-                if (onSuccess) onSuccess();
-            },
-        });
+        setSubmitError(null);
+        setErrors({});
+        setProcessing(true);
+
+        const formData = new FormData();
+        formData.append('file', data.file);
+        formData.append('account_id', data.account_id);
+        formData.append('force_reimport', data.force_reimport ? '1' : '0');
+
+        try {
+            await axios.post(route('api.ofx-imports.store'), formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+
+            reset();
+            setSelectedFile(null);
+            if (onSuccess) onSuccess();
+        } catch (error) {
+            if (error.response?.status === 422 && error.response?.data?.errors) {
+                setErrors(error.response.data.errors);
+                setSubmitError('Validation failed. Please review your inputs.');
+            } else {
+                setSubmitError('OFX import failed. Please try again.');
+            }
+
+            console.error('OFX import failed:', error);
+        } finally {
+            setProcessing(false);
+        }
     };
 
     const handleCancel = () => {
         reset();
         setSelectedFile(null);
+        setErrors({});
+        setSubmitError(null);
     };
 
     return (
@@ -54,6 +84,12 @@ export default function OfxImportUpload({ accounts, onSuccess }) {
             </h3>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+                {submitError && (
+                    <div className="rounded-md border border-red-200 bg-red-50 p-4">
+                        <p className="text-sm text-red-700">{submitError}</p>
+                    </div>
+                )}
+
                 <div>
                     <InputLabel htmlFor="account_id" value="Account" />
                     <select
@@ -70,7 +106,7 @@ export default function OfxImportUpload({ accounts, onSuccess }) {
                             </option>
                         ))}
                     </select>
-                    <InputError message={errors.account_id} className="mt-2" />
+                    <InputError message={errors.account_id?.[0] ?? errors.account_id} className="mt-2" />
                 </div>
 
                 <div>
@@ -89,7 +125,7 @@ export default function OfxImportUpload({ accounts, onSuccess }) {
                             {(selectedFile.size / 1024).toFixed(2)} KB)
                         </p>
                     )}
-                    <InputError message={errors.file} className="mt-2" />
+                    <InputError message={errors.file?.[0] ?? errors.file} className="mt-2" />
                 </div>
 
                 <div className="flex items-center">
@@ -120,7 +156,7 @@ export default function OfxImportUpload({ accounts, onSuccess }) {
                             Cancel
                         </SecondaryButton>
                     )}
-                    <PrimaryButton disabled={processing || !data.file || !data.account_id}>
+                    <PrimaryButton type="submit" disabled={processing || !data.file || !data.account_id}>
                         {processing ? 'Uploading...' : 'Upload & Process'}
                     </PrimaryButton>
                 </div>
