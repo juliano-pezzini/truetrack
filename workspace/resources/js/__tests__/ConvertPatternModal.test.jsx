@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ConvertPatternModal from '../../../resources/js/Pages/LearnedPatterns/ConvertPatternModal';
 
@@ -86,7 +86,6 @@ describe('ConvertPatternModal Component', () => {
     });
 
     it('validates priority field required', async () => {
-        const user = userEvent.setup();
         render(
             <ConvertPatternModal
                 show={true}
@@ -97,7 +96,7 @@ describe('ConvertPatternModal Component', () => {
         );
 
         const convertButton = screen.getByRole('button', { name: /convert to rule/i });
-        await user.click(convertButton);
+        fireEvent.click(convertButton);
 
         expect(screen.getByText(/priority is required/i)).toBeInTheDocument();
     });
@@ -118,7 +117,6 @@ describe('ConvertPatternModal Component', () => {
     });
 
     it('submits form with valid priority', async () => {
-        const user = userEvent.setup();
         global.fetch = jest.fn(() =>
             Promise.resolve({
                 ok: true,
@@ -136,18 +134,21 @@ describe('ConvertPatternModal Component', () => {
         );
 
         const priorityInput = screen.getByPlaceholderText(/lower = higher priority/i);
-        await user.type(priorityInput, '10');
+        fireEvent.change(priorityInput, { target: { value: '10' } });
 
         const convertButton = screen.getByRole('button', { name: /convert to rule/i });
-        await user.click(convertButton);
+        fireEvent.click(convertButton);
 
         await waitFor(() => {
             expect(mockOnSuccess).toHaveBeenCalled();
         });
+
+        await waitFor(() => {
+            expect(convertButton).not.toBeDisabled();
+        });
     });
 
     it('closes modal on close button click', async () => {
-        const user = userEvent.setup();
         render(
             <ConvertPatternModal
                 show={true}
@@ -158,25 +159,19 @@ describe('ConvertPatternModal Component', () => {
         );
 
         const closeButton = screen.getByRole('button', { name: /cancel/i });
-        await user.click(closeButton);
+        fireEvent.click(closeButton);
 
         expect(mockOnClose).toHaveBeenCalled();
     });
 
     it('shows loading state during submission', async () => {
-        const user = userEvent.setup();
+        let resolveFetch;
+
         global.fetch = jest.fn(
             () =>
-                new Promise(resolve =>
-                    setTimeout(
-                        () =>
-                            resolve({
-                                ok: true,
-                                json: () => Promise.resolve({ data: { id: 1 } }),
-                            }),
-                        100
-                    )
-                )
+                new Promise((resolve) => {
+                    resolveFetch = resolve;
+                }),
         );
 
         render(
@@ -189,12 +184,21 @@ describe('ConvertPatternModal Component', () => {
         );
 
         const priorityInput = screen.getByPlaceholderText(/lower = higher priority/i);
-        await user.type(priorityInput, '10');
+        fireEvent.change(priorityInput, { target: { value: '10' } });
 
         const convertButton = screen.getByRole('button', { name: /convert to rule/i });
-        await user.click(convertButton);
+        fireEvent.click(convertButton);
 
         expect(convertButton).toBeDisabled();
+
+        resolveFetch({
+            ok: true,
+            json: () => Promise.resolve({ data: { id: 1 } }),
+        });
+
+        await waitFor(() => {
+            expect(mockOnSuccess).toHaveBeenCalled();
+        });
     });
 
     it('displays category with correct color indicator', () => {

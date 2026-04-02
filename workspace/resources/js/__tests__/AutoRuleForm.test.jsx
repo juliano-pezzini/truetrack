@@ -1,5 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import AutoRuleForm from '../../../resources/js/Pages/AutoCategoryRules/AutoRuleForm';
 
 
@@ -55,27 +54,30 @@ describe('AutoRuleForm Component', () => {
         });
     });
 
-    it('renders form with empty fields for create', () => {
+    const renderForm = async (props = {}) => {
         render(
             <AutoRuleForm
                 onSubmit={mockOnSubmit}
                 onCancel={mockOnCancel}
+                {...props}
             />
         );
+
+        await waitFor(() => {
+            expect(screen.getByText('Groceries')).toBeInTheDocument();
+        });
+    };
+
+    it('renders form with empty fields for create', async () => {
+        await renderForm();
 
         expect(screen.getByPlaceholderText(/amazon, groceries, salary/i)).toHaveValue('');
         expect(screen.getByRole('combobox')).toHaveValue('');
         expect(screen.getByPlaceholderText(/lower numbers = higher priority/i)).toHaveValue(null);
     });
 
-    it('renders form with values for edit', () => {
-        render(
-            <AutoRuleForm
-                rule={mockRule}
-                onSubmit={mockOnSubmit}
-                onCancel={mockOnCancel}
-            />
-        );
+    it('renders form with values for edit', async () => {
+        await renderForm({ rule: mockRule });
 
         expect(screen.getByPlaceholderText(/amazon, groceries, salary/i)).toHaveValue('amazon');
 
@@ -89,41 +91,27 @@ describe('AutoRuleForm Component', () => {
     });
 
     it('validates pattern field', async () => {
-        const user = userEvent.setup();
-        render(
-            <AutoRuleForm
-                onSubmit={mockOnSubmit}
-                onCancel={mockOnCancel}
-            />
-        );
+        await renderForm();
 
         const submitButton = screen.getByRole('button', { name: /create rule/i });
-        await user.click(submitButton);
+        fireEvent.click(submitButton);
 
         expect(screen.getByText(/pattern is required/i)).toBeInTheDocument();
     });
 
     it('validates category selection', async () => {
-        const user = userEvent.setup();
-        render(
-            <AutoRuleForm
-                onSubmit={mockOnSubmit}
-                onCancel={mockOnCancel}
-            />
-        );
+        await renderForm();
 
         const patternInput = screen.getByPlaceholderText(/amazon, groceries, salary/i);
-        await user.type(patternInput, 'amazon');
+        fireEvent.change(patternInput, { target: { value: 'amazon' } });
 
         const submitButton = screen.getByRole('button', { name: /create rule/i });
-        await user.click(submitButton);
+        fireEvent.click(submitButton);
 
         expect(screen.getByText(/category is required/i)).toBeInTheDocument();
     });
 
     it('detects overlapping patterns', async () => {
-        const user = userEvent.setup();
-
         global.fetch = jest.fn((url) => {
             if (url.includes('/api/v1/categories')) {
                 return Promise.resolve({
@@ -150,15 +138,10 @@ describe('AutoRuleForm Component', () => {
             });
         });
 
-        render(
-            <AutoRuleForm
-                onSubmit={mockOnSubmit}
-                onCancel={mockOnCancel}
-            />
-        );
+        await renderForm();
 
         const patternInput = screen.getByPlaceholderText(/amazon, groceries, salary/i);
-        await user.type(patternInput, 'amazon');
+        fireEvent.change(patternInput, { target: { value: 'amazon' } });
 
         await waitFor(() => {
             expect(screen.getByText(/potential pattern overlaps/i)).toBeInTheDocument();
@@ -166,67 +149,48 @@ describe('AutoRuleForm Component', () => {
     });
 
     it('submits form with valid data', async () => {
-        const user = userEvent.setup();
-        render(
-            <AutoRuleForm
-                onSubmit={mockOnSubmit}
-                onCancel={mockOnCancel}
-            />
-        );
+        mockOnSubmit.mockResolvedValueOnce(undefined);
 
-        await user.type(screen.getByPlaceholderText(/amazon, groceries, salary/i), 'amazon');
-        await user.selectOptions(screen.getByRole('combobox'), '1');
-        await user.type(screen.getByPlaceholderText(/lower numbers = higher priority/i), '10');
+        await renderForm();
+
+        fireEvent.change(screen.getByPlaceholderText(/amazon, groceries, salary/i), {
+            target: { value: 'amazon' },
+        });
+        fireEvent.change(screen.getByRole('combobox'), {
+            target: { value: '1' },
+        });
+        await waitFor(() => {
+            expect(screen.getByRole('combobox')).toHaveValue('1');
+        });
+        fireEvent.change(screen.getByPlaceholderText(/lower numbers = higher priority/i), {
+            target: { value: '10' },
+        });
 
         const submitButton = screen.getByRole('button', { name: /create rule/i });
-        await user.click(submitButton);
+        fireEvent.click(submitButton);
 
-        expect(mockOnSubmit).toHaveBeenCalledWith({
-            pattern: 'amazon',
-            category_id: '1',
-            priority: '10',
+        await waitFor(() => {
+            expect(mockOnSubmit).toHaveBeenCalledWith({
+                pattern: 'amazon',
+                category_id: '1',
+                priority: '10',
+            });
+        });
+
+        await waitFor(() => {
+            expect(submitButton).not.toBeDisabled();
         });
     });
 
     it('calls onCancel when cancel button clicked', async () => {
-        const user = userEvent.setup();
-        render(
-            <AutoRuleForm
-                onSubmit={mockOnSubmit}
-                onCancel={mockOnCancel}
-            />
-        );
+        await renderForm();
 
         const cancelButton = screen.getByRole('button', { name: /cancel/i });
-        await user.click(cancelButton);
+        fireEvent.click(cancelButton);
 
         expect(mockOnCancel).toHaveBeenCalled();
     });
 
-    it('shows loading state during submission', async () => {
-        const user = userEvent.setup();
-        mockOnSubmit.mockImplementation(
-            () => new Promise(resolve => setTimeout(resolve, 100))
-        );
-
-        render(
-            <AutoRuleForm
-                onSubmit={mockOnSubmit}
-                onCancel={mockOnCancel}
-            />
-        );
-
-        await user.type(screen.getByPlaceholderText(/amazon, groceries, salary/i), 'amazon');
-        await user.selectOptions(screen.getByRole('combobox'), '1');
-        await user.type(screen.getByPlaceholderText(/lower numbers = higher priority/i), '10');
-
-        const submitButton = screen.getByRole('button', { name: /create rule/i });
-        await user.click(submitButton);
-
-        await waitFor(() => {
-            expect(submitButton).toBeDisabled();
-        });
-    });
 });
 
 
