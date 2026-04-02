@@ -10,6 +10,13 @@ export default function Index({ auth, accounts, imports, filters, activeImportsC
     const [activeTab, setActiveTab] = useState('import');
     const [hasVisitedHistory, setHasVisitedHistory] = useState(false);
 
+    const handleTabChange = (tab) => {
+        if (tab === 'history') {
+            setHasVisitedHistory(true);
+        }
+        setActiveTab(tab);
+    };
+
     const { data: importList, meta } = imports;
     const paginationItems = buildPaginationItems(meta.current_page, meta.last_page);
 
@@ -25,17 +32,11 @@ export default function Index({ auth, accounts, imports, filters, activeImportsC
         if (!hasActiveImports) return;
 
         const interval = setInterval(() => {
-            router.reload({ preserveScroll: true, only: ['imports'] });
+            router.reload({ preserveScroll: true, preserveState: true, only: ['imports'] });
         }, 5000); // Refresh every 5 seconds
 
         return () => clearInterval(interval);
     }, [hasActiveImports]);
-
-    useEffect(() => {
-        if (activeTab === 'history') {
-            setHasVisitedHistory(true);
-        }
-    }, [activeTab]);
 
     const buildParams = (overrides = {}) => {
         const merged = { ...filters, ...overrides };
@@ -107,7 +108,7 @@ export default function Index({ auth, accounts, imports, filters, activeImportsC
 
                     <ImportTabs
                         activeTab={activeTab}
-                        onTabChange={setActiveTab}
+                        onTabChange={handleTabChange}
                     />
 
                     {activeTab === 'import' && (
