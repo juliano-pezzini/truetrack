@@ -15,3 +15,111 @@
 		@apply bg-gray-100 text-gray-900 antialiased dark:bg-gray-900 dark:text-gray-100;
 	}
 }
+
+@layer base {
+	html.dark .bg-white {
+		@apply bg-gray-800;
+	}
+
+	html.dark .bg-gray-50 {
+		@apply bg-gray-800;
+	}
+
+	html.dark .bg-gray-100,
+	html.dark .bg-gray-200 {
+		@apply bg-gray-700;
+	}
+
+	html.dark .bg-blue-50,
+	html.dark .bg-purple-50,
+	html.dark .bg-green-50,
+	html.dark .bg-red-50,
+	html.dark .bg-orange-50 {
+		@apply bg-gray-800;
+	}
+
+	html.dark .text-gray-900,
+	html.dark .text-gray-800 {
+		@apply text-gray-100;
+	}
+
+	html.dark .text-gray-700 {
+		@apply text-gray-200;
+	}
+
+	html.dark .text-gray-600,
+	html.dark .text-gray-500 {
+		@apply text-gray-400;
+	}
+
+	html.dark .text-blue-900,
+	html.dark .text-purple-900,
+	html.dark .text-green-900,
+	html.dark .text-red-900,
+	html.dark .text-orange-900 {
+		@apply text-gray-100;
+	}
+
+	html.dark .text-blue-800,
+	html.dark .text-purple-800,
+	html.dark .text-green-800,
+	html.dark .text-red-800,
+	html.dark .text-orange-800 {
+		@apply text-gray-200;
+	}
+
+	html.dark .text-blue-700,
+	html.dark .text-purple-700,
+	html.dark .text-green-700,
+	html.dark .text-red-700,
+	html.dark .text-orange-700,
+	html.dark .text-blue-600,
+	html.dark .text-purple-600,
+	html.dark .text-green-600,
+	html.dark .text-red-600,
+	html.dark .text-orange-600 {
+		@apply text-gray-300;
+	}
+
+	html.dark .border-gray-300,
+	html.dark .border-gray-200,
+	html.dark .border-gray-100 {
+		@apply border-gray-700;
+	}
+
+	html.dark .border-blue-200,
+	html.dark .border-purple-200,
+	html.dark .border-green-200,
+	html.dark .border-red-200,
+	html.dark .border-orange-200 {
+		@apply border-gray-700;
+	}
+
+	html.dark .divide-gray-200 {
+		@apply divide-gray-700;
+	}
+
+	html.dark .hover\:bg-gray-50:hover,
+	html.dark .focus\:bg-gray-50:focus {
+		@apply bg-gray-700;
+	}
+
+	html.dark .hover\:bg-gray-300:hover {
+		@apply bg-gray-600;
+	}
+
+	html.dark .bg-indigo-50 {
+		@apply bg-indigo-900/40;
+	}
+
+	html.dark .hover\:text-gray-700:hover,
+	html.dark .hover\:text-gray-900:hover {
+		@apply text-gray-100;
+	}
+
+	html.dark input:not([type='checkbox']):not([type='radio']),
+	html.dark select,
+	html.dark textarea {
+		@apply border-gray-600 bg-gray-800 text-gray-100;
+	}
+}

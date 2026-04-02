@@ -1,6 +1,10 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import { useTheme } from '@/Components/ThemeProvider';
 
 export default function SpendingByCategoryChart({ data }) {
+    const { effectiveTheme } = useTheme();
+    const isDark = effectiveTheme === 'dark';
+
     const formatCurrency = (value) => {
         const numValue = parseFloat(value) || 0;
         return new Intl.NumberFormat('en-US', {
@@ -39,26 +43,46 @@ export default function SpendingByCategoryChart({ data }) {
         percentage: parseFloat(item.percentage),
     }));
 
+    const axisTickColor = isDark ? '#94a3b8' : '#6b7280';
+    const gridColor = isDark ? '#334155' : '#d1d5db';
+    const legendColor = isDark ? '#cbd5e1' : '#374151';
+    const tooltipStyle = {
+        backgroundColor: isDark ? '#111827' : '#ffffff',
+        borderColor: isDark ? '#475569' : '#d1d5db',
+        color: isDark ? '#f3f4f6' : '#111827',
+        borderRadius: '0.5rem',
+        fontSize: 14,
+    };
+    const tooltipLabelStyle = {
+        color: isDark ? '#e5e7eb' : '#111827',
+    };
+    const tooltipItemStyle = {
+        color: isDark ? '#93c5fd' : '#2563eb',
+    };
+
     return (
         <div>
             <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
+                    <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                     <XAxis
                         dataKey="category"
-                        tick={{ fontSize: 12 }}
+                        tick={{ fontSize: 12, fill: axisTickColor }}
                         angle={-45}
                         textAnchor="end"
                         height={80}
                     />
                     <YAxis
                         tickFormatter={formatCurrency}
-                        tick={{ fontSize: 12 }}
+                        tick={{ fontSize: 12, fill: axisTickColor }}
                     />
                     <Tooltip
                         formatter={(value) => formatCurrency(value)}
-                        contentStyle={{ fontSize: 14 }}
+                        contentStyle={tooltipStyle}
+                        labelStyle={tooltipLabelStyle}
+                        itemStyle={tooltipItemStyle}
                     />
+                    <Legend wrapperStyle={{ color: legendColor }} />
                     <Bar dataKey="amount" name="Spending">
                         {chartData.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={getColor(index)} />
