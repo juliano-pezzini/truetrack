@@ -1,5 +1,6 @@
 import '../css/app.css';
 import './bootstrap';
+import ThemeProvider from '@/Components/ThemeProvider';
 
 import { createInertiaApp } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
@@ -19,8 +20,14 @@ createInertiaApp({
         ),
     setup({ el, App, props }) {
         const root = createRoot(el);
+        const initialPreference =
+            props.initialPage.props.auth?.user?.theme_preference ?? 'system';
 
-        root.render(<App {...props} />);
+        root.render(
+            <ThemeProvider initialPreference={initialPreference}>
+                <App {...props} />
+            </ThemeProvider>,
+        );
     },
     progress: {
         color: '#4F46E5',

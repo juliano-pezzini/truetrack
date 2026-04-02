@@ -20,6 +20,40 @@
             if (typeof Ziggy !== 'undefined' && window.location) {
                 Ziggy.url = window.location.origin;
             }
+
+            (function () {
+                const storageKey = 'truetrack:theme_preference';
+                const allowedPreferences = ['light', 'dark', 'system'];
+                const userPreference = @json($page['props']['auth']['user']['theme_preference'] ?? 'system');
+
+                const resolvePreference = (value) =>
+                    allowedPreferences.includes(value) ? value : 'system';
+
+                const prefersDark =
+                    typeof window.matchMedia === 'function' &&
+                    window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+                let preference = resolvePreference(userPreference);
+
+                try {
+                    const localPreference = window.localStorage.getItem(storageKey);
+
+                    if (localPreference) {
+                        preference = resolvePreference(localPreference);
+                    }
+                } catch (e) {
+                    // Ignore blocked storage.
+                }
+
+                const effectiveTheme =
+                    preference === 'system'
+                        ? (prefersDark ? 'dark' : 'light')
+                        : preference;
+
+                document.documentElement.classList.toggle('dark', effectiveTheme === 'dark');
+                document.documentElement.dataset.themePreference = preference;
+                document.documentElement.dataset.themeEffective = effectiveTheme;
+            })();
         </script>
         @viteReactRefresh
         @vite(['resources/js/app.jsx', "resources/js/Pages/{$page['component']}.jsx"])

@@ -63,6 +63,57 @@ class ProfileTest extends TestCase
         $this->assertNotNull($user->refresh()->email_verified_at);
     }
 
+    public function test_theme_preference_can_be_updated(): void
+    {
+        $user = User::factory()->create([
+            'theme_preference' => 'system',
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->from('/profile')
+            ->patch('/profile', [
+                'name' => $user->name,
+                'email' => $user->email,
+                'theme_preference' => 'dark',
+            ]);
+
+        $response
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/profile');
+
+        $this->assertSame('dark', $user->refresh()->theme_preference);
+    }
+
+    public function test_theme_preference_must_be_a_valid_option(): void
+    {
+        $user = User::factory()->create([
+            'theme_preference' => 'system',
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->from('/profile')
+            ->patch('/profile', [
+                'name' => $user->name,
+                'email' => $user->email,
+                'theme_preference' => 'neon',
+            ]);
+
+        $response
+            ->assertSessionHasErrors('theme_preference')
+            ->assertRedirect('/profile');
+
+        $this->assertSame('system', $user->fresh()->theme_preference);
+    }
+
+    public function test_theme_preference_defaults_to_system(): void
+    {
+        $user = User::factory()->create();
+
+        $this->assertSame('system', $user->theme_preference);
+    }
+
     public function test_user_can_delete_their_account(): void
     {
         $user = User::factory()->create();
