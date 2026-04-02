@@ -4,8 +4,9 @@ import UnifiedImportUpload from '@/Components/Import/UnifiedImportUpload';
 import ImportHistoryCard from '@/Components/Import/ImportHistoryCard';
 import { useState, useEffect } from 'react';
 
-export default function Index({ auth, accounts, imports }) {
+export default function Index({ auth, accounts = [], imports = [] }) {
     const [activeTab, setActiveTab] = useState('all');
+    const importsList = Array.isArray(imports) ? imports : [];
 
     const handleUploadSuccess = () => {
         // Refresh the data while preserving the SPA experience
@@ -13,7 +14,7 @@ export default function Index({ auth, accounts, imports }) {
     };
 
     // Filter imports based on active tab
-    const filteredImports = imports.filter((imp) => {
+    const filteredImports = importsList.filter((imp) => {
         if (activeTab === 'all') return true;
         if (activeTab === 'ofx') return imp.type === 'ofx';
         if (activeTab === 'xlsx') return imp.type === 'xlsx';
@@ -21,11 +22,11 @@ export default function Index({ auth, accounts, imports }) {
     });
 
     // Count imports by type
-    const ofxCount = imports.filter((imp) => imp.type === 'ofx').length;
-    const xlsxCount = imports.filter((imp) => imp.type === 'xlsx').length;
+    const ofxCount = importsList.filter((imp) => imp.type === 'ofx').length;
+    const xlsxCount = importsList.filter((imp) => imp.type === 'xlsx').length;
 
     // Check for active imports
-    const hasActiveImports = imports.some(
+    const hasActiveImports = importsList.some(
         (imp) => imp.status === 'processing' || imp.status === 'pending'
     );
 
@@ -106,7 +107,7 @@ export default function Index({ auth, accounts, imports }) {
                                             : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                                     } whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium`}
                                 >
-                                    All Imports ({imports.length})
+                                    All Imports ({importsList.length})
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('ofx')}
