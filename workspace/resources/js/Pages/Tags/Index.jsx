@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { useState } from 'react';
+import normalizeInertiaUrl from '@/Utils/normalizeInertiaUrl';
 
 export default function Index({ auth, tags, filters }) {
     const [filterName, setFilterName] = useState(filters?.filter?.name || '');
@@ -159,17 +160,17 @@ export default function Index({ auth, tags, filters }) {
                             <div className="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
                                 <div className="flex items-center justify-between">
                                     <div className="flex-1 flex justify-between sm:hidden">
-                                        {tags.links[0].url && (
+                                        {normalizeInertiaUrl(tags.links[0].url) && (
                                             <Link
-                                                href={tags.links[0].url}
+                                                href={normalizeInertiaUrl(tags.links[0].url)}
                                                 className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                                             >
                                                 Previous
                                             </Link>
                                         )}
-                                        {tags.links[tags.links.length - 1].url && (
+                                        {normalizeInertiaUrl(tags.links[tags.links.length - 1].url) && (
                                             <Link
-                                                href={tags.links[tags.links.length - 1].url}
+                                                href={normalizeInertiaUrl(tags.links[tags.links.length - 1].url)}
                                                 className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                                             >
                                                 Next
@@ -192,14 +193,14 @@ export default function Index({ auth, tags, filters }) {
                                                 {tags.links.map((link, index) => (
                                                     <Link
                                                         key={index}
-                                                        href={link.url || '#'}
+                                                        href={normalizeInertiaUrl(link.url) || '#'}
                                                         preserveState
                                                         preserveScroll
                                                         className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                                                             link.active
                                                                 ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
                                                                 : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                                                        } ${!link.url ? 'cursor-not-allowed opacity-50' : ''}`}
+                                                        } ${!normalizeInertiaUrl(link.url) ? 'cursor-not-allowed opacity-50' : ''}`}
                                                         dangerouslySetInnerHTML={{ __html: link.label }}
                                                     />
                                                 ))}

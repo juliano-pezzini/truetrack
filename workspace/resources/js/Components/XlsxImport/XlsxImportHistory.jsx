@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { router } from '@inertiajs/react';
 import SecondaryButton from '@/Components/SecondaryButton';
+import normalizeInertiaUrl from '@/Utils/normalizeInertiaUrl';
 
 export default function XlsxImportHistory({ imports, accounts }) {
     const [filters, setFilters] = useState({
@@ -238,12 +239,12 @@ export default function XlsxImportHistory({ imports, accounts }) {
                             </div>
                             <div className="flex space-x-2">
                                 {imports.links.prev && (
-                                    <SecondaryButton onClick={() => router.visit(imports.links.prev)}>
+                                    <SecondaryButton onClick={() => router.visit(normalizeInertiaUrl(imports.links.prev))}>
                                         Previous
                                     </SecondaryButton>
                                 )}
                                 {imports.links.next && (
-                                    <SecondaryButton onClick={() => router.visit(imports.links.next)}>
+                                    <SecondaryButton onClick={() => router.visit(normalizeInertiaUrl(imports.links.next))}>
                                         Next
                                     </SecondaryButton>
                                 )}

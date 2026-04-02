@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { useState } from 'react';
+import normalizeInertiaUrl from '@/Utils/normalizeInertiaUrl';
 
 export default function Index({ auth, transactions, accounts, categories, tags, filters }) {
     const [filterAccount, setFilterAccount] = useState(filters?.filter?.account_id || '');
@@ -367,10 +368,10 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
                                 <div className="mt-6 flex justify-center">
                                     <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
                                         {transactions.links.map((link, index) =>
-                                            link.url ? (
+                                            normalizeInertiaUrl(link.url) ? (
                                                 <Link
                                                     key={index}
-                                                    href={link.url}
+                                                    href={normalizeInertiaUrl(link.url)}
                                                     className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                                                         link.active
                                                             ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'

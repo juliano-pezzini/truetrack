@@ -7,6 +7,7 @@ import AutoRuleTable from '@/Pages/AutoCategoryRules/AutoRuleTable';
 import TestCoverageModal from '@/Pages/AutoCategoryRules/TestCoverageModal';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
+import normalizeInertiaUrl from '@/Utils/normalizeInertiaUrl';
 
 export default function Index({ auth, categories, filters, categoryTypes }) {
     const [filterType, setFilterType] = useState(filters?.type || '');
@@ -449,11 +450,11 @@ export default function Index({ auth, categories, filters, categoryTypes }) {
                                         {categories.links.map((link, index) => (
                                             <Link
                                                 key={index}
-                                                href={link.url || '#'}
+                                                href={normalizeInertiaUrl(link.url) || '#'}
                                                 className={`px-3 py-2 rounded-md text-sm ${
                                                     link.active
                                                         ? 'bg-indigo-600 text-white'
-                                                        : link.url
+                                                        : normalizeInertiaUrl(link.url)
                                                         ? 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
                                                         : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                                 }`}

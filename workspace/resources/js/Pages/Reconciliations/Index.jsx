@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { useState } from 'react';
+import normalizeInertiaUrl from '@/Utils/normalizeInertiaUrl';
 
 export default function Index({ auth, reconciliations, accounts, filters }) {
     const [filterAccountId, setFilterAccountId] = useState(filters?.filter?.account_id || '');
@@ -253,11 +254,11 @@ export default function Index({ auth, reconciliations, accounts, filters }) {
                                     {reconciliations.links.map((link, index) => (
                                         <Link
                                             key={index}
-                                            href={link.url || '#'}
+                                            href={normalizeInertiaUrl(link.url) || '#'}
                                             className={`px-3 py-2 rounded-md ${
                                                 link.active
                                                     ? 'bg-indigo-600 text-white'
-                                                    : link.url
+                                                    : normalizeInertiaUrl(link.url)
                                                     ? 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
                                                     : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                             }`}
