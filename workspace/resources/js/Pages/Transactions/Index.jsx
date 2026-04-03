@@ -367,11 +367,13 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
                             {transactions?.links && transactions.links.length > 3 && (
                                 <div className="mt-6 flex justify-center">
                                     <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                                        {transactions.links.map((link, index) =>
-                                            normalizeInertiaUrl(link.url) ? (
+                                        {transactions.links.map((link, index) => {
+                                            const href = normalizeInertiaUrl(link.url);
+
+                                            return href ? (
                                                 <Link
                                                     key={index}
-                                                    href={normalizeInertiaUrl(link.url)}
+                                                    href={href}
                                                     className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                                                         link.active
                                                             ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600 dark:bg-indigo-900/30 dark:border-indigo-400 dark:text-indigo-300'
@@ -385,8 +387,8 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
                                                     className="relative inline-flex items-center px-4 py-2 border text-sm font-medium bg-white border-gray-300 text-gray-500 cursor-not-allowed opacity-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400"
                                                     dangerouslySetInnerHTML={{ __html: link.label }}
                                                 />
-                                            ),
-                                        )}
+                                            );
+                                        })}
                                     </nav>
                                 </div>
                             )}

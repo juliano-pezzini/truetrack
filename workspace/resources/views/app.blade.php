@@ -22,8 +22,13 @@
             }
 
             (function () {
-                const storageKey = 'truetrack:theme_preference';
-                const allowedPreferences = ['light', 'dark', 'system'];
+                const themeConfig = window.__TRUETRACK_THEME_CONFIG ?? {
+                    storageKey: 'truetrack:theme_preference',
+                    allowedPreferences: ['light', 'dark', 'system'],
+                };
+                window.__TRUETRACK_THEME_CONFIG = themeConfig;
+
+                const { storageKey, allowedPreferences } = themeConfig;
                 const userPreference = @json(data_get($page, 'props.auth.user.theme_preference', 'system'));
 
                 const resolvePreference = (value) =>

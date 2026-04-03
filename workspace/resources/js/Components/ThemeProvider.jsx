@@ -12,8 +12,28 @@ const ThemeContext = createContext(null);
 export const THEME_STORAGE_KEY = 'truetrack:theme_preference';
 const ALLOWED_PREFERENCES = ['light', 'dark', 'system'];
 
+function getThemeConfig() {
+    if (typeof window === 'undefined') {
+        return {
+            storageKey: THEME_STORAGE_KEY,
+            allowedPreferences: ALLOWED_PREFERENCES,
+        };
+    }
+
+    const config = window.__TRUETRACK_THEME_CONFIG;
+
+    return {
+        storageKey: config?.storageKey ?? THEME_STORAGE_KEY,
+        allowedPreferences: Array.isArray(config?.allowedPreferences)
+            ? config.allowedPreferences
+            : ALLOWED_PREFERENCES,
+    };
+}
+
 function sanitizeThemePreference(preference) {
-    if (ALLOWED_PREFERENCES.includes(preference)) {
+    const { allowedPreferences } = getThemeConfig();
+
+    if (allowedPreferences.includes(preference)) {
         return preference;
     }
 
@@ -46,6 +66,8 @@ function applyTheme(preference) {
 }
 
 export default function ThemeProvider({ initialPreference = 'system', children }) {
+    const { storageKey } = getThemeConfig();
+
     const [themePreference, setThemePreference] = useState(() => {
         const fallbackPreference = sanitizeThemePreference(initialPreference);
 
@@ -54,7 +76,7 @@ export default function ThemeProvider({ initialPreference = 'system', children }
         }
 
         try {
-            const storedPreference = window.localStorage.getItem(THEME_STORAGE_KEY);
+            const storedPreference = window.localStorage.getItem(storageKey);
 
             if (storedPreference) {
                 return sanitizeThemePreference(storedPreference);
@@ -79,11 +101,11 @@ export default function ThemeProvider({ initialPreference = 'system', children }
         setEffectiveTheme(effective);
 
         try {
-            window.localStorage.setItem(THEME_STORAGE_KEY, themePreference);
+            window.localStorage.setItem(storageKey, themePreference);
         } catch {
             // Ignore blocked storage to avoid breaking render.
         }
-    }, [themePreference]);
+    }, [storageKey, themePreference]);
 
     useEffect(() => {
         if (typeof window === 'undefined' || !window.matchMedia) {

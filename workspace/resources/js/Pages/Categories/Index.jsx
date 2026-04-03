@@ -390,20 +390,24 @@ export default function Index({ auth, categories, filters, categoryTypes }) {
                                         <span className="font-medium">{categories.total}</span> results
                                     </div>
                                     <div className="flex gap-2">
-                                        {categories.links.map((link, index) => (
-                                            <Link
-                                                key={index}
-                                                href={normalizeInertiaUrl(link.url) || '#'}
-                                                className={`px-3 py-2 rounded-md text-sm ${
-                                                    link.active
-                                                        ? 'bg-indigo-600 text-white'
-                                                        : normalizeInertiaUrl(link.url)
-                                                        ? 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:border-gray-600'
-                                                        : 'bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500'
-                                                }`}
-                                                dangerouslySetInnerHTML={{ __html: link.label }}
-                                            />
-                                        ))}
+                                        {categories.links.map((link, index) => {
+                                            const href = normalizeInertiaUrl(link.url);
+
+                                            return (
+                                                <Link
+                                                    key={index}
+                                                    href={href || '#'}
+                                                    className={`px-3 py-2 rounded-md text-sm ${
+                                                        link.active
+                                                            ? 'bg-indigo-600 text-white'
+                                                            : href
+                                                            ? 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:border-gray-600'
+                                                            : 'bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500'
+                                                    }`}
+                                                    dangerouslySetInnerHTML={{ __html: link.label }}
+                                                />
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             )}
