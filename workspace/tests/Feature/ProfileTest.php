@@ -114,7 +114,7 @@ class ProfileTest extends TestCase
 
         $user = User::query()->create($attributes);
 
-        $this->assertSame('system', $user->theme_preference);
+        $this->assertSame('system', $user->fresh()->theme_preference);
     }
 
     public function test_user_can_delete_their_account(): void
