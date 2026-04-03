@@ -21,7 +21,9 @@ export default function XlsxPreviewTable({ previewData, validationSummary, onCon
     };
 
     const getTypeColor = (type) => {
-        return type === 'credit' ? 'text-green-600' : 'text-red-600';
+        return type === 'credit'
+            ? 'text-green-600 dark:text-green-300'
+            : 'text-red-600 dark:text-red-300';
     };
 
     const previewRowCount = Array.isArray(previewData) ? previewData.length : 0;
@@ -105,7 +107,7 @@ export default function XlsxPreviewTable({ previewData, validationSummary, onCon
                                         )}
                                     </div>
                                 </td>
-                                <td className={`px-4 py-3 text-sm font-medium ${getTypeColor(transaction.type)} dark:text-green-300 dark:!text-red-300`}>
+                                <td className={`px-4 py-3 text-sm font-medium ${getTypeColor(transaction.type)}`}>
                                     {formatCurrency(transaction.amount)}
                                 </td>
                                 <td className="px-4 py-3 text-sm">
