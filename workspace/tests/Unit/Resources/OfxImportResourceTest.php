@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Resources;
 
-use App\Http\Resources\AccountResource;
 use App\Http\Resources\OfxImportResource;
 use App\Http\Resources\ReconciliationResource;
 use App\Models\Account;
