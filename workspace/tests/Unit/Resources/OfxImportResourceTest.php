@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Resources;
 
-use App\Http\Resources\AccountResource;
 use App\Http\Resources\OfxImportResource;
 use App\Http\Resources\ReconciliationResource;
 use App\Models\Account;
@@ -155,10 +154,10 @@ class OfxImportResourceTest extends TestCase
         $array = $resource->resolve(Request::create('/'));
 
         $this->assertArrayHasKey('account', $array);
-        $this->assertInstanceOf(AccountResource::class, $array['account']);
-        $accountData = $array['account']->resolve(Request::create('/'));
-        $this->assertEquals($this->account->id, $accountData['id']);
-        $this->assertEquals($this->account->name, $accountData['name']);
+        $this->assertIsArray($array['account']);
+        $this->assertEquals($this->account->id, $array['account']['id']);
+        $this->assertEquals($this->account->name, $array['account']['name']);
+        $this->assertEquals($this->account->type->value, $array['account']['type']);
     }
 
     public function test_loads_reconciliation_relationship(): void

@@ -6,6 +6,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\ImportResource;
 use App\Models\Account;
+use App\Models\OfxImport;
+use App\Models\XlsxImport;
 use App\Services\ImportHistoryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -49,6 +51,10 @@ class ImportController extends Controller
         $paginatedImports = $pagination['imports'];
         $meta = $pagination['meta'];
 
+        // Get count of active imports across all pages
+        $ofxActiveCount = OfxImport::forUser($userId)->active()->count();
+        $xlsxActiveCount = XlsxImport::forUser($userId)->active()->count();
+
         return Inertia::render('Imports/Index', [
             'accounts' => $accounts,
             'imports' => [
@@ -60,6 +66,7 @@ class ImportController extends Controller
                 'account_id' => $accountId ?? '',
                 'status' => $status ?? '',
             ],
+            'activeImportsCount' => $ofxActiveCount + $xlsxActiveCount,
         ]);
     }
 }

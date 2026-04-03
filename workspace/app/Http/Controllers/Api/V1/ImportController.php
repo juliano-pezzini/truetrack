@@ -128,17 +128,23 @@ class ImportController extends Controller
         $userId = Auth::id();
 
         // Get counts by status for each type
-        $ofxStats = OfxImport::forUser($userId)
-            ->selectRaw('status, COUNT(*) as count')
-            ->groupBy('status')
-            ->pluck('count', 'status')
-            ->toArray();
+        $ofxStats = array_map(
+            'intval',
+            OfxImport::forUser($userId)
+                ->selectRaw('status, COUNT(*) as count')
+                ->groupBy('status')
+                ->pluck('count', 'status')
+                ->toArray()
+        );
 
-        $xlsxStats = XlsxImport::forUser($userId)
-            ->selectRaw('status, COUNT(*) as count')
-            ->groupBy('status')
-            ->pluck('count', 'status')
-            ->toArray();
+        $xlsxStats = array_map(
+            'intval',
+            XlsxImport::forUser($userId)
+                ->selectRaw('status, COUNT(*) as count')
+                ->groupBy('status')
+                ->pluck('count', 'status')
+                ->toArray()
+        );
 
         // Aggregate totals
         $statuses = ['pending', 'processing', 'completed', 'failed'];

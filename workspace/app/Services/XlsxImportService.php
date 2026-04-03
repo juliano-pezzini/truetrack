@@ -9,6 +9,7 @@ use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
@@ -464,12 +465,23 @@ class XlsxImportService
         // Ensure shared readability between web/queue users in containerized envs.
         $directoryPath = Storage::path($directory);
         File::ensureDirectoryExists($directoryPath, 0775, true);
-        @chmod($directoryPath, 0775);
+        if (! @chmod($directoryPath, 0775)) {
+            Log::warning('Failed to set permissions on XLSX import directory.', [
+                'directory' => $directoryPath,
+                'permissions' => '0775',
+            ]);
+        }
 
         // Store in storage/app/private/xlsx_imports/
         $path = $directory.'/'.$compressedFilename;
         Storage::put($path, $compressed);
-        @chmod(Storage::path($path), 0664);
+        $filePath = Storage::path($path);
+        if (! @chmod($filePath, 0664)) {
+            Log::warning('Failed to set permissions on XLSX import file.', [
+                'path' => $filePath,
+                'permissions' => '0664',
+            ]);
+        }
 
         return $path;
     }
@@ -537,7 +549,12 @@ class XlsxImportService
         $errorsDirectoryPath = Storage::path('xlsx_imports/errors');
 
         File::ensureDirectoryExists($errorsDirectoryPath, 0775, true);
-        @chmod($errorsDirectoryPath, 0775);
+        if (! @chmod($errorsDirectoryPath, 0775)) {
+            Log::warning('Failed to set permissions on XLSX error report directory.', [
+                'directory' => $errorsDirectoryPath,
+                'permissions' => '0775',
+            ]);
+        }
 
         $csv = "Row Number,Field,Error Message,Raw Value\n";
 
@@ -552,7 +569,13 @@ class XlsxImportService
         }
 
         Storage::put($path, $csv);
-        @chmod(Storage::path($path), 0664);
+        $errorReportFilePath = Storage::path($path);
+        if (! @chmod($errorReportFilePath, 0664)) {
+            Log::warning('Failed to set permissions on XLSX error report file.', [
+                'path' => $errorReportFilePath,
+                'permissions' => '0664',
+            ]);
+        }
 
         return $path;
     }
