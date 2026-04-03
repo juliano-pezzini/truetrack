@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Exceptions\InvalidRowDataException;
 use Carbon\Carbon;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -541,9 +542,23 @@ class XlsxImportService
     /**
      * Parse date from various formats.
      */
-    private function parseDate(string $dateString): ?Carbon
+    private function parseDate(mixed $dateValue): ?Carbon
     {
-        if (empty($dateString)) {
+        if ($dateValue === null || $dateValue === '') {
+            return null;
+        }
+
+        if (is_numeric($dateValue)) {
+            try {
+                return Carbon::instance(ExcelDate::excelToDateTimeObject((float) $dateValue));
+            } catch (\Exception $e) {
+                throw new \Exception("Unable to parse Excel serial date: {$dateValue}");
+            }
+        }
+
+        $dateString = trim((string) $dateValue);
+
+        if ($dateString === '') {
             return null;
         }
 

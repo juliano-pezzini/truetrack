@@ -77,20 +77,20 @@ export default function ImportHistoryCard({ importData, type, onDelete }) {
     };
 
     return (
-        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
+        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-800">
             <div className="space-y-3">
                 {/* Header */}
                 <div className="flex items-start justify-between">
                     <div className="flex-1">
                         <div className="flex items-center gap-2">
-                            <h4 className="font-semibold text-gray-900">
+                            <h4 className="font-semibold text-gray-900 dark:text-gray-100">
                                 {filename}
                             </h4>
                             <span className={`inline-flex rounded px-2 py-0.5 text-xs font-medium ${getTypeBadge()}`}>
                                 {type.toUpperCase()}
                             </span>
                         </div>
-                        <p className="mt-1 text-sm text-gray-600">
+                        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                             {account?.name || 'Unknown Account'}
                         </p>
                     </div>
@@ -141,10 +141,10 @@ export default function ImportHistoryCard({ importData, type, onDelete }) {
                 )}
 
                 {/* Footer */}
-                <div className="flex items-center justify-between border-t pt-2 text-xs text-gray-500">
+                <div className="flex items-center justify-between border-t pt-2 text-xs text-gray-500 dark:border-gray-700 dark:text-gray-400">
                     <span>Uploaded {formatDate(created_at)}</span>
                     {status === 'completed' && reconciliationId && (
-                        <span className="rounded bg-green-100 px-2 py-1 text-green-700">
+                        <span className="rounded bg-green-100 px-2 py-1 text-green-700 dark:bg-green-900/30 dark:text-green-300">
                             Reconciliation #{reconciliationId}
                         </span>
                     )}

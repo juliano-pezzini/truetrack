@@ -65,7 +65,7 @@ abstract class BaseProcessingJob implements ShouldQueue
         DB::transaction(function () use ($import, $exception) {
             $import->update([
                 'status' => 'failed',
-                'error_message' => $exception->getMessage(),
+                'error_message' => $this->sanitizeErrorMessage($exception),
             ]);
         });
     }
@@ -87,5 +87,26 @@ abstract class BaseProcessingJob implements ShouldQueue
         if ($activeImports >= $maxConcurrent) {
             throw new \Exception("Maximum concurrent imports ({$maxConcurrent}) reached for this user.");
         }
+    }
+
+    /**
+     * Avoid leaking infrastructure details in user-visible import errors.
+     */
+    protected function sanitizeErrorMessage(\Throwable $exception): string
+    {
+        $message = trim($exception->getMessage());
+        $lowerMessage = strtolower($message);
+
+        if (str_contains($lowerMessage, 'permission denied') || str_contains($lowerMessage, 'failed to open stream')) {
+            return 'Unable to access the import file. Please upload it again and retry.';
+        }
+
+        if (str_contains($lowerMessage, '/var/www') || str_contains($lowerMessage, ' in /')) {
+            return 'The import failed due to an internal processing error. Please try again.';
+        }
+
+        return $message !== ''
+            ? $message
+            : 'The import failed due to an internal processing error. Please try again.';
     }
 }

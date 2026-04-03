@@ -308,7 +308,7 @@ class ProcessXlsxImport implements ShouldQueue
             DB::transaction(function () use ($xlsxImport, $e) {
                 $xlsxImport->update([
                     'status' => 'failed',
-                    'error_message' => $e->getMessage(),
+                    'error_message' => $this->sanitizeErrorMessage($e),
                 ]);
             });
 
@@ -360,5 +360,30 @@ class ProcessXlsxImport implements ShouldQueue
         }
 
         return $tagIds;
+    }
+
+    /**
+     * Hide internal paths and low-level exception details from user-facing import history.
+     */
+    private function sanitizeErrorMessage(Throwable $exception): string
+    {
+        $message = trim($exception->getMessage());
+        $lowerMessage = strtolower($message);
+
+        if (str_contains($lowerMessage, 'permission denied') || str_contains($lowerMessage, 'failed to open stream')) {
+            return 'Unable to access the import file. Please upload the file again and try once more.';
+        }
+
+        if (str_contains($lowerMessage, 'argument #') || str_contains($lowerMessage, 'must be of type')) {
+            return 'Some spreadsheet values have an unexpected format. Please review date and amount columns and try again.';
+        }
+
+        if (str_contains($lowerMessage, '/var/www') || str_contains($lowerMessage, ' in /')) {
+            return 'The import failed due to an internal processing error. Please try again.';
+        }
+
+        return $message !== ''
+            ? $message
+            : 'The import failed due to an internal processing error. Please try again.';
     }
 }
