@@ -3,9 +3,10 @@ import ImportProgress from './ImportProgress';
 import SecondaryButton from '@/Components/SecondaryButton';
 import DangerButton from '@/Components/DangerButton';
 
-export default function ImportHistoryCard({ importData, type, onDelete }) {
+export default function ImportHistoryCard({ importData, type: legacyType, onDelete }) {
     const {
         id,
+        type,
         filename,
         account,
         created_at,
@@ -13,9 +14,10 @@ export default function ImportHistoryCard({ importData, type, onDelete }) {
         reconciliation,
         reconciliation_id,
         error_report_path,
-        has_errors,
         has_error_report,
+        has_errors,
     } = importData;
+    const importType = type ?? legacyType;
     const reconciliationId = reconciliation?.id ?? reconciliation_id;
 
     const formatDate = (dateString) => {
@@ -36,7 +38,7 @@ export default function ImportHistoryCard({ importData, type, onDelete }) {
 
     const handleCancel = () => {
         // XLSX imports don't support cancellation yet
-        if (type === 'xlsx') {
+        if (importType === 'xlsx') {
             alert('XLSX import cancellation is not supported yet.');
             return;
         }
@@ -60,12 +62,12 @@ export default function ImportHistoryCard({ importData, type, onDelete }) {
         window.open(route('api.xlsx-imports.error-report', id), '_blank', 'noopener,noreferrer');
     };
 
-    const canCancel = type === 'ofx' && (status === 'pending' || status === 'processing');
+    const canCancel = importType === 'ofx' && (status === 'pending' || status === 'processing');
     const canViewReconciliation = status === 'completed' && Boolean(reconciliationId);
     const hasErrorReport =
-        type === 'xlsx' &&
+        importType === 'xlsx' &&
         status === 'completed' &&
-        Boolean(error_report_path || has_error_report || has_errors);
+        Boolean(has_errors || has_error_report || error_report_path);
 
     // Type badge styling
     const getTypeBadge = () => {
@@ -73,7 +75,7 @@ export default function ImportHistoryCard({ importData, type, onDelete }) {
             ofx: 'bg-blue-100 text-blue-800',
             xlsx: 'bg-purple-100 text-purple-800',
         };
-        return badges[type] || 'bg-gray-100 text-gray-800';
+        return badges[importType] || 'bg-gray-100 text-gray-800';
     };
 
     return (
@@ -87,7 +89,7 @@ export default function ImportHistoryCard({ importData, type, onDelete }) {
                                 {filename}
                             </h4>
                             <span className={`inline-flex rounded px-2 py-0.5 text-xs font-medium ${getTypeBadge()}`}>
-                                {type.toUpperCase()}
+                                {importType?.toUpperCase() ?? 'IMPORT'}
                             </span>
                         </div>
                         <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
@@ -97,10 +99,10 @@ export default function ImportHistoryCard({ importData, type, onDelete }) {
                 </div>
 
                 {/* Progress */}
-                <ImportProgress importData={importData} type={type} />
+                <ImportProgress importData={importData} type={importType} />
 
                 {/* Action Buttons */}
-                {(canViewReconciliation || canCancel || hasErrorReport || (type === 'xlsx' && status === 'completed')) && (
+                {(canViewReconciliation || canCancel || hasErrorReport || (importType === 'xlsx' && status === 'completed')) && (
                     <div className="flex flex-wrap gap-2">
                         {canViewReconciliation && (
                             <SecondaryButton
@@ -111,7 +113,7 @@ export default function ImportHistoryCard({ importData, type, onDelete }) {
                             </SecondaryButton>
                         )}
                         
-                        {type === 'xlsx' && status === 'completed' && (
+                        {importType === 'xlsx' && status === 'completed' && (
                             <SecondaryButton
                                 onClick={handleDownloadFile}
                                 className="px-3 py-1 text-xs"

@@ -155,25 +155,96 @@ class XlsxImportServiceTest extends TestCase
         $this->assertEquals(['groceries', 'shopping'], $transaction['tags']);
     }
 
-    public function test_extracts_transaction_from_row_with_excel_numeric_date(): void
+    public function test_extracts_transaction_with_integer_excel_date(): void
     {
+        // Excel serial date 45658 = 2025-01-01
         $row = [
-            'Date' => 45322.0,
-            'Description' => 'Subscription Payment',
-            'Amount' => '-19.99',
+            'Date' => 45658,
+            'Description' => 'Grocery Shopping',
+            'Amount' => '-50.00',
+            'Category' => 'Food',
         ];
-
         $mappingConfig = [
             'date_column' => 'Date',
             'description_column' => 'Description',
             'amount_column' => 'Amount',
+            'category_column' => 'Category',
         ];
 
         $transaction = $this->service->extractTransactionFromRow($row, $mappingConfig);
 
-        $this->assertNotNull($transaction['transaction_date']);
-        $this->assertEquals('Subscription Payment', $transaction['description']);
-        $this->assertEquals(19.99, $transaction['amount']);
+        $this->assertEquals('2025-01-01', $transaction['transaction_date']);
+        $this->assertEquals('Grocery Shopping', $transaction['description']);
+        $this->assertEquals(50.00, $transaction['amount']);
         $this->assertEquals('debit', $transaction['type']);
+    }
+
+    public function test_extracts_transaction_with_float_excel_date(): void
+    {
+        // Excel serial date 45658.5 = 2025-01-01 12:00:00 (with time component)
+        $row = [
+            'Date' => 45658.5,
+            'Description' => 'Grocery Shopping',
+            'Amount' => '-50.00',
+            'Category' => 'Food',
+        ];
+        $mappingConfig = [
+            'date_column' => 'Date',
+            'description_column' => 'Description',
+            'amount_column' => 'Amount',
+            'category_column' => 'Category',
+        ];
+
+        $transaction = $this->service->extractTransactionFromRow($row, $mappingConfig);
+
+        // Date portion should be 2025-01-01 (time is stripped in format)
+        $this->assertEquals('2025-01-01', $transaction['transaction_date']);
+        $this->assertEquals('Grocery Shopping', $transaction['description']);
+        $this->assertEquals(50.00, $transaction['amount']);
+        $this->assertEquals('debit', $transaction['type']);
+    }
+
+    public function test_extracts_transaction_with_null_date(): void
+    {
+        // When date is null, should throw InvalidRowDataException (date is required)
+        $this->expectException(\App\Exceptions\InvalidRowDataException::class);
+        $this->expectExceptionMessage('Transaction date is required');
+
+        $row = [
+            'Date' => null,
+            'Description' => 'Grocery Shopping',
+            'Amount' => '-50.00',
+            'Category' => 'Food',
+        ];
+        $mappingConfig = [
+            'date_column' => 'Date',
+            'description_column' => 'Description',
+            'amount_column' => 'Amount',
+            'category_column' => 'Category',
+        ];
+
+        $this->service->extractTransactionFromRow($row, $mappingConfig);
+    }
+
+    public function test_throws_exception_for_invalid_numeric_date(): void
+    {
+        // Using a string representation of an invalid Excel numeric value
+        // This should trigger the exception in parseDate
+        $this->expectException(\App\Exceptions\InvalidRowDataException::class);
+
+        $row = [
+            'Date' => 'not_a_date', // Invalid string that cannot be parsed
+            'Description' => 'Grocery Shopping',
+            'Amount' => '-50.00',
+            'Category' => 'Food',
+        ];
+        $mappingConfig = [
+            'date_column' => 'Date',
+            'description_column' => 'Description',
+            'amount_column' => 'Amount',
+            'category_column' => 'Category',
+        ];
+
+        $this->service->extractTransactionFromRow($row, $mappingConfig);
     }
 }

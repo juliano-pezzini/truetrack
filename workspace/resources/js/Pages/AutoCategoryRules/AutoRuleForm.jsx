@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { usePage } from '@inertiajs/react';
+import axios from 'axios';
 import InputError from '@/Components/InputError';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
@@ -16,10 +17,6 @@ export default function AutoRuleForm({ rule, onSubmit, onCancel, fixedCategory =
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
     const [overlappingWarnings, setOverlappingWarnings] = useState([]);
-
-    const getCsrfToken = () => {
-        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    };
 
     useEffect(() => {
         if (rule) {
@@ -39,15 +36,12 @@ export default function AutoRuleForm({ rule, onSubmit, onCancel, fixedCategory =
 
     const fetchCategories = async () => {
         try {
-            const response = await fetch('/api/v1/categories', {
+            const response = await axios.get('/api/v1/categories', {
                 headers: {
                     'Accept': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
                 },
-                credentials: 'same-origin',
             });
-            const data = await response.json();
-            setCategories(data.data || []);
+            setCategories(response.data.data || []);
         } catch (error) {
             console.error('Failed to fetch categories:', error);
         }
@@ -55,15 +49,12 @@ export default function AutoRuleForm({ rule, onSubmit, onCancel, fixedCategory =
 
     const checkOverlaps = async () => {
         try {
-            const response = await fetch('/api/v1/auto-category-rules', {
+            const response = await axios.get('/api/v1/auto-category-rules', {
                 headers: {
                     'Accept': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
                 },
-                credentials: 'same-origin',
             });
-            const data = await response.json();
-            const rules = data.data || [];
+            const rules = response.data.data || [];
 
             const overlaps = rules.filter(
                 r =>

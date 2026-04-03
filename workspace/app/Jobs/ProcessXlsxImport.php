@@ -77,14 +77,33 @@ class ProcessXlsxImport implements ShouldQueue
             $decompressedPath = $compressedPath;
 
             if (str_ends_with($xlsxImport->file_path, '.gz')) {
-                $decompressedPath = sys_get_temp_dir().'/'.uniqid('xlsx_').'.xlsx';
-                $gz = gzopen($compressedPath, 'rb');
-                $out = fopen($decompressedPath, 'wb');
-                while (! gzeof($gz)) {
-                    fwrite($out, gzread($gz, 4096));
+                $gzResource = gzopen($compressedPath, 'rb');
+                if ($gzResource === false) {
+                    throw new \RuntimeException('Failed to open compressed XLSX archive for reading.');
                 }
-                gzclose($gz);
-                fclose($out);
+
+                $decompressedPath = sys_get_temp_dir().'/'.uniqid('xlsx_', true).'.xlsx';
+                $outputResource = fopen($decompressedPath, 'wb');
+                if ($outputResource === false) {
+                    gzclose($gzResource);
+                    throw new \RuntimeException('Failed to create temporary XLSX file for processing.');
+                }
+
+                try {
+                    while (! gzeof($gzResource)) {
+                        $chunk = gzread($gzResource, 8192);
+                        if ($chunk === false) {
+                            throw new \RuntimeException('Failed to read from compressed XLSX archive.');
+                        }
+
+                        if (fwrite($outputResource, $chunk) === false) {
+                            throw new \RuntimeException('Failed to write temporary XLSX file for processing.');
+                        }
+                    }
+                } finally {
+                    gzclose($gzResource);
+                    fclose($outputResource);
+                }
             }
 
             // Parse the spreadsheet
@@ -304,11 +323,15 @@ class ProcessXlsxImport implements ShouldQueue
                 unlink($decompressedPath);
             }
         } catch (Throwable $e) {
+            if (isset($decompressedPath, $compressedPath) && $decompressedPath !== $compressedPath && file_exists($decompressedPath)) {
+                unlink($decompressedPath);
+            }
+
             // Mark as failed
             DB::transaction(function () use ($xlsxImport, $e) {
                 $xlsxImport->update([
                     'status' => 'failed',
-                    'error_message' => $this->sanitizeErrorMessage($e),
+                    'error_message' => $e->getMessage(),
                 ]);
             });
 
@@ -360,30 +383,5 @@ class ProcessXlsxImport implements ShouldQueue
         }
 
         return $tagIds;
-    }
-
-    /**
-     * Hide internal paths and low-level exception details from user-facing import history.
-     */
-    private function sanitizeErrorMessage(Throwable $exception): string
-    {
-        $message = trim($exception->getMessage());
-        $lowerMessage = strtolower($message);
-
-        if (str_contains($lowerMessage, 'permission denied') || str_contains($lowerMessage, 'failed to open stream')) {
-            return 'Unable to access the import file. Please upload the file again and try once more.';
-        }
-
-        if (str_contains($lowerMessage, 'argument #') || str_contains($lowerMessage, 'must be of type')) {
-            return 'Some spreadsheet values have an unexpected format. Please review date and amount columns and try again.';
-        }
-
-        if (str_contains($lowerMessage, '/var/www') || str_contains($lowerMessage, ' in /')) {
-            return 'The import failed due to an internal processing error. Please try again.';
-        }
-
-        return $message !== ''
-            ? $message
-            : 'The import failed due to an internal processing error. Please try again.';
     }
 }

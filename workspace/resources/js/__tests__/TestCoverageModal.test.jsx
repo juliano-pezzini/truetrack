@@ -1,5 +1,7 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import TestCoverageModal from '../../../resources/js/Pages/AutoCategoryRules/TestCoverageModal';
+import axios from 'axios';
 
 
 jest.mock('@inertiajs/react', () => ({
@@ -11,6 +13,8 @@ jest.mock('@inertiajs/react', () => ({
         },
     }),
 }));
+
+jest.mock('axios');
 
 describe('TestCoverageModal Component', () => {
     const mockOnClose = jest.fn();
@@ -50,47 +54,39 @@ describe('TestCoverageModal Component', () => {
     });
 
     it('submits form with valid dates', async () => {
-        global.fetch = jest.fn(() =>
-            Promise.resolve({
-                json: () => Promise.resolve({ data: mockCoverageResult }),
-                ok: true,
-            })
-        );
+        const user = userEvent.setup();
+        axios.post.mockResolvedValueOnce({ data: { data: mockCoverageResult } });
 
         render(<TestCoverageModal show={true} onClose={mockOnClose} />);
 
         const fromDateInput = screen.getByLabelText(/from date/i);
         const toDateInput = screen.getByLabelText(/to date/i);
 
-        fireEvent.change(fromDateInput, { target: { value: '2026-01-01' } });
-        fireEvent.change(toDateInput, { target: { value: '2026-01-31' } });
+        await user.type(fromDateInput, '2026-01-01');
+        await user.type(toDateInput, '2026-01-31');
 
         const testButton = screen.getByRole('button', { name: /test coverage/i });
-        fireEvent.click(testButton);
+        await user.click(testButton);
 
         await waitFor(() => {
-            expect(global.fetch).toHaveBeenCalled();
+            expect(axios.post).toHaveBeenCalled();
         });
     });
 
     it('displays coverage results', async () => {
-        global.fetch = jest.fn(() =>
-            Promise.resolve({
-                json: () => Promise.resolve({ data: mockCoverageResult }),
-                ok: true,
-            })
-        );
+        const user = userEvent.setup();
+        axios.post.mockResolvedValueOnce({ data: { data: mockCoverageResult } });
 
         render(<TestCoverageModal show={true} onClose={mockOnClose} />);
 
         const fromDateInput = screen.getByLabelText(/from date/i);
         const toDateInput = screen.getByLabelText(/to date/i);
 
-    fireEvent.change(fromDateInput, { target: { value: '2026-01-01' } });
-    fireEvent.change(toDateInput, { target: { value: '2026-01-31' } });
+        await user.type(fromDateInput, '2026-01-01');
+        await user.type(toDateInput, '2026-01-31');
 
         const testButton = screen.getByRole('button', { name: /test coverage/i });
-    fireEvent.click(testButton);
+        await user.click(testButton);
 
         await waitFor(() => {
             expect(screen.getByText(/150/)).toBeInTheDocument();
@@ -99,23 +95,19 @@ describe('TestCoverageModal Component', () => {
     });
 
     it('displays coverage percentage correctly', async () => {
-        global.fetch = jest.fn(() =>
-            Promise.resolve({
-                json: () => Promise.resolve({ data: mockCoverageResult }),
-                ok: true,
-            })
-        );
+        const user = userEvent.setup();
+        axios.post.mockResolvedValueOnce({ data: { data: mockCoverageResult } });
 
         render(<TestCoverageModal show={true} onClose={mockOnClose} />);
 
         const fromDateInput = screen.getByLabelText(/from date/i);
         const toDateInput = screen.getByLabelText(/to date/i);
 
-    fireEvent.change(fromDateInput, { target: { value: '2026-01-01' } });
-    fireEvent.change(toDateInput, { target: { value: '2026-01-31' } });
+        await user.type(fromDateInput, '2026-01-01');
+        await user.type(toDateInput, '2026-01-31');
 
         const testButton = screen.getByRole('button', { name: /test coverage/i });
-    fireEvent.click(testButton);
+        await user.click(testButton);
 
         await waitFor(() => {
             expect(screen.getByText('80%')).toBeInTheDocument();
@@ -123,23 +115,19 @@ describe('TestCoverageModal Component', () => {
     });
 
     it('displays category breakdown', async () => {
-        global.fetch = jest.fn(() =>
-            Promise.resolve({
-                json: () => Promise.resolve({ data: mockCoverageResult }),
-                ok: true,
-            })
-        );
+        const user = userEvent.setup();
+        axios.post.mockResolvedValueOnce({ data: { data: mockCoverageResult } });
 
         render(<TestCoverageModal show={true} onClose={mockOnClose} />);
 
         const fromDateInput = screen.getByLabelText(/from date/i);
         const toDateInput = screen.getByLabelText(/to date/i);
 
-    fireEvent.change(fromDateInput, { target: { value: '2026-01-01' } });
-    fireEvent.change(toDateInput, { target: { value: '2026-01-31' } });
+        await user.type(fromDateInput, '2026-01-01');
+        await user.type(toDateInput, '2026-01-31');
 
         const testButton = screen.getByRole('button', { name: /test coverage/i });
-    fireEvent.click(testButton);
+        await user.click(testButton);
 
         await waitFor(() => {
             expect(screen.getByText(/groceries/i)).toBeInTheDocument();
@@ -148,11 +136,31 @@ describe('TestCoverageModal Component', () => {
     });
 
     it('handles API errors gracefully', async () => {
-        global.fetch = jest.fn(() =>
-            Promise.resolve({
-                json: () => Promise.resolve({ message: 'Server error' }),
-                ok: false,
-            })
+        const user = userEvent.setup();
+        axios.post.mockRejectedValueOnce({
+            response: { data: { message: 'Server error' } },
+        });
+
+        render(<TestCoverageModal show={true} onClose={mockOnClose} />);
+
+        const fromDateInput = screen.getByLabelText(/from date/i);
+        const toDateInput = screen.getByLabelText(/to date/i);
+
+        await user.type(fromDateInput, '2026-01-01');
+        await user.type(toDateInput, '2026-01-31');
+
+        const testButton = screen.getByRole('button', { name: /test coverage/i });
+        await user.click(testButton);
+
+        await waitFor(() => {
+            expect(screen.getByText(/server error/i)).toBeInTheDocument();
+        });
+    });
+
+    it('shows loading state during request', async () => {
+        const user = userEvent.setup();
+        axios.post.mockImplementationOnce(
+            () => new Promise(resolve => setTimeout(() => resolve({ data: { data: mockCoverageResult } }), 100))
         );
 
         render(<TestCoverageModal show={true} onClose={mockOnClose} />);
@@ -160,22 +168,21 @@ describe('TestCoverageModal Component', () => {
         const fromDateInput = screen.getByLabelText(/from date/i);
         const toDateInput = screen.getByLabelText(/to date/i);
 
-        fireEvent.change(fromDateInput, { target: { value: '2026-01-01' } });
-        fireEvent.change(toDateInput, { target: { value: '2026-01-31' } });
+        await user.type(fromDateInput, '2026-01-01');
+        await user.type(toDateInput, '2026-01-31');
 
         const testButton = screen.getByRole('button', { name: /test coverage/i });
-        fireEvent.click(testButton);
+        await user.click(testButton);
 
-        await waitFor(() => {
-            expect(screen.getByText(/server error/i)).toBeInTheDocument();
-        });
+        expect(testButton).toBeDisabled();
     });
 
     it('closes modal on cancel button click', async () => {
+        const user = userEvent.setup();
         render(<TestCoverageModal show={true} onClose={mockOnClose} />);
 
         const closeButton = screen.getByRole('button', { name: /cancel/i });
-        fireEvent.click(closeButton);
+        await user.click(closeButton);
 
         expect(mockOnClose).toHaveBeenCalled();
     });

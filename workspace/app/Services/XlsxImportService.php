@@ -6,11 +6,12 @@ namespace App\Services;
 
 use App\Exceptions\InvalidRowDataException;
 use Carbon\Carbon;
-use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
@@ -290,6 +291,11 @@ class XlsxImportService
             throw new InvalidRowDataException("Invalid date format: {$row[$dateColumn]}");
         }
 
+        // Validate date is not null (date is required)
+        if ($transactionDate === null) {
+            throw new InvalidRowDataException('Transaction date is required');
+        }
+
         // Get description
         $description = trim($row[$descriptionColumn] ?? '');
         if (empty($description)) {
@@ -447,6 +453,7 @@ class XlsxImportService
     {
         $filename = $file->getClientOriginalName();
         $compressedFilename = pathinfo($filename, PATHINFO_FILENAME).'_'.time().'.xlsx.gz';
+        $directory = 'xlsx_imports';
 
         // Read file content
         $content = file_get_contents($file->getPathname());
@@ -454,9 +461,15 @@ class XlsxImportService
         // Compress with gzip
         $compressed = gzencode($content, 9);
 
-        // Store in storage/app/xlsx_imports/
-        $path = 'xlsx_imports/'.$compressedFilename;
+        // Ensure shared readability between web/queue users in containerized envs.
+        $directoryPath = Storage::path($directory);
+        File::ensureDirectoryExists($directoryPath, 0775, true);
+        @chmod($directoryPath, 0775);
+
+        // Store in storage/app/private/xlsx_imports/
+        $path = $directory.'/'.$compressedFilename;
         Storage::put($path, $compressed);
+        @chmod(Storage::path($path), 0664);
 
         return $path;
     }
@@ -521,6 +534,10 @@ class XlsxImportService
     {
         $filename = 'error_report_'.time().'.csv';
         $path = 'xlsx_imports/errors/'.$filename;
+        $errorsDirectoryPath = Storage::path('xlsx_imports/errors');
+
+        File::ensureDirectoryExists($errorsDirectoryPath, 0775, true);
+        @chmod($errorsDirectoryPath, 0775);
 
         $csv = "Row Number,Field,Error Message,Raw Value\n";
 
@@ -529,12 +546,13 @@ class XlsxImportService
                 "%d,%s,%s,%s\n",
                 $error['row_number'],
                 $error['field'],
-                str_replace('"', '""', $error['message']),
+                str_replace('"', '""', (string) ($error['error_message'] ?? $error['message'] ?? '')),
                 str_replace('"', '""', $error['raw_value'] ?? '')
             );
         }
 
         Storage::put($path, $csv);
+        @chmod(Storage::path($path), 0664);
 
         return $path;
     }
@@ -542,22 +560,22 @@ class XlsxImportService
     /**
      * Parse date from various formats.
      */
-    private function parseDate(mixed $dateValue): ?Carbon
+    private function parseDate(string|int|float|null $dateValue): ?Carbon
     {
         if ($dateValue === null || $dateValue === '') {
             return null;
         }
 
-        if (is_numeric($dateValue)) {
+        // Excel date cells are often exposed as numeric serial values.
+        if (is_int($dateValue) || is_float($dateValue)) {
             try {
-                return Carbon::instance(ExcelDate::excelToDateTimeObject((float) $dateValue));
+                return Carbon::instance(ExcelDate::excelToDateTimeObject($dateValue));
             } catch (\Exception $e) {
                 throw new \Exception("Unable to parse Excel serial date: {$dateValue}");
             }
         }
 
-        $dateString = trim((string) $dateValue);
-
+        $dateString = trim($dateValue);
         if ($dateString === '') {
             return null;
         }
