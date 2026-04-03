@@ -39,7 +39,7 @@ export default function Index({ auth, tags, filters }) {
             user={auth.user}
             header={
                 <div className="flex justify-between items-center">
-                    <h2 className="font-semibold text-xl text-gray-800 leading-tight">
+                    <h2 className="font-semibold text-xl text-gray-800 leading-tight dark:text-gray-100">
                         Tags
                     </h2>
                     <Link
@@ -56,11 +56,11 @@ export default function Index({ auth, tags, filters }) {
             <div className="py-12">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                     {/* Filters */}
-                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
+                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6 dark:bg-gray-800">
                         <div className="p-6">
                             <div className="flex flex-wrap gap-4 items-end">
                                 <div className="flex-1 min-w-[200px]">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">
                                         Search by Name
                                     </label>
                                     <input
@@ -69,20 +69,20 @@ export default function Index({ auth, tags, filters }) {
                                         onChange={(e) => setFilterName(e.target.value)}
                                         onKeyPress={(e) => e.key === 'Enter' && applyFilters()}
                                         placeholder="Enter tag name..."
-                                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                        className="w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                                     />
                                 </div>
 
                                 <div className="flex gap-2">
                                     <button
                                         onClick={applyFilters}
-                                        className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                                        className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400"
                                     >
                                         Apply Filters
                                     </button>
                                     <button
                                         onClick={clearFilters}
-                                        className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+                                        className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
                                     >
                                         Clear
                                     </button>
@@ -92,58 +92,58 @@ export default function Index({ auth, tags, filters }) {
                     </div>
 
                     {/* Tags List */}
-                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg dark:bg-gray-800">
                         {tags.data.length > 0 ? (
                             <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-gray-200">
-                                    <thead className="bg-gray-50">
+                                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                    <thead className="bg-gray-50 dark:bg-gray-900/40">
                                         <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
                                                 Tag
                                             </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
                                                 Color
                                             </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
                                                 Created
                                             </th>
-                                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
                                                 Actions
                                             </th>
                                         </tr>
                                     </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
+                                    <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
                                         {tags.data.map((tag) => (
-                                            <tr key={tag.id} className="hover:bg-gray-50">
+                                            <tr key={tag.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/40">
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="flex items-center">
                                                         <div
                                                             className="w-4 h-4 rounded-full mr-3"
                                                             style={{ backgroundColor: tag.color }}
                                                         ></div>
-                                                        <span className="text-sm font-medium text-gray-900">
+                                                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                                             {tag.name}
                                                         </span>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <code className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                                                    <code className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded dark:bg-gray-700 dark:text-gray-200">
                                                         {tag.color}
                                                     </code>
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                                     {new Date(tag.created_at).toLocaleDateString()}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                     <Link
                                                         href={route('tags.edit', tag.id)}
-                                                        className="text-indigo-600 hover:text-indigo-900 mr-4"
+                                                        className="mr-4 text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
                                                     >
                                                         Edit
                                                     </Link>
                                                     <button
                                                         onClick={() => deleteTag(tag.id)}
-                                                        className="text-red-600 hover:text-red-900"
+                                                        className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
                                                     >
                                                         Delete
                                                     </button>
@@ -154,20 +154,20 @@ export default function Index({ auth, tags, filters }) {
                                 </table>
                             </div>
                         ) : (
-                            <div className="p-6 text-center text-gray-500">
+                            <div className="p-6 text-center text-gray-500 dark:text-gray-400">
                                 No tags found. Create your first tag to get started!
                             </div>
                         )}
 
                         {/* Pagination */}
                         {tags.links && tags.links.length > 3 && (
-                            <div className="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+                            <div className="bg-white px-4 py-3 border-t border-gray-200 sm:px-6 dark:bg-gray-800 dark:border-gray-700">
                                 <div className="flex items-center justify-between">
                                     <div className="flex-1 flex justify-between sm:hidden">
                                         {firstLinkUrl && (
                                             <Link
                                                 href={firstLinkUrl}
-                                                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                                                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                                             >
                                                 Previous
                                             </Link>
@@ -175,7 +175,7 @@ export default function Index({ auth, tags, filters }) {
                                         {lastLinkUrl && (
                                             <Link
                                                 href={lastLinkUrl}
-                                                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                                                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                                             >
                                                 Next
                                             </Link>
@@ -183,7 +183,7 @@ export default function Index({ auth, tags, filters }) {
                                     </div>
                                     <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                                         <div>
-                                            <p className="text-sm text-gray-700">
+                                                <p className="text-sm text-gray-700 dark:text-gray-300">
                                                 Showing{' '}
                                                 <span className="font-medium">{tags.meta?.from || 0}</span>{' '}
                                                 to <span className="font-medium">{tags.meta?.to || 0}</span>{' '}
@@ -205,8 +205,8 @@ export default function Index({ auth, tags, filters }) {
                                                             preserveScroll
                                                             className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                                                                 link.active
-                                                                    ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
-                                                                    : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                                                                        ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600 dark:bg-indigo-900/30 dark:border-indigo-400 dark:text-indigo-300'
+                                                                        : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'
                                                             } ${!href ? 'cursor-not-allowed opacity-50' : ''}`}
                                                             dangerouslySetInnerHTML={{ __html: link.label }}
                                                         />

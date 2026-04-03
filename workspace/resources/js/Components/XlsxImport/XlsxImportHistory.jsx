@@ -69,13 +69,13 @@ export default function XlsxImportHistory({ imports, accounts }) {
     return (
         <div className="space-y-6">
             {/* Filters */}
-            <div className="bg-white rounded-lg shadow p-4">
-                <h3 className="font-semibold mb-4">Filters</h3>
+            <div className="bg-white rounded-lg shadow p-4 dark:bg-gray-800 dark:shadow-none">
+                <h3 className="font-semibold mb-4 text-gray-900 dark:text-gray-100">Filters</h3>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Account</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Account</label>
                         <select
-                            className="block w-full border-gray-300 rounded-md shadow-sm"
+                            className="block w-full border-gray-300 rounded-md shadow-sm dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                             value={filters.account_id}
                             onChange={(e) => handleFilterChange('account_id', e.target.value)}
                         >
@@ -89,9 +89,9 @@ export default function XlsxImportHistory({ imports, accounts }) {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Status</label>
                         <select
-                            className="block w-full border-gray-300 rounded-md shadow-sm"
+                            className="block w-full border-gray-300 rounded-md shadow-sm dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                             value={filters.status}
                             onChange={(e) => handleFilterChange('status', e.target.value)}
                         >
@@ -104,20 +104,20 @@ export default function XlsxImportHistory({ imports, accounts }) {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">From Date</label>
                         <input
                             type="date"
-                            className="block w-full border-gray-300 rounded-md shadow-sm"
+                            className="block w-full border-gray-300 rounded-md shadow-sm dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                             value={filters.date_from}
                             onChange={(e) => handleFilterChange('date_from', e.target.value)}
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">To Date</label>
                         <input
                             type="date"
-                            className="block w-full border-gray-300 rounded-md shadow-sm"
+                            className="block w-full border-gray-300 rounded-md shadow-sm dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                             value={filters.date_to}
                             onChange={(e) => handleFilterChange('date_to', e.target.value)}
                         />
@@ -126,9 +126,9 @@ export default function XlsxImportHistory({ imports, accounts }) {
             </div>
 
             {/* Imports Table */}
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+            <div className="bg-white rounded-lg shadow overflow-hidden dark:bg-gray-800 dark:shadow-none">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead className="bg-gray-50 dark:bg-gray-900/40">
                         <tr>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Date
@@ -150,10 +150,10 @@ export default function XlsxImportHistory({ imports, accounts }) {
                             </th>
                         </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
                         {imports.data.map((importRecord) => (
                             <>
-                                <tr key={importRecord.id} className="hover:bg-gray-50">
+                                <tr key={importRecord.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/40">
                                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                                         {new Date(importRecord.created_at).toLocaleDateString()}
                                     </td>
@@ -194,7 +194,7 @@ export default function XlsxImportHistory({ imports, accounts }) {
                                 {/* Expanded Row Details */}
                                 {expandedRows.has(importRecord.id) && (
                                     <tr>
-                                        <td colSpan="6" className="px-6 py-4 bg-gray-50">
+                                        <td colSpan="6" className="px-6 py-4 bg-gray-50 dark:bg-gray-900/40">
                                             <div className="grid grid-cols-3 gap-4 text-sm">
                                                 <div>
                                                     <span className="font-medium">Processed:</span> {importRecord.processed_count}
@@ -210,14 +210,14 @@ export default function XlsxImportHistory({ imports, accounts }) {
                                                         <span className="font-medium">Reconciliation:</span>
                                                         <a
                                                             href={`/reconciliations/${importRecord.reconciliation_id}`}
-                                                            className="ml-2 text-blue-600 hover:underline"
+                                                            className="ml-2 text-blue-600 hover:underline dark:text-blue-400"
                                                         >
                                                             View Reconciliation
                                                         </a>
                                                     </div>
                                                 )}
                                                 {importRecord.error_message && (
-                                                    <div className="col-span-3 text-red-600">
+                                                    <div className="col-span-3 text-red-600 dark:text-red-300">
                                                         <span className="font-medium">Error:</span> {importRecord.error_message}
                                                     </div>
                                                 )}
@@ -232,9 +232,9 @@ export default function XlsxImportHistory({ imports, accounts }) {
 
                 {/* Pagination */}
                 {imports.meta && (
-                    <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+                    <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 dark:bg-gray-900/40 dark:border-gray-700">
                         <div className="flex items-center justify-between">
-                            <div className="text-sm text-gray-700">
+                            <div className="text-sm text-gray-700 dark:text-gray-300">
                                 Showing {imports.meta.from} to {imports.meta.to} of {imports.meta.total} results
                             </div>
                             <div className="flex space-x-2">

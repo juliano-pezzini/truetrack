@@ -107,7 +107,7 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
             user={auth.user}
             header={
                 <div className="flex justify-between items-center">
-                    <h2 className="font-semibold text-xl text-gray-800 leading-tight">
+                    <h2 className="font-semibold text-xl text-gray-800 leading-tight dark:text-gray-100">
                         Transactions
                     </h2>
                     <Link
@@ -124,20 +124,20 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
             <div className="py-12">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                     {/* Filters */}
-                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
+                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6 dark:bg-gray-800">
                         <div className="p-6">
-                            <h3 className="text-lg font-semibold mb-4">Filters</h3>
+                            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Filters</h3>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 {/* Account Filter */}
                                 <div>
-                                    <label htmlFor="filterAccount" className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label htmlFor="filterAccount" className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
                                         Account
                                     </label>
                                     <select
                                         id="filterAccount"
                                         value={filterAccount}
                                         onChange={(e) => setFilterAccount(e.target.value)}
-                                        className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                        className="w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                                     >
                                         <option value="">All Accounts</option>
                                         {accounts?.data?.map((account) => (
@@ -150,14 +150,14 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
 
                                 {/* Category Filter */}
                                 <div>
-                                    <label htmlFor="filterCategory" className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label htmlFor="filterCategory" className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
                                         Category
                                     </label>
                                     <select
                                         id="filterCategory"
                                         value={filterCategory}
                                         onChange={(e) => setFilterCategory(e.target.value)}
-                                        className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                        className="w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                                     >
                                         <option value="">All Categories</option>
                                         {categories?.data?.map((category) => (
@@ -170,14 +170,14 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
 
                                 {/* Type Filter */}
                                 <div>
-                                    <label htmlFor="filterType" className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label htmlFor="filterType" className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
                                         Type
                                     </label>
                                     <select
                                         id="filterType"
                                         value={filterType}
                                         onChange={(e) => setFilterType(e.target.value)}
-                                        className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                        className="w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                                     >
                                         {transactionTypes.map((type) => (
                                             <option key={type.value} value={type.value}>
@@ -189,14 +189,14 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
 
                                 {/* Settled Filter */}
                                 <div>
-                                    <label htmlFor="filterSettled" className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label htmlFor="filterSettled" className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
                                         Status
                                     </label>
                                     <select
                                         id="filterSettled"
                                         value={filterSettled}
                                         onChange={(e) => setFilterSettled(e.target.value)}
-                                        className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                        className="w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                                     >
                                         {settledOptions.map((option) => (
                                             <option key={option.value} value={option.value}>
@@ -208,7 +208,7 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
 
                                 {/* Date From */}
                                 <div>
-                                    <label htmlFor="filterDateFrom" className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label htmlFor="filterDateFrom" className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
                                         From Date
                                     </label>
                                     <input
@@ -216,13 +216,13 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
                                         id="filterDateFrom"
                                         value={filterDateFrom}
                                         onChange={(e) => setFilterDateFrom(e.target.value)}
-                                        className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                        className="w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                                     />
                                 </div>
 
                                 {/* Date To */}
                                 <div>
-                                    <label htmlFor="filterDateTo" className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label htmlFor="filterDateTo" className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
                                         To Date
                                     </label>
                                     <input
@@ -230,20 +230,20 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
                                         id="filterDateTo"
                                         value={filterDateTo}
                                         onChange={(e) => setFilterDateTo(e.target.value)}
-                                        className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                        className="w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                                     />
                                 </div>
 
                                 {/* Tag Filter */}
                                 <div>
-                                    <label htmlFor="filterTag" className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label htmlFor="filterTag" className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
                                         Tag
                                     </label>
                                     <select
                                         id="filterTag"
                                         value={filterTag}
                                         onChange={(e) => setFilterTag(e.target.value)}
-                                        className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                        className="w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                                     >
                                         <option value="">All Tags</option>
                                         {tags?.data?.map((tag) => (
@@ -259,14 +259,14 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
                                 <button
                                     type="button"
                                     onClick={applyFilters}
-                                    className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                                    className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400"
                                 >
                                     Apply Filters
                                 </button>
                                 <button
                                     type="button"
                                     onClick={clearFilters}
-                                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+                                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
                                 >
                                     Clear Filters
                                 </button>
@@ -275,62 +275,62 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
                     </div>
 
                     {/* Transactions List */}
-                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg dark:bg-gray-800">
                         <div className="p-6">
                             {transactions?.data?.length === 0 ? (
                                 <div className="text-center py-8">
-                                    <p className="text-gray-500">No transactions found.</p>
+                                    <p className="text-gray-500 dark:text-gray-400">No transactions found.</p>
                                     <Link
                                         href={route('transactions.create')}
-                                        className="mt-4 inline-block px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                                        className="mt-4 inline-block px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400"
                                     >
                                         Create your first transaction
                                     </Link>
                                 </div>
                             ) : (
                                 <div className="overflow-x-auto">
-                                    <table className="min-w-full divide-y divide-gray-200">
-                                        <thead className="bg-gray-50">
+                                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                        <thead className="bg-gray-50 dark:bg-gray-900/40">
                                             <tr>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
                                                     Date
                                                 </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
                                                     Account
                                                 </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
                                                     Category
                                                 </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
                                                     Description
                                                 </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
                                                     Type
                                                 </th>
-                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
                                                     Amount
                                                 </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
                                                     Status
                                                 </th>
-                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
                                                     Actions
                                                 </th>
                                             </tr>
                                         </thead>
-                                        <tbody className="bg-white divide-y divide-gray-200">
+                                        <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
                                             {transactions?.data?.map((transaction) => (
-                                                <tr key={transaction.id} className="hover:bg-gray-50">
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                <tr key={transaction.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                                                         {formatDate(transaction.transaction_date)}
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                                                         {transaction.account?.name || 'N/A'}
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                                                         {transaction.category?.name || 'N/A'}
                                                     </td>
-                                                    <td className="px-6 py-4 text-sm text-gray-900">
+                                                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
                                                         {transaction.description || '—'}
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
@@ -345,13 +345,13 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
                                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                         <Link
                                                             href={route('transactions.edit', transaction.id)}
-                                                            className="text-indigo-600 hover:text-indigo-900 mr-3"
+                                                            className="mr-3 text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
                                                         >
                                                             Edit
                                                         </Link>
                                                         <button
                                                             onClick={() => deleteTransaction(transaction.id)}
-                                                            className="text-red-600 hover:text-red-900"
+                                                            className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
                                                         >
                                                             Delete
                                                         </button>
@@ -374,15 +374,15 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
                                                     href={normalizeInertiaUrl(link.url)}
                                                     className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                                                         link.active
-                                                            ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
-                                                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                                                            ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600 dark:bg-indigo-900/30 dark:border-indigo-400 dark:text-indigo-300'
+                                                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'
                                                     }`}
                                                     dangerouslySetInnerHTML={{ __html: link.label }}
                                                 />
                                             ) : (
                                                 <span
                                                     key={index}
-                                                    className="relative inline-flex items-center px-4 py-2 border text-sm font-medium bg-white border-gray-300 text-gray-500 cursor-not-allowed opacity-50"
+                                                    className="relative inline-flex items-center px-4 py-2 border text-sm font-medium bg-white border-gray-300 text-gray-500 cursor-not-allowed opacity-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400"
                                                     dangerouslySetInnerHTML={{ __html: link.label }}
                                                 />
                                             ),

@@ -55,7 +55,7 @@ export default function Index({ auth, accounts, imports, filters }) {
         <AuthenticatedLayout
             user={auth.user}
             header={
-                <h2 className="text-xl font-semibold leading-tight text-gray-800">
+                <h2 className="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-100">
                     Statement Import
                 </h2>
             }
@@ -72,11 +72,11 @@ export default function Index({ auth, accounts, imports, filters }) {
 
                     {/* Active Imports Alert */}
                     {hasActiveImports && (
-                        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
                             <div className="flex">
                                 <div className="flex-shrink-0">
                                     <svg
-                                        className="h-5 w-5 text-blue-400"
+                                        className="h-5 w-5 text-blue-400 dark:text-blue-300"
                                         viewBox="0 0 20 20"
                                         fill="currentColor"
                                     >
@@ -88,7 +88,7 @@ export default function Index({ auth, accounts, imports, filters }) {
                                     </svg>
                                 </div>
                                 <div className="ml-3">
-                                    <p className="text-sm text-blue-700">
+                                    <p className="text-sm text-blue-700 dark:text-blue-200">
                                         Imports are being processed in the
                                         background. This page will auto-refresh
                                         every 5 seconds.
@@ -99,13 +99,13 @@ export default function Index({ auth, accounts, imports, filters }) {
                     )}
 
                     {/* Import History */}
-                    <div className="rounded-lg bg-white p-6 shadow-sm">
+                    <div className="rounded-lg bg-white p-6 shadow-sm dark:bg-gray-800 dark:shadow-none">
                         <div className="mb-4 flex items-center justify-between">
-                            <h3 className="text-lg font-semibold text-gray-900">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                                 Import History
                             </h3>
                             {meta.total > 0 && (
-                                <span className="text-sm text-gray-500">
+                                <span className="text-sm text-gray-500 dark:text-gray-400">
                                     {meta.from}–{meta.to} of {meta.total}
                                 </span>
                             )}
@@ -114,11 +114,11 @@ export default function Index({ auth, accounts, imports, filters }) {
                         {/* Filters */}
                         <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
                             <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">
+                                <label className="block text-xs font-medium text-gray-600 mb-1 dark:text-gray-300">
                                     Type
                                 </label>
                                 <select
-                                    className="block w-full rounded-md border-gray-300 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    className="block w-full rounded-md border-gray-300 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                                     value={filters.type}
                                     onChange={(e) => handleFilterChange('type', e.target.value)}
                                 >
@@ -128,11 +128,11 @@ export default function Index({ auth, accounts, imports, filters }) {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">
+                                <label className="block text-xs font-medium text-gray-600 mb-1 dark:text-gray-300">
                                     Account
                                 </label>
                                 <select
-                                    className="block w-full rounded-md border-gray-300 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    className="block w-full rounded-md border-gray-300 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                                     value={filters.account_id}
                                     onChange={(e) => handleFilterChange('account_id', e.target.value)}
                                 >
@@ -145,11 +145,11 @@ export default function Index({ auth, accounts, imports, filters }) {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">
+                                <label className="block text-xs font-medium text-gray-600 mb-1 dark:text-gray-300">
                                     Status
                                 </label>
                                 <select
-                                    className="block w-full rounded-md border-gray-300 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    className="block w-full rounded-md border-gray-300 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                                     value={filters.status}
                                     onChange={(e) => handleFilterChange('status', e.target.value)}
                                 >
@@ -165,7 +165,7 @@ export default function Index({ auth, accounts, imports, filters }) {
                         {/* Import List */}
                         <div className="space-y-4">
                             {importList.length === 0 ? (
-                                <p className="py-8 text-center text-sm text-gray-500">
+                                <p className="py-8 text-center text-sm text-gray-500 dark:text-gray-400">
                                     No imports found.
                                 </p>
                             ) : (
@@ -181,11 +181,11 @@ export default function Index({ auth, accounts, imports, filters }) {
 
                         {/* Pagination */}
                         {meta.last_page > 1 && (
-                            <div className="mt-6 flex items-center justify-between border-t pt-4">
+                            <div className="mt-6 flex items-center justify-between border-t pt-4 dark:border-gray-700">
                                 <button
                                     onClick={() => goToPage(meta.current_page - 1)}
                                     disabled={meta.current_page <= 1}
-                                    className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                    className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                                 >
                                     Previous
                                 </button>
@@ -195,7 +195,7 @@ export default function Index({ auth, accounts, imports, filters }) {
                                         item.type === 'ellipsis' ? (
                                             <span
                                                 key={item.key}
-                                                className="min-w-[2rem] px-2 py-1.5 text-center text-sm font-medium text-gray-400"
+                                                className="min-w-[2rem] px-2 py-1.5 text-center text-sm font-medium text-gray-400 dark:text-gray-500"
                                             >
                                                 ...
                                             </span>
@@ -206,7 +206,7 @@ export default function Index({ auth, accounts, imports, filters }) {
                                                 className={`min-w-[2rem] rounded-md px-2 py-1.5 text-sm font-medium ${
                                                     item.value === meta.current_page
                                                         ? 'bg-indigo-600 text-white'
-                                                        : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                                                        : 'border border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
                                                 }`}
                                             >
                                                 {item.value}
@@ -218,7 +218,7 @@ export default function Index({ auth, accounts, imports, filters }) {
                                 <button
                                     onClick={() => goToPage(meta.current_page + 1)}
                                     disabled={meta.current_page >= meta.last_page}
-                                    className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                    className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                                 >
                                     Next
                                 </button>
