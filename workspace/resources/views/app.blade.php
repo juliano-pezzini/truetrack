@@ -24,7 +24,7 @@
             (function () {
                 const storageKey = 'truetrack:theme_preference';
                 const allowedPreferences = ['light', 'dark', 'system'];
-                const userPreference = @json($page['props']['auth']['user']['theme_preference'] ?? 'system');
+                const userPreference = @json(data_get($page, 'props.auth.user.theme_preference', 'system'));
 
                 const resolvePreference = (value) =>
                     allowedPreferences.includes(value) ? value : 'system';

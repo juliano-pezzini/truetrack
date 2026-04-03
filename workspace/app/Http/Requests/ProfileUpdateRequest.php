@@ -25,7 +25,7 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
-            'theme_preference' => ['nullable', Rule::in(['light', 'dark', 'system'])],
+            'theme_preference' => ['sometimes', Rule::in(['light', 'dark', 'system'])],
         ];
     }
 }
