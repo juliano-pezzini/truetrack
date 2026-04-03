@@ -164,24 +164,24 @@ export default function XlsxSimplifiedWizard({
     return (
         <div className="space-y-6">
             <div>
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                     Import XLSX/CSV Statement
                 </h3>
-                <p className="mt-1 text-sm text-gray-600">
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                     Step {step} of 2
                 </p>
             </div>
 
             {error && (
-                <div className="rounded-md bg-red-50 p-4">
-                    <p className="text-sm text-red-800">{error}</p>
+                <div className="rounded-md bg-red-50 p-4 dark:bg-red-900/20">
+                    <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
                 </div>
             )}
 
             {isProcessing && step === 1 && (
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center">
-                    <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-indigo-600"></div>
-                    <p className="mt-4 text-sm font-medium text-gray-700">
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center dark:border-gray-700 dark:bg-gray-900/40">
+                    <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-indigo-600 dark:border-gray-700 dark:border-t-indigo-400"></div>
+                    <p className="mt-4 text-sm font-medium text-gray-700 dark:text-gray-300">
                         Analyzing your file...
                     </p>
                 </div>
@@ -195,7 +195,7 @@ export default function XlsxSimplifiedWizard({
                         <InputLabel htmlFor="account_id" value="Account" />
                         <select
                             id="account_id"
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            className="mt-1 block w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                             value={selectedAccount}
                             onChange={(e) => onAccountChange(e.target.value)}
                             required
@@ -211,10 +211,10 @@ export default function XlsxSimplifiedWizard({
 
                     {/* Column Mapper */}
                     {detectedHeaders.length > 0 && (
-                        <div className="rounded-lg border border-gray-200 bg-white p-6">
+                        <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
                             {!selectedAccount ? (
-                                <div className="rounded-md bg-yellow-50 p-3">
-                                    <p className="text-sm text-yellow-800">
+                                <div className="rounded-md bg-yellow-50 p-3 dark:bg-yellow-900/20">
+                                    <p className="text-sm text-yellow-800 dark:text-yellow-200">
                                         Please select an account before continuing to mapping and preview.
                                     </p>
                                 </div>
@@ -237,17 +237,17 @@ export default function XlsxSimplifiedWizard({
                 <div className="space-y-6">
                     {/* Loading Overlay */}
                     {isProcessing && (
-                        <div className="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center">
-                            <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-indigo-600"></div>
-                            <p className="mt-4 text-sm font-medium text-gray-700">
+                        <div className="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center dark:border-gray-700 dark:bg-gray-900/40">
+                            <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-indigo-600 dark:border-gray-700 dark:border-t-indigo-400"></div>
+                            <p className="mt-4 text-sm font-medium text-gray-700 dark:text-gray-300">
                                 Starting import... This may take a few moments.
                             </p>
                         </div>
                     )}
                     {/* Options */}
                     {!isProcessing && (
-                        <div className="rounded-lg border border-gray-200 bg-white p-6">
-                            <h4 className="mb-4 text-base font-semibold text-gray-900">
+                        <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+                            <h4 className="mb-4 text-base font-semibold text-gray-900 dark:text-gray-100">
                                 Import Options
                             </h4>
 
@@ -260,9 +260,9 @@ export default function XlsxSimplifiedWizard({
                                             id="save_mapping"
                                             checked={saveMapping}
                                             onChange={(e) => setSaveMapping(e.target.checked)}
-                                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900"
                                         />
-                                        <label htmlFor="save_mapping" className="ml-2 block text-sm text-gray-700">
+                                        <label htmlFor="save_mapping" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
                                             Save this column mapping for future imports
                                         </label>
                                     </div>
@@ -272,7 +272,7 @@ export default function XlsxSimplifiedWizard({
                                             placeholder="Mapping name (optional)"
                                             value={mappingName}
                                             onChange={(e) => setMappingName(e.target.value)}
-                                            className="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                            className="mt-2 block w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                                         />
                                     )}
                                 </div>
@@ -284,16 +284,16 @@ export default function XlsxSimplifiedWizard({
                                         id="force_reimport"
                                         checked={forceReimport}
                                         onChange={(e) => setForceReimport(e.target.checked)}
-                                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900"
                                     />
-                                    <label htmlFor="force_reimport" className="ml-2 block text-sm text-gray-700">
+                                    <label htmlFor="force_reimport" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
                                         Force reimport (ignore duplicate check)
                                     </label>
                                 </div>
 
                                 {/* Info Box */}
-                                <div className="rounded-md bg-blue-50 p-3">
-                                    <p className="text-xs text-blue-800">
+                                <div className="rounded-md bg-blue-50 p-3 dark:bg-blue-900/20">
+                                    <p className="text-xs text-blue-800 dark:text-blue-200">
                                         <strong>Note:</strong> This import will not automatically create a reconciliation.
                                         After the import completes, you can create and run a reconciliation from the Reconciliations screen.
                                     </p>
@@ -304,7 +304,7 @@ export default function XlsxSimplifiedWizard({
 
                     {/* Preview Table */}
                     {!isProcessing && (
-                        <div className="rounded-lg border border-gray-200 bg-white p-6">
+                        <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
                             {previewData && (
                                 <XlsxPreviewTable
                                     previewData={previewData}

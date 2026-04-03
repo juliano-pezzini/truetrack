@@ -40,15 +40,15 @@ export default function ImportProgress({ importData, type = 'ofx' }) {
     const getStatusBadgeColor = () => {
         switch (status) {
             case 'completed':
-                return 'bg-green-100 text-green-800';
+                return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
             case 'failed':
-                return 'bg-red-100 text-red-800';
+                return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
             case 'processing':
-                return 'bg-blue-100 text-blue-800';
+                return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
             case 'pending':
-                return 'bg-yellow-100 text-yellow-800';
+                return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
             default:
-                return 'bg-gray-100 text-gray-800';
+                return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
         }
     };
 
@@ -78,14 +78,14 @@ export default function ImportProgress({ importData, type = 'ofx' }) {
                     {getStatusText()}
                 </span>
                 {isActive && typeof total_count === 'number' && (
-                    <span className="text-sm font-medium text-gray-600">
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
                         {processed_count} / {total_count}
                     </span>
                 )}
             </div>
 
             {/* Progress Bar */}
-            <div className="relative h-2 w-full overflow-hidden rounded-full bg-gray-200">
+            <div className="relative h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
                 <div
                     role="progressbar"
                     aria-label="Import progress"
@@ -103,25 +103,25 @@ export default function ImportProgress({ importData, type = 'ofx' }) {
             {type === 'xlsx' && (status === 'completed' || status === 'processing') && (
                 <div className="grid grid-cols-4 gap-2 text-center">
                     {typeof total_count === 'number' && (
-                        <div className="rounded-lg bg-blue-50 p-2">
-                            <div className="text-xs text-gray-600">Total</div>
-                            <div className="text-lg font-semibold text-blue-900">{total_count}</div>
+                        <div className="rounded-lg bg-blue-50 p-2 dark:bg-blue-900/20">
+                            <div className="text-xs text-gray-600 dark:text-gray-300">Total</div>
+                            <div className="text-lg font-semibold text-blue-900 dark:text-blue-200">{total_count}</div>
                         </div>
                     )}
-                    <div className="rounded-lg bg-green-50 p-2">
-                        <div className="text-xs text-gray-600">Processed</div>
-                        <div className="text-lg font-semibold text-green-900">{processed_count}</div>
+                    <div className="rounded-lg bg-green-50 p-2 dark:bg-green-900/20">
+                        <div className="text-xs text-gray-600 dark:text-gray-300">Processed</div>
+                        <div className="text-lg font-semibold text-green-900 dark:text-green-200">{processed_count}</div>
                     </div>
                     {skipped_count !== undefined && (
-                        <div className="rounded-lg bg-yellow-50 p-2">
-                            <div className="text-xs text-gray-600">Skipped</div>
-                            <div className="text-lg font-semibold text-yellow-900">{skipped_count}</div>
+                        <div className="rounded-lg bg-yellow-50 p-2 dark:bg-yellow-900/20">
+                            <div className="text-xs text-gray-600 dark:text-gray-300">Skipped</div>
+                            <div className="text-lg font-semibold text-yellow-900 dark:text-yellow-200">{skipped_count}</div>
                         </div>
                     )}
                     {duplicate_count !== undefined && (
-                        <div className="rounded-lg bg-purple-50 p-2">
-                            <div className="text-xs text-gray-600">Duplicates</div>
-                            <div className="text-lg font-semibold text-purple-900">{duplicate_count}</div>
+                        <div className="rounded-lg bg-purple-50 p-2 dark:bg-purple-900/20">
+                            <div className="text-xs text-gray-600 dark:text-gray-300">Duplicates</div>
+                            <div className="text-lg font-semibold text-purple-900 dark:text-purple-200">{duplicate_count}</div>
                         </div>
                     )}
                 </div>
@@ -129,28 +129,28 @@ export default function ImportProgress({ importData, type = 'ofx' }) {
 
             {/* Status Messages */}
             {status === 'processing' && (
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                     Processing transactions... This may take a few moments.
                 </p>
             )}
 
             {status === 'pending' && (
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                     Import queued. Processing will begin shortly.
                 </p>
             )}
 
             {status === 'failed' && importData.error_message && (
-                <div className="rounded-md bg-red-50 p-3">
-                    <p className="text-xs font-medium text-red-800">
+                <div className="rounded-md bg-red-50 p-3 dark:bg-red-900/20">
+                    <p className="text-xs font-medium text-red-800 dark:text-red-300">
                         Error: {importData.error_message}
                     </p>
                 </div>
             )}
 
             {status === 'completed' && (
-                <div className="rounded-md bg-green-50 p-3">
-                    <p className="text-xs font-medium text-green-800">
+                <div className="rounded-md bg-green-50 p-3 dark:bg-green-900/20">
+                    <p className="text-xs font-medium text-green-800 dark:text-green-300">
                         ✓ Import completed successfully!
                     </p>
                 </div>

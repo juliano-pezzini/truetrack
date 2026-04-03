@@ -14,7 +14,7 @@ export default function OfxImportOptions({
 }) {
     return (
         <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 Import OFX Statement
             </h3>
 
@@ -23,7 +23,7 @@ export default function OfxImportOptions({
                 <InputLabel htmlFor="account_id" value="Account" />
                 <select
                     id="account_id"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    className="mt-1 block w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                     value={selectedAccount}
                     onChange={(e) => onAccountChange(e.target.value)}
                     required
@@ -44,19 +44,19 @@ export default function OfxImportOptions({
                     id="force_reimport"
                     checked={forceReimport}
                     onChange={(e) => onForceReimportChange(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900"
                 />
                 <label
                     htmlFor="force_reimport"
-                    className="ml-2 block text-sm text-gray-700"
+                    className="ml-2 block text-sm text-gray-700 dark:text-gray-300"
                 >
                     Force reimport (ignore duplicate check)
                 </label>
             </div>
 
             {/* Info Box */}
-            <div className="rounded-md bg-blue-50 p-3">
-                <p className="text-xs text-blue-800">
+            <div className="rounded-md bg-blue-50 p-3 dark:bg-blue-900/20">
+                <p className="text-xs text-blue-800 dark:text-blue-200">
                     <strong>Note:</strong> The system will automatically create a reconciliation 
                     and attempt to match existing transactions in your account.
                 </p>

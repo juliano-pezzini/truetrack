@@ -159,8 +159,11 @@ describe('TestCoverageModal Component', () => {
 
     it('shows loading state during request', async () => {
         const user = userEvent.setup();
+        let resolveRequest;
         axios.post.mockImplementationOnce(
-            () => new Promise(resolve => setTimeout(() => resolve({ data: { data: mockCoverageResult } }), 100))
+            () => new Promise((resolve) => {
+                resolveRequest = resolve;
+            }),
         );
 
         render(<TestCoverageModal show={true} onClose={mockOnClose} />);
@@ -175,6 +178,13 @@ describe('TestCoverageModal Component', () => {
         await user.click(testButton);
 
         expect(testButton).toBeDisabled();
+        expect(screen.getByRole('button', { name: /testing\.\.\./i })).toBeInTheDocument();
+
+        resolveRequest({ data: { data: mockCoverageResult } });
+
+        await waitFor(() => {
+            expect(screen.getByText(/total uncategorized/i)).toBeInTheDocument();
+        });
     });
 
     it('closes modal on cancel button click', async () => {

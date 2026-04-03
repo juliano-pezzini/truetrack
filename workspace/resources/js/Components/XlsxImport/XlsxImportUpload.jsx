@@ -204,10 +204,10 @@ export default function XlsxImportUpload({ accounts, activeImportsCount, maxImpo
         <div className="relative space-y-4">
             {/* Loading Overlay */}
             {(isProcessing || processing) && (
-                <div className="absolute inset-0 z-50 flex items-center justify-center rounded-lg bg-white bg-opacity-90">
+                <div className="absolute inset-0 z-50 flex items-center justify-center rounded-lg bg-white bg-opacity-90 dark:bg-gray-900/90">
                     <div className="text-center">
-                        <div className="mx-auto h-16 w-16 animate-spin rounded-full border-4 border-gray-200 border-t-indigo-600"></div>
-                        <p className="mt-4 text-sm font-medium text-gray-700">Processing...</p>
+                        <div className="mx-auto h-16 w-16 animate-spin rounded-full border-4 border-gray-200 border-t-indigo-600 dark:border-gray-700 dark:border-t-indigo-400"></div>
+                        <p className="mt-4 text-sm font-medium text-gray-700 dark:text-gray-300">Processing...</p>
                     </div>
                 </div>
             )}
@@ -215,10 +215,10 @@ export default function XlsxImportUpload({ accounts, activeImportsCount, maxImpo
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h3 className="text-lg font-semibold text-gray-900">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                         Upload XLSX/CSV Statement
                     </h3>
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="text-sm text-gray-600 mt-1 dark:text-gray-400">
                         Import transactions from spreadsheet files with flexible column mapping
                     </p>
                 </div>
@@ -229,8 +229,8 @@ export default function XlsxImportUpload({ accounts, activeImportsCount, maxImpo
 
             {/* Concurrency Warning */}
             {concurrencyLimitReached && (
-                <div className="rounded-md bg-yellow-50 p-4">
-                    <p className="text-sm text-yellow-700">
+                <div className="rounded-md bg-yellow-50 p-4 dark:bg-yellow-900/20">
+                    <p className="text-sm text-yellow-700 dark:text-yellow-200">
                         You have reached the maximum number of concurrent imports ({maxImports}).
                         Please wait for existing imports to complete.
                     </p>
@@ -239,11 +239,11 @@ export default function XlsxImportUpload({ accounts, activeImportsCount, maxImpo
 
             {/* Submission Error */}
             {submitError && (
-                <div className="rounded-md bg-red-50 p-4 border border-red-200">
-                    <p className="text-sm text-red-700">{submitError}</p>
+                <div className="rounded-md bg-red-50 p-4 border border-red-200 dark:bg-red-900/20 dark:border-red-800">
+                    <p className="text-sm text-red-700 dark:text-red-200">{submitError}</p>
                     {duplicateImportId && (
                         <div className="mt-2 space-y-2">
-                            <p className="text-xs text-red-600">
+                            <p className="text-xs text-red-600 dark:text-red-300">
                                 Existing import ID: {duplicateImportId}. Check import history for details.
                             </p>
                             <PrimaryButton onClick={handleForceReimport} disabled={isProcessing || processing}>
@@ -261,7 +261,7 @@ export default function XlsxImportUpload({ accounts, activeImportsCount, maxImpo
                         <InputLabel htmlFor="account_id" value="Account *" />
                         <select
                             id="account_id"
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            className="mt-1 block w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                             value={data.account_id}
                             onChange={(e) => setData('account_id', e.target.value)}
                         >

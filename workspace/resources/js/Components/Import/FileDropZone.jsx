@@ -67,8 +67,8 @@ export default function FileDropZone({
         <div
             className={`relative rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
                 isDragging
-                    ? 'border-indigo-500 bg-indigo-50'
-                    : 'border-gray-300 bg-gray-50'
+                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                    : 'border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-900/40'
             } ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:border-indigo-400'}`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -99,19 +99,19 @@ export default function FileDropZone({
                         />
                     </svg>
                     <div className="text-sm">
-                        <p className="font-semibold text-gray-900">{selectedFile.name}</p>
-                        <p className="text-gray-500">
+                        <p className="font-semibold text-gray-900 dark:text-gray-100">{selectedFile.name}</p>
+                        <p className="text-gray-500 dark:text-gray-400">
                             {(selectedFile.size / 1024).toFixed(2)} KB
                         </p>
                     </div>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                         Drop another file or click to replace
                     </p>
                 </div>
             ) : (
                 <div className="space-y-2">
                     <svg
-                        className="mx-auto h-12 w-12 text-gray-400"
+                        className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500"
                         stroke="currentColor"
                         fill="none"
                         viewBox="0 0 48 48"
@@ -129,10 +129,10 @@ export default function FileDropZone({
                         />
                     </svg>
                     <div className="text-sm">
-                        <p className="font-semibold text-gray-900">
+                        <p className="font-semibold text-gray-900 dark:text-gray-100">
                             Drop your file here or click to browse
                         </p>
-                        <p className="text-gray-500">
+                        <p className="text-gray-500 dark:text-gray-400">
                             Supports: OFX, QFX, XLSX, XLS, CSV (max {maxSize}MB)
                         </p>
                     </div>

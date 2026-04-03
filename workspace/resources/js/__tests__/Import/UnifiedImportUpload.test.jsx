@@ -1,5 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import UnifiedImportUpload from '@/Components/Import/UnifiedImportUpload';
 
 // Mock Inertia useForm hook
@@ -69,13 +68,12 @@ describe('UnifiedImportUpload', () => {
 
     describe('File Type Detection', () => {
         test('detects OFX file type correctly', async () => {
-            const user = userEvent.setup();
             render(<UnifiedImportUpload accounts={mockAccounts} onSuccess={mockOnSuccess} />);
 
             const file = new File(['content'], 'statement.ofx', { type: 'application/x-ofx' });
             const input = screen.getByTestId('file-input');
 
-            await user.upload(input, file);
+            fireEvent.change(input, { target: { files: [file] } });
 
             await waitFor(() => {
                 expect(mockSetData).toHaveBeenCalledWith('file', file);
@@ -84,13 +82,12 @@ describe('UnifiedImportUpload', () => {
         });
 
         test('detects QFX file type correctly', async () => {
-            const user = userEvent.setup();
             render(<UnifiedImportUpload accounts={mockAccounts} onSuccess={mockOnSuccess} />);
 
             const file = new File(['content'], 'statement.qfx', { type: 'application/x-qfx' });
             const input = screen.getByTestId('file-input');
 
-            await user.upload(input, file);
+            fireEvent.change(input, { target: { files: [file] } });
 
             await waitFor(() => {
                 expect(screen.getByTestId('ofx-options')).toBeInTheDocument();
@@ -98,13 +95,12 @@ describe('UnifiedImportUpload', () => {
         });
 
         test('detects XLSX file type correctly', async () => {
-            const user = userEvent.setup();
             render(<UnifiedImportUpload accounts={mockAccounts} onSuccess={mockOnSuccess} />);
 
             const file = new File(['content'], 'statement.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
             const input = screen.getByTestId('file-input');
 
-            await user.upload(input, file);
+            fireEvent.change(input, { target: { files: [file] } });
 
             await waitFor(() => {
                 expect(screen.getByTestId('xlsx-wizard')).toBeInTheDocument();
@@ -112,13 +108,12 @@ describe('UnifiedImportUpload', () => {
         });
 
         test('detects XLS file type correctly', async () => {
-            const user = userEvent.setup();
             render(<UnifiedImportUpload accounts={mockAccounts} onSuccess={mockOnSuccess} />);
 
             const file = new File(['content'], 'statement.xls', { type: 'application/vnd.ms-excel' });
             const input = screen.getByTestId('file-input');
 
-            await user.upload(input, file);
+            fireEvent.change(input, { target: { files: [file] } });
 
             await waitFor(() => {
                 expect(screen.getByTestId('xlsx-wizard')).toBeInTheDocument();
@@ -126,13 +121,12 @@ describe('UnifiedImportUpload', () => {
         });
 
         test('detects CSV file type correctly', async () => {
-            const user = userEvent.setup();
             render(<UnifiedImportUpload accounts={mockAccounts} onSuccess={mockOnSuccess} />);
 
             const file = new File(['content'], 'statement.csv', { type: 'text/csv' });
             const input = screen.getByTestId('file-input');
 
-            await user.upload(input, file);
+            fireEvent.change(input, { target: { files: [file] } });
 
             await waitFor(() => {
                 expect(screen.getByTestId('xlsx-wizard')).toBeInTheDocument();
@@ -140,13 +134,12 @@ describe('UnifiedImportUpload', () => {
         });
 
         test('rejects unsupported file types', async () => {
-            const user = userEvent.setup({ applyAccept: false });
             render(<UnifiedImportUpload accounts={mockAccounts} onSuccess={mockOnSuccess} />);
 
             const file = new File(['content'], 'document.pdf', { type: 'application/pdf' });
             const input = screen.getByTestId('file-input');
 
-            await user.upload(input, file);
+            fireEvent.change(input, { target: { files: [file] } });
 
             await waitFor(() => {
                 expect(global.alert).toHaveBeenCalled();
@@ -156,13 +149,12 @@ describe('UnifiedImportUpload', () => {
         });
 
         test('rejects unsupported file extensions', async () => {
-            const user = userEvent.setup({ applyAccept: false });
             render(<UnifiedImportUpload accounts={mockAccounts} onSuccess={mockOnSuccess} />);
 
             const file = new File(['content'], 'document.txt', { type: 'text/plain' });
             const input = screen.getByTestId('file-input');
 
-            await user.upload(input, file);
+            fireEvent.change(input, { target: { files: [file] } });
 
             await waitFor(() => {
                 expect(global.alert).toHaveBeenCalled();
@@ -172,13 +164,12 @@ describe('UnifiedImportUpload', () => {
 
     describe('File Selection Flow', () => {
         test('shows OFX options after selecting OFX file', async () => {
-            const user = userEvent.setup();
             render(<UnifiedImportUpload accounts={mockAccounts} onSuccess={mockOnSuccess} />);
 
             const file = new File(['content'], 'statement.ofx', { type: 'application/x-ofx' });
             const input = screen.getByTestId('file-input');
 
-            await user.upload(input, file);
+            fireEvent.change(input, { target: { files: [file] } });
 
             await waitFor(() => {
                 expect(screen.getByTestId('ofx-options')).toBeInTheDocument();
@@ -187,13 +178,12 @@ describe('UnifiedImportUpload', () => {
         });
 
         test('shows XLSX wizard after selecting XLSX file', async () => {
-            const user = userEvent.setup();
             render(<UnifiedImportUpload accounts={mockAccounts} onSuccess={mockOnSuccess} />);
 
             const file = new File(['content'], 'statement.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
             const input = screen.getByTestId('file-input');
 
-            await user.upload(input, file);
+            fireEvent.change(input, { target: { files: [file] } });
 
             await waitFor(() => {
                 expect(screen.getByTestId('xlsx-wizard')).toBeInTheDocument();
@@ -202,20 +192,19 @@ describe('UnifiedImportUpload', () => {
         });
 
         test('can cancel and return to file upload', async () => {
-            const user = userEvent.setup();
             render(<UnifiedImportUpload accounts={mockAccounts} onSuccess={mockOnSuccess} />);
 
             const file = new File(['content'], 'statement.ofx', { type: 'application/x-ofx' });
             const input = screen.getByTestId('file-input');
 
-            await user.upload(input, file);
+            fireEvent.change(input, { target: { files: [file] } });
 
             await waitFor(() => {
                 expect(screen.getByTestId('ofx-options')).toBeInTheDocument();
             });
 
             const cancelButton = screen.getByText('Cancel');
-            await user.click(cancelButton);
+            fireEvent.click(cancelButton);
 
             await waitFor(() => {
                 expect(screen.getByText(/drop your file here or click to browse/i)).toBeInTheDocument();
@@ -226,20 +215,19 @@ describe('UnifiedImportUpload', () => {
 
     describe('Import Submission', () => {
         test('triggers submission callback for OFX import', async () => {
-            const user = userEvent.setup();
             render(<UnifiedImportUpload accounts={mockAccounts} onSuccess={mockOnSuccess} />);
 
             const file = new File(['content'], 'statement.ofx', { type: 'application/x-ofx' });
             const input = screen.getByTestId('file-input');
 
-            await user.upload(input, file);
+            fireEvent.change(input, { target: { files: [file] } });
 
             await waitFor(() => {
                 expect(screen.getByTestId('ofx-options')).toBeInTheDocument();
             });
 
             const submitButton = screen.getByText('Submit OFX');
-            await user.click(submitButton);
+            fireEvent.click(submitButton);
 
             await waitFor(() => {
                 expect(mockPost).toHaveBeenCalled();
@@ -247,20 +235,19 @@ describe('UnifiedImportUpload', () => {
         });
 
         test('triggers completion callback for XLSX import', async () => {
-            const user = userEvent.setup();
             render(<UnifiedImportUpload accounts={mockAccounts} onSuccess={mockOnSuccess} />);
 
             const file = new File(['content'], 'statement.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
             const input = screen.getByTestId('file-input');
 
-            await user.upload(input, file);
+            fireEvent.change(input, { target: { files: [file] } });
 
             await waitFor(() => {
                 expect(screen.getByTestId('xlsx-wizard')).toBeInTheDocument();
             });
 
             const completeButton = screen.getByText('Complete XLSX');
-            await user.click(completeButton);
+            fireEvent.click(completeButton);
 
             await waitFor(() => {
                 expect(mockOnSuccess).toHaveBeenCalled();
@@ -270,13 +257,12 @@ describe('UnifiedImportUpload', () => {
 
     describe('Case Insensitivity', () => {
         test('handles uppercase file extensions', async () => {
-            const user = userEvent.setup();
             render(<UnifiedImportUpload accounts={mockAccounts} onSuccess={mockOnSuccess} />);
 
             const file = new File(['content'], 'STATEMENT.OFX', { type: 'application/x-ofx' });
             const input = screen.getByTestId('file-input');
 
-            await user.upload(input, file);
+            fireEvent.change(input, { target: { files: [file] } });
 
             await waitFor(() => {
                 expect(screen.getByTestId('ofx-options')).toBeInTheDocument();
@@ -284,13 +270,12 @@ describe('UnifiedImportUpload', () => {
         });
 
         test('handles mixed case file extensions', async () => {
-            const user = userEvent.setup();
             render(<UnifiedImportUpload accounts={mockAccounts} onSuccess={mockOnSuccess} />);
 
             const file = new File(['content'], 'Statement.XlSx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
             const input = screen.getByTestId('file-input');
 
-            await user.upload(input, file);
+            fireEvent.change(input, { target: { files: [file] } });
 
             await waitFor(() => {
                 expect(screen.getByTestId('xlsx-wizard')).toBeInTheDocument();

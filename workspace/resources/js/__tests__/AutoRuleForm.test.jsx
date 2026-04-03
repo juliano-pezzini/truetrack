@@ -196,8 +196,11 @@ describe('AutoRuleForm Component', () => {
 
     it('shows loading state during submission', async () => {
         const user = userEvent.setup();
+        let resolveSubmit;
         mockOnSubmit.mockImplementation(
-            () => new Promise(resolve => setTimeout(resolve, 100))
+            () => new Promise((resolve) => {
+                resolveSubmit = resolve;
+            }),
         );
 
         render(
@@ -218,8 +221,13 @@ describe('AutoRuleForm Component', () => {
         const submitButton = screen.getByRole('button', { name: /create rule/i });
         await user.click(submitButton);
 
+        expect(submitButton).toBeDisabled();
+        expect(screen.getByRole('button', { name: /saving\.\.\./i })).toBeInTheDocument();
+
+        resolveSubmit();
+
         await waitFor(() => {
-            expect(submitButton).toBeDisabled();
+            expect(submitButton).not.toBeDisabled();
         });
     });
 });
