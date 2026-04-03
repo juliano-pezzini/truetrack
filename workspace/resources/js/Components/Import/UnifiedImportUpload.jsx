@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useForm } from '@inertiajs/react';
+import axios from 'axios';
 import FileDropZone from './FileDropZone';
 import OfxImportOptions from './OfxImportOptions';
 import XlsxSimplifiedWizard from './XlsxSimplifiedWizard';
@@ -8,8 +8,8 @@ export default function UnifiedImportUpload({ accounts, onSuccess }) {
     const [selectedFile, setSelectedFile] = useState(null);
     const [fileType, setFileType] = useState(null); // 'ofx' or 'xlsx'
     const [showOptions, setShowOptions] = useState(false);
-
-    const { data, setData, post, processing, reset } = useForm({
+    const [processing, setProcessing] = useState(false);
+    const [data, setData] = useState({
         file: null,
         account_id: '',
         force_reimport: false,
@@ -35,7 +35,7 @@ export default function UnifiedImportUpload({ accounts, onSuccess }) {
 
         setSelectedFile(file);
         setFileType(type);
-        setData('file', file);
+        setData(prev => ({ ...prev, file }));
         setShowOptions(true);
     };
 
@@ -43,21 +43,46 @@ export default function UnifiedImportUpload({ accounts, onSuccess }) {
         setSelectedFile(null);
         setFileType(null);
         setShowOptions(false);
-        reset();
+        setData({
+            file: null,
+            account_id: '',
+            force_reimport: false,
+        });
     };
 
     // OFX Import handlers
-    const handleOfxSubmit = () => {
-        post(route('api.ofx-imports.store'), {
-            forceFormData: true,
-            onSuccess: () => {
-                handleCancel();
-                if (onSuccess) onSuccess();
-            },
-            onError: (errors) => {
-                console.error('OFX import failed:', errors);
-            },
-        });
+    const handleOfxSubmit = async () => {
+        if (!data.account_id) {
+            alert('Please select an account before importing.');
+            return;
+        }
+
+        setProcessing(true);
+
+        try {
+            const formData = new FormData();
+            formData.append('file', data.file);
+            formData.append('account_id', data.account_id);
+            formData.append('force_reimport', data.force_reimport ? '1' : '0');
+
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+            const response = await axios.post(route('api.ofx-imports.store'), formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    ...(csrfToken && { 'X-CSRF-TOKEN': csrfToken }),
+                },
+            });
+
+            handleCancel();
+            if (onSuccess) onSuccess();
+        } catch (error) {
+            console.error('OFX import failed:', error);
+            const message = error.response?.data?.message || 'Failed to import OFX file. Please try again.';
+            alert(message);
+        } finally {
+            setProcessing(false);
+        }
     };
 
     // XLSX Import handlers
@@ -123,9 +148,9 @@ export default function UnifiedImportUpload({ accounts, onSuccess }) {
                         <OfxImportOptions
                             accounts={accounts}
                             selectedAccount={data.account_id}
-                            onAccountChange={(value) => setData('account_id', value)}
+                            onAccountChange={(value) => setData(prev => ({ ...prev, account_id: value }))}
                             forceReimport={data.force_reimport}
-                            onForceReimportChange={(value) => setData('force_reimport', value)}
+                            onForceReimportChange={(value) => setData(prev => ({ ...prev, force_reimport: value }))}
                             onSubmit={handleOfxSubmit}
                             onCancel={handleCancel}
                             processing={processing}
@@ -158,7 +183,7 @@ export default function UnifiedImportUpload({ accounts, onSuccess }) {
                             file={selectedFile}
                             accounts={accounts}
                             selectedAccount={data.account_id}
-                            onAccountChange={(value) => setData('account_id', value)}
+                            onAccountChange={(value) => setData(prev => ({ ...prev, account_id: value }))}
                             onComplete={handleXlsxComplete}
                             onCancel={handleCancel}
                         />
