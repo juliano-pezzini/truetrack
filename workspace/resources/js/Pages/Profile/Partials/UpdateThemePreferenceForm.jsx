@@ -8,19 +8,19 @@ import { useEffect } from 'react';
 const themeOptions = [
     {
         value: 'light',
-        label: 'Claro',
-        description: 'Interface sempre no modo claro.',
+        label: 'Light',
+        description: 'Always use the light interface theme.',
     },
     {
         value: 'dark',
-        label: 'Escuro',
-        description: 'Interface sempre no modo escuro.',
+        label: 'Dark',
+        description: 'Always use the dark interface theme.',
     },
     {
         value: 'system',
-        label: 'Padrão do Sistema (Automático)',
+        label: 'System Default (Automatic)',
         description:
-            'Segue a configuração de tema do seu sistema ou navegador.',
+            'Follow your operating system or browser theme preference.',
     },
 ];
 
@@ -61,11 +61,11 @@ export default function UpdateThemePreferenceForm({ className = '' }) {
         <section className={className}>
             <header>
                 <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                    Aparência
+                    Appearance
                 </h2>
 
                 <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                    Escolha como o sistema deve exibir o tema da interface.
+                    Choose how the application should display the interface theme.
                 </p>
             </header>
 
@@ -104,7 +104,7 @@ export default function UpdateThemePreferenceForm({ className = '' }) {
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <PrimaryButton disabled={processing}>Salvar</PrimaryButton>
+                    <PrimaryButton disabled={processing}>Save</PrimaryButton>
 
                     <Transition
                         show={recentlySuccessful}
@@ -114,7 +114,7 @@ export default function UpdateThemePreferenceForm({ className = '' }) {
                         leaveTo="opacity-0"
                     >
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Salvo.
+                            Saved.
                         </p>
                     </Transition>
                 </div>

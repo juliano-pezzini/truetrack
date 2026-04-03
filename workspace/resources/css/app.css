@@ -17,63 +17,7 @@
 }
 
 @layer base {
-	html.dark .bg-white {
-		@apply bg-gray-800;
-	}
-
-	html.dark .bg-gray-50 {
-		@apply bg-gray-800;
-	}
-
-	html.dark .bg-gray-100,
-	html.dark .bg-gray-200 {
-		@apply bg-gray-700;
-	}
-
-
-	html.dark .text-gray-900,
-	html.dark .text-gray-800 {
-		@apply text-gray-100;
-	}
-
-	html.dark .text-gray-700 {
-		@apply text-gray-200;
-	}
-
-	html.dark .text-gray-600,
-	html.dark .text-gray-500 {
-		@apply text-gray-400;
-	}
-
-
-	html.dark .border-gray-300,
-	html.dark .border-gray-200,
-	html.dark .border-gray-100 {
-		@apply border-gray-700;
-	}
-
-	html.dark .divide-gray-200 {
-		@apply divide-gray-700;
-	}
-
-	html.dark .hover\:bg-gray-50:hover,
-	html.dark .focus\:bg-gray-50:focus {
-		@apply bg-gray-700;
-	}
-
-	html.dark .hover\:bg-gray-300:hover {
-		@apply bg-gray-600;
-	}
-
-	html.dark .bg-indigo-50 {
-		@apply bg-indigo-900/40;
-	}
-
-	html.dark .hover\:text-gray-700:hover,
-	html.dark .hover\:text-gray-900:hover {
-		@apply text-gray-100;
-	}
-
+	/* Base fallback for native form controls not covered by component-level dark variants. */
 	html.dark input:not([type='checkbox']):not([type='radio']),
 	html.dark select,
 	html.dark textarea {

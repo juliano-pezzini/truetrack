@@ -109,7 +109,10 @@ class ProfileTest extends TestCase
 
     public function test_theme_preference_defaults_to_system(): void
     {
-        $user = User::factory()->create();
+        $attributes = User::factory()->raw();
+        unset($attributes['theme_preference']);
+
+        $user = User::query()->create($attributes);
 
         $this->assertSame('system', $user->theme_preference);
     }

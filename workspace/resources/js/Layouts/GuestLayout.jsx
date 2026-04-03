@@ -9,7 +9,6 @@ export default function GuestLayout({ children }) {
                     <ApplicationLogo
                         className="justify-center"
                         iconClassName="h-16 w-16"
-                        textClassName="text-6xl"
                     />
                 </Link>
             </div>

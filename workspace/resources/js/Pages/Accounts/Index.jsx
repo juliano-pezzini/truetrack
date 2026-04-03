@@ -232,24 +232,29 @@ export default function Index({ auth, accounts, filters }) {
                                         Showing {accounts.from} to {accounts.to} of {accounts.total} results
                                     </div>
                                     <div className="flex gap-2">
-                                        {accounts.links.map((link, index) => (
-                                            <button
-                                                key={index}
-                                                onClick={() => {
-                                                    const normalizedUrl = normalizeInertiaUrl(link.url);
-                                                    if (normalizedUrl) router.visit(normalizedUrl);
-                                                }}
-                                                disabled={!normalizeInertiaUrl(link.url)}
-                                                className={`px-3 py-1 rounded-md ${
-                                                    link.active
-                                                        ? 'bg-indigo-600 text-white'
-                                                        : normalizeInertiaUrl(link.url)
-                                                        ? 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
-                                                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                                }`}
-                                                dangerouslySetInnerHTML={{ __html: link.label }}
-                                            />
-                                        ))}
+                                        {accounts.links.map((link, index) => {
+                                            const normalizedUrl = normalizeInertiaUrl(link.url);
+
+                                            return (
+                                                <button
+                                                    key={index}
+                                                    onClick={() => {
+                                                        if (normalizedUrl) {
+                                                            router.visit(normalizedUrl);
+                                                        }
+                                                    }}
+                                                    disabled={!normalizedUrl}
+                                                    className={`px-3 py-1 rounded-md ${
+                                                        link.active
+                                                            ? 'bg-indigo-600 text-white'
+                                                            : normalizedUrl
+                                                            ? 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                                                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                    }`}
+                                                    dangerouslySetInnerHTML={{ __html: link.label }}
+                                                />
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             )}
