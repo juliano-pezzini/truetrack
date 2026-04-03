@@ -465,7 +465,7 @@ class XlsxImportService
         // Ensure shared readability between web/queue users in containerized envs.
         $directoryPath = Storage::path($directory);
         File::ensureDirectoryExists($directoryPath, 0775, true);
-        if (! chmod($directoryPath, 0775)) {
+        if (! @chmod($directoryPath, 0775)) {
             Log::warning('Failed to set permissions on XLSX import directory.', [
                 'directory' => $directoryPath,
                 'permissions' => '0775',
@@ -476,7 +476,7 @@ class XlsxImportService
         $path = $directory.'/'.$compressedFilename;
         Storage::put($path, $compressed);
         $filePath = Storage::path($path);
-        if (! chmod($filePath, 0664)) {
+        if (! @chmod($filePath, 0664)) {
             Log::warning('Failed to set permissions on XLSX import file.', [
                 'path' => $filePath,
                 'permissions' => '0664',
@@ -549,7 +549,12 @@ class XlsxImportService
         $errorsDirectoryPath = Storage::path('xlsx_imports/errors');
 
         File::ensureDirectoryExists($errorsDirectoryPath, 0775, true);
-        @chmod($errorsDirectoryPath, 0775);
+        if (! @chmod($errorsDirectoryPath, 0775)) {
+            Log::warning('Failed to set permissions on XLSX error report directory.', [
+                'directory' => $errorsDirectoryPath,
+                'permissions' => '0775',
+            ]);
+        }
 
         $csv = "Row Number,Field,Error Message,Raw Value\n";
 
@@ -564,7 +569,13 @@ class XlsxImportService
         }
 
         Storage::put($path, $csv);
-        @chmod(Storage::path($path), 0664);
+        $errorReportFilePath = Storage::path($path);
+        if (! @chmod($errorReportFilePath, 0664)) {
+            Log::warning('Failed to set permissions on XLSX error report file.', [
+                'path' => $errorReportFilePath,
+                'permissions' => '0664',
+            ]);
+        }
 
         return $path;
     }

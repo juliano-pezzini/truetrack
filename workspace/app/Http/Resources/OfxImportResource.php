@@ -49,7 +49,7 @@ class OfxImportResource extends JsonResource
                 return [
                     'id' => $account->id,
                     'name' => $account->name,
-                    'type' => $account->type,
+                    'type' => $account->type->value,
                 ];
             }),
             'reconciliation' => new ReconciliationResource($this->whenLoaded('reconciliation')),

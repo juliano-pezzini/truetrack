@@ -157,7 +157,7 @@ class OfxImportResourceTest extends TestCase
         $this->assertIsArray($array['account']);
         $this->assertEquals($this->account->id, $array['account']['id']);
         $this->assertEquals($this->account->name, $array['account']['name']);
-        $this->assertEquals($this->account->type, $array['account']['type']);
+        $this->assertEquals($this->account->type->value, $array['account']['type']);
     }
 
     public function test_loads_reconciliation_relationship(): void

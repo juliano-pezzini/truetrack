@@ -48,7 +48,7 @@ class ImportResource extends JsonResource
                 return [
                     'id' => $account->id,
                     'name' => $account->name,
-                    'type' => $account->type,
+                    'type' => $account->type->value,
                 ];
             }),
             'status' => $this->resource->status,

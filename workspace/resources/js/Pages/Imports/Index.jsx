@@ -14,6 +14,7 @@ export default function Index({ auth, accounts, imports, filters, activeImportsC
         if (tab === 'history') {
             setHasVisitedHistory(true);
         }
+
         setActiveTab(tab);
     };
 
@@ -32,7 +33,11 @@ export default function Index({ auth, accounts, imports, filters, activeImportsC
         if (!hasActiveImports) return;
 
         const interval = setInterval(() => {
-            router.reload({ preserveScroll: true, preserveState: true, only: ['imports'] });
+            router.reload({
+                preserveScroll: true,
+                preserveState: true,
+                only: ['imports', 'activeImportsCount'],
+            });
         }, 5000); // Refresh every 5 seconds
 
         return () => clearInterval(interval);
@@ -111,154 +116,156 @@ export default function Index({ auth, accounts, imports, filters, activeImportsC
                         onTabChange={handleTabChange}
                     />
 
-                    {activeTab === 'import' && (
-                        <div
-                            role="tabpanel"
-                            id="panel-import"
-                            aria-labelledby="tab-import"
-                        >
-                            {/* Unified Upload Section */}
-                            <UnifiedImportUpload
-                                accounts={accounts}
-                                onSuccess={handleUploadSuccess}
-                            />
-                        </div>
-                    )}
+                    <div
+                        role="tabpanel"
+                        id="panel-import"
+                        aria-labelledby="tab-import"
+                        hidden={activeTab !== 'import'}
+                    >
+                        {/* Unified Upload Section */}
+                        <UnifiedImportUpload
+                            accounts={accounts}
+                            onSuccess={handleUploadSuccess}
+                        />
+                    </div>
 
                     {/* Import History */}
-                    {activeTab === 'history' && hasVisitedHistory && (
                     <div
                         role="tabpanel"
                         id="panel-history"
                         aria-labelledby="tab-history"
+                        hidden={activeTab !== 'history'}
                         className="rounded-lg bg-white p-6 shadow-sm"
                     >
-                        <div className="mb-4 flex items-center justify-between">
-                            <h3 className="text-lg font-semibold text-gray-900">
-                                Import History
-                            </h3>
-                            {meta.total > 0 && (
-                                <span className="text-sm text-gray-500">
-                                    {meta.from}–{meta.to} of {meta.total}
-                                </span>
-                            )}
-                        </div>
-
-                        {/* Filters */}
-                        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                            <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">
-                                    Type
-                                </label>
-                                <select
-                                    className="block w-full rounded-md border-gray-300 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                    value={filters.type}
-                                    onChange={(e) => handleFilterChange('type', e.target.value)}
-                                >
-                                    <option value="">All Types</option>
-                                    <option value="ofx">OFX / QFX</option>
-                                    <option value="xlsx">XLSX / CSV</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">
-                                    Account
-                                </label>
-                                <select
-                                    className="block w-full rounded-md border-gray-300 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                    value={filters.account_id}
-                                    onChange={(e) => handleFilterChange('account_id', e.target.value)}
-                                >
-                                    <option value="">All Accounts</option>
-                                    {accounts.map((acc) => (
-                                        <option key={acc.id} value={acc.id}>
-                                            {acc.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">
-                                    Status
-                                </label>
-                                <select
-                                    className="block w-full rounded-md border-gray-300 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                    value={filters.status}
-                                    onChange={(e) => handleFilterChange('status', e.target.value)}
-                                >
-                                    <option value="">All Statuses</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="processing">Processing</option>
-                                    <option value="completed">Completed</option>
-                                    <option value="failed">Failed</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        {/* Import List */}
-                        <div className="space-y-4">
-                            {importList.length === 0 ? (
-                                <p className="py-8 text-center text-sm text-gray-500">
-                                    No imports found.
-                                </p>
-                            ) : (
-                                importList.map((importData) => (
-                                    <ImportHistoryCard
-                                        key={`${importData.type}-${importData.id}`}
-                                        importData={importData}
-                                        onDelete={handleUploadSuccess}
-                                    />
-                                ))
-                            )}
-                        </div>
-
-                        {/* Pagination */}
-                        {meta.last_page > 1 && (
-                            <div className="mt-6 flex items-center justify-between border-t pt-4">
-                                <button
-                                    onClick={() => goToPage(meta.current_page - 1)}
-                                    disabled={meta.current_page <= 1}
-                                    className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-                                >
-                                    Previous
-                                </button>
-
-                                <div className="flex gap-1">
-                                    {paginationItems.map((item) =>
-                                        item.type === 'ellipsis' ? (
-                                            <span
-                                                key={item.key}
-                                                className="min-w-[2rem] px-2 py-1.5 text-center text-sm font-medium text-gray-400"
-                                            >
-                                                ...
-                                            </span>
-                                        ) : (
-                                            <button
-                                                key={item.value}
-                                                onClick={() => goToPage(item.value)}
-                                                className={`min-w-[2rem] rounded-md px-2 py-1.5 text-sm font-medium ${
-                                                    item.value === meta.current_page
-                                                        ? 'bg-indigo-600 text-white'
-                                                        : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
-                                                }`}
-                                            >
-                                                {item.value}
-                                            </button>
-                                        )
+                        {(activeTab === 'history' || hasVisitedHistory) && (
+                            <>
+                                <div className="mb-4 flex items-center justify-between">
+                                    <h3 className="text-lg font-semibold text-gray-900">
+                                        Import History
+                                    </h3>
+                                    {meta.total > 0 && (
+                                        <span className="text-sm text-gray-500">
+                                            {meta.from}–{meta.to} of {meta.total}
+                                        </span>
                                     )}
                                 </div>
 
-                                <button
-                                    onClick={() => goToPage(meta.current_page + 1)}
-                                    disabled={meta.current_page >= meta.last_page}
-                                    className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-                                >
-                                    Next
-                                </button>
-                            </div>
+                                {/* Filters */}
+                                <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                    <div>
+                                        <label className="mb-1 block text-xs font-medium text-gray-600">
+                                            Type
+                                        </label>
+                                        <select
+                                            className="block w-full rounded-md border-gray-300 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                            value={filters.type}
+                                            onChange={(e) => handleFilterChange('type', e.target.value)}
+                                        >
+                                            <option value="">All Types</option>
+                                            <option value="ofx">OFX / QFX</option>
+                                            <option value="xlsx">XLSX / CSV</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="mb-1 block text-xs font-medium text-gray-600">
+                                            Account
+                                        </label>
+                                        <select
+                                            className="block w-full rounded-md border-gray-300 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                            value={filters.account_id}
+                                            onChange={(e) => handleFilterChange('account_id', e.target.value)}
+                                        >
+                                            <option value="">All Accounts</option>
+                                            {accounts.map((acc) => (
+                                                <option key={acc.id} value={acc.id}>
+                                                    {acc.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="mb-1 block text-xs font-medium text-gray-600">
+                                            Status
+                                        </label>
+                                        <select
+                                            className="block w-full rounded-md border-gray-300 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                            value={filters.status}
+                                            onChange={(e) => handleFilterChange('status', e.target.value)}
+                                        >
+                                            <option value="">All Statuses</option>
+                                            <option value="pending">Pending</option>
+                                            <option value="processing">Processing</option>
+                                            <option value="completed">Completed</option>
+                                            <option value="failed">Failed</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {/* Import List */}
+                                <div className="space-y-4">
+                                    {importList.length === 0 ? (
+                                        <p className="py-8 text-center text-sm text-gray-500">
+                                            No imports found.
+                                        </p>
+                                    ) : (
+                                        importList.map((importData) => (
+                                            <ImportHistoryCard
+                                                key={`${importData.type}-${importData.id}`}
+                                                importData={importData}
+                                                onDelete={handleUploadSuccess}
+                                            />
+                                        ))
+                                    )}
+                                </div>
+
+                                {/* Pagination */}
+                                {meta.last_page > 1 && (
+                                    <div className="mt-6 flex items-center justify-between border-t pt-4">
+                                        <button
+                                            onClick={() => goToPage(meta.current_page - 1)}
+                                            disabled={meta.current_page <= 1}
+                                            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                        >
+                                            Previous
+                                        </button>
+
+                                        <div className="flex gap-1">
+                                            {paginationItems.map((item) =>
+                                                item.type === 'ellipsis' ? (
+                                                    <span
+                                                        key={item.key}
+                                                        className="min-w-[2rem] px-2 py-1.5 text-center text-sm font-medium text-gray-400"
+                                                    >
+                                                        ...
+                                                    </span>
+                                                ) : (
+                                                    <button
+                                                        key={item.value}
+                                                        onClick={() => goToPage(item.value)}
+                                                        className={`min-w-[2rem] rounded-md px-2 py-1.5 text-sm font-medium ${
+                                                            item.value === meta.current_page
+                                                                ? 'bg-indigo-600 text-white'
+                                                                : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                                                        }`}
+                                                    >
+                                                        {item.value}
+                                                    </button>
+                                                )
+                                            )}
+                                        </div>
+
+                                        <button
+                                            onClick={() => goToPage(meta.current_page + 1)}
+                                            disabled={meta.current_page >= meta.last_page}
+                                            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
-                    )}
                 </div>
             </div>
         </AuthenticatedLayout>
