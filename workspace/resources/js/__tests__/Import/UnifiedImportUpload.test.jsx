@@ -1,28 +1,20 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import UnifiedImportUpload from '@/Components/Import/UnifiedImportUpload';
-
-// Mock Inertia useForm hook
-const mockSetData = jest.fn();
-const mockPost = jest.fn();
-const mockReset = jest.fn();
-
-jest.mock('@inertiajs/react', () => ({
-    useForm: jest.fn(() => ({
-        data: {
-            file: null,
-            account_id: '',
-            force_reimport: false,
-        },
-        setData: mockSetData,
-        post: mockPost,
-        processing: false,
-        errors: {},
-        reset: mockReset,
-    })),
-}));
+import axios from 'axios';
 
 // Mock axios
 jest.mock('axios');
+
+global.route = (name) => {
+    const routes = {
+        'api.ofx-imports.store': '/api/v1/ofx-imports',
+        'api.xlsx-imports.detect-columns': '/api/v1/xlsx-imports/detect-columns',
+        'api.xlsx-imports.preview': '/api/v1/xlsx-imports/preview',
+        'api.xlsx-imports.store': '/api/v1/xlsx-imports',
+    };
+
+    return routes[name] || '';
+};
 
 // Mock child components
 jest.mock('@/Components/Import/OfxImportOptions', () => ({
@@ -55,6 +47,7 @@ describe('UnifiedImportUpload', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
+        axios.post.mockResolvedValue({ data: { data: {} } });
         // Mock window.alert
         global.alert = jest.fn();
     });
@@ -76,7 +69,6 @@ describe('UnifiedImportUpload', () => {
             fireEvent.change(input, { target: { files: [file] } });
 
             await waitFor(() => {
-                expect(mockSetData).toHaveBeenCalledWith('file', file);
                 expect(screen.getByTestId('ofx-options')).toBeInTheDocument();
             });
         });
@@ -230,7 +222,11 @@ describe('UnifiedImportUpload', () => {
             fireEvent.click(submitButton);
 
             await waitFor(() => {
-                expect(mockPost).toHaveBeenCalled();
+                expect(axios.post).toHaveBeenCalledWith(
+                    '/api/v1/ofx-imports',
+                    expect.any(FormData)
+                );
+                expect(mockOnSuccess).toHaveBeenCalled();
             });
         });
 
