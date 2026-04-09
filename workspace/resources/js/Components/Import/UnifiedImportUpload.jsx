@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useForm } from '@inertiajs/react';
+import axios from 'axios';
 import FileDropZone from './FileDropZone';
 import OfxImportOptions from './OfxImportOptions';
 import XlsxSimplifiedWizard from './XlsxSimplifiedWizard';
@@ -8,12 +8,9 @@ export default function UnifiedImportUpload({ accounts, onSuccess }) {
     const [selectedFile, setSelectedFile] = useState(null);
     const [fileType, setFileType] = useState(null); // 'ofx' or 'xlsx'
     const [showOptions, setShowOptions] = useState(false);
-
-    const { data, setData, post, processing, reset } = useForm({
-        file: null,
-        account_id: '',
-        force_reimport: false,
-    });
+    const [selectedAccount, setSelectedAccount] = useState('');
+    const [forceReimport, setForceReimport] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const detectFileType = (file) => {
         const extension = file.name.split('.').pop().toLowerCase();
@@ -35,7 +32,6 @@ export default function UnifiedImportUpload({ accounts, onSuccess }) {
 
         setSelectedFile(file);
         setFileType(type);
-        setData('file', file);
         setShowOptions(true);
     };
 
@@ -43,21 +39,33 @@ export default function UnifiedImportUpload({ accounts, onSuccess }) {
         setSelectedFile(null);
         setFileType(null);
         setShowOptions(false);
-        reset();
+        setSelectedAccount('');
+        setForceReimport(false);
+        setIsSubmitting(false);
     };
 
     // OFX Import handlers
-    const handleOfxSubmit = () => {
-        post(route('api.ofx-imports.store'), {
-            forceFormData: true,
-            onSuccess: () => {
-                handleCancel();
-                if (onSuccess) onSuccess();
-            },
-            onError: (errors) => {
-                console.error('OFX import failed:', errors);
-            },
-        });
+    const handleOfxSubmit = async () => {
+        if (!selectedFile) {
+            return;
+        }
+
+        setIsSubmitting(true);
+
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        formData.append('account_id', selectedAccount);
+        formData.append('force_reimport', forceReimport ? '1' : '0');
+
+        try {
+            await axios.post(route('api.ofx-imports.store'), formData);
+            handleCancel();
+            if (onSuccess) onSuccess();
+        } catch (errors) {
+            console.error('OFX import failed:', errors);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     // XLSX Import handlers
@@ -70,7 +78,7 @@ export default function UnifiedImportUpload({ accounts, onSuccess }) {
     return (
         <div className="relative rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
             {/* Loading Overlay */}
-            {processing && (
+            {isSubmitting && (
                 <div className="absolute inset-0 z-50 flex items-center justify-center rounded-lg bg-white bg-opacity-90 dark:bg-gray-900/90">
                     <div className="text-center">
                         <div className="mx-auto h-16 w-16 animate-spin rounded-full border-4 border-gray-200 border-t-indigo-600 dark:border-gray-700 dark:border-t-indigo-400"></div>
@@ -95,7 +103,7 @@ export default function UnifiedImportUpload({ accounts, onSuccess }) {
                     <FileDropZone
                         onFileSelect={handleFileSelect}
                         selectedFile={selectedFile}
-                        disabled={processing}
+                        disabled={isSubmitting}
                     />
                 )}
 
@@ -122,13 +130,13 @@ export default function UnifiedImportUpload({ accounts, onSuccess }) {
                         </div>
                         <OfxImportOptions
                             accounts={accounts}
-                            selectedAccount={data.account_id}
-                            onAccountChange={(value) => setData('account_id', value)}
-                            forceReimport={data.force_reimport}
-                            onForceReimportChange={(value) => setData('force_reimport', value)}
+                            selectedAccount={selectedAccount}
+                            onAccountChange={setSelectedAccount}
+                            forceReimport={forceReimport}
+                            onForceReimportChange={setForceReimport}
                             onSubmit={handleOfxSubmit}
                             onCancel={handleCancel}
-                            processing={processing}
+                            processing={isSubmitting}
                         />
                     </div>
                 )}
