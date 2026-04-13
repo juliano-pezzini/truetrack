@@ -23,12 +23,9 @@ class TransactionController extends Controller
 {
     use AuthorizesRequests;
 
-    private AccountingService $accountingService;
-
-    public function __construct(AccountingService $accountingService)
-    {
-        $this->accountingService = $accountingService;
-    }
+    public function __construct(
+        private readonly AccountingService $accountingService
+    ) {}
 
     /**
      * Display a listing of the resource.
