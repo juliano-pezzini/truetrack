@@ -240,6 +240,10 @@ class TransactionController extends Controller
         $deletedCount = $this->accountingService->deleteTransactions($transactions);
 
         return redirect()->route('transactions.index')
-            ->with('success', sprintf('%d transactions deleted successfully.', $deletedCount));
+            ->with('success', trans_choice(
+                ':count transaction deleted successfully.|:count transactions deleted successfully.',
+                $deletedCount,
+                ['count' => $deletedCount]
+            ));
     }
 }
