@@ -151,7 +151,9 @@ class AccountingService
                 ->sort()
                 ->values();
 
+            // Fetch all accounts including soft-deleted (transactions may reference trashed accounts)
             $accounts = Account::query()
+                ->withTrashed()
                 ->whereIn('id', $accountIds)
                 ->orderBy('id')
                 ->lockForUpdate()
@@ -183,7 +185,7 @@ class AccountingService
                 $account = $accounts->get($accountId);
 
                 if (! $account instanceof Account) {
-                    continue;
+                    throw new RuntimeException(sprintf('Account %d not found or not locked properly.', $accountId));
                 }
 
                 /** @var Carbon $firstAffectedMonth */
