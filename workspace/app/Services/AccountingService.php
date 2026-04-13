@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
+use RuntimeException;
 
 class AccountingService
 {
@@ -125,9 +126,7 @@ class AccountingService
      */
     public function deleteTransaction(Transaction $transaction): bool
     {
-        $this->deleteTransactions([$transaction]);
-
-        return true;
+        return $this->deleteTransactions([$transaction]) === 1;
     }
 
     /**
@@ -160,9 +159,16 @@ class AccountingService
                 ->keyBy('id');
 
             $affectedPeriods = [];
+            $deletedCount = 0;
 
             foreach ($transactions as $transaction) {
-                $transaction->delete();
+                $deleted = $transaction->delete();
+
+                if ($deleted === false) {
+                    throw new RuntimeException(sprintf('Failed to delete transaction %d.', $transaction->id));
+                }
+
+                $deletedCount++;
 
                 $transactionDate = Carbon::parse((string) $transaction->transaction_date);
 
@@ -187,7 +193,7 @@ class AccountingService
 
             DB::commit();
 
-            return $transactions->count();
+            return $deletedCount;
         } catch (\Exception $e) {
             DB::rollBack();
             throw $e;
