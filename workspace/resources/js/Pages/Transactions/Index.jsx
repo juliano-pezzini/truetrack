@@ -98,16 +98,13 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
         const transactionLabel = transactionCount === 1 ? 'transaction' : 'transactions';
 
         if (confirm(`Are you sure you want to delete ${transactionCount} selected ${transactionLabel}? This will adjust the account balances.`)) {
-            router.delete(
-                route('transactions.bulk-destroy'),
-                {
+            router.delete(route('transactions.bulk-destroy'), {
+                data: {
                     transaction_ids: selectedTransactionIds,
                 },
-                {
-                    preserveScroll: true,
-                    onSuccess: () => setSelectedTransactionIds([]),
-                }
-            );
+                preserveScroll: true,
+                onSuccess: () => setSelectedTransactionIds([]),
+            });
         }
     };
 

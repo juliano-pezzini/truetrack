@@ -147,8 +147,11 @@ describe('Transactions Index', () => {
         );
         expect(router.delete).toHaveBeenCalledWith(
             '/transactions/bulk-delete',
-            { transaction_ids: [1] },
-            expect.objectContaining({ preserveScroll: true, onSuccess: expect.any(Function) })
+            expect.objectContaining({
+                data: { transaction_ids: [1] },
+                preserveScroll: true,
+                onSuccess: expect.any(Function),
+            })
         );
     });
 
