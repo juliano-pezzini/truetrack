@@ -164,9 +164,11 @@ class AccountingService
             foreach ($transactions as $transaction) {
                 $transaction->delete();
 
-                $affectedPeriods[$transaction->account_id][$transaction->transaction_date->format('Y-m')] = Carbon::create(
-                    $transaction->transaction_date->year,
-                    $transaction->transaction_date->month,
+                $transactionDate = Carbon::parse((string) $transaction->transaction_date);
+
+                $affectedPeriods[$transaction->account_id][$transactionDate->format('Y-m')] = Carbon::create(
+                    $transactionDate->year,
+                    $transactionDate->month,
                     1
                 );
             }
