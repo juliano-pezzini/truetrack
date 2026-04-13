@@ -200,16 +200,36 @@ class AccountingService
                     ->orderByDesc('month')
                     ->first();
 
-                $lastMonthToRecalculate = Carbon::now()->startOfMonth();
+                // Limit recalculation to necessary months:
+                // Use the latest existing snapshot month as baseline,
+                // but extend through the latest remaining transaction month
+                // to avoid creating unnecessary snapshots for months with no activity.
+                $lastMonthToRecalculate = null;
 
                 if ($latestSnapshot !== null) {
-                    $latestSnapshotMonth = Carbon::create($latestSnapshot->year, $latestSnapshot->month, 1)->startOfMonth();
+                    $lastMonthToRecalculate = Carbon::create($latestSnapshot->year, $latestSnapshot->month, 1)->startOfMonth();
+                }
 
-                    if ($latestSnapshotMonth->greaterThan($lastMonthToRecalculate)) {
-                        $lastMonthToRecalculate = $latestSnapshotMonth;
+                $latestTransactionMonth = Transaction::query()
+                    ->where('account_id', $account->id)
+                    ->whereNull('deleted_at')
+                    ->orderByDesc('transaction_date')
+                    ->value('transaction_date');
+
+                if ($latestTransactionMonth !== null) {
+                    $latestTransactionMonthStart = Carbon::parse((string) $latestTransactionMonth)->startOfMonth();
+
+                    if ($lastMonthToRecalculate === null || $latestTransactionMonthStart->greaterThan($lastMonthToRecalculate)) {
+                        $lastMonthToRecalculate = $latestTransactionMonthStart;
                     }
                 }
 
+                // Even if no existing snapshots or remaining transactions,
+                // always recalculate at least the affected month to ensure
+                // its balance snapshot reflects the deletion(s).
+                if ($lastMonthToRecalculate === null || $firstAffectedMonth->greaterThan($lastMonthToRecalculate)) {
+                    $lastMonthToRecalculate = $firstAffectedMonth;
+                }
                 $monthCursor = $firstAffectedMonth->copy();
 
                 while ($monthCursor->lessThanOrEqualTo($lastMonthToRecalculate)) {
