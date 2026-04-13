@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\BulkDeleteTransactionRequest;
 use App\Http\Requests\StoreTransactionRequest;
 use App\Http\Requests\UpdateTransactionRequest;
 use App\Models\Account;
@@ -21,9 +22,12 @@ class TransactionController extends Controller
 {
     use AuthorizesRequests;
 
-    public function __construct(
-        private readonly AccountingService $accountingService
-    ) {}
+    private AccountingService $accountingService;
+
+    public function __construct(AccountingService $accountingService)
+    {
+        $this->accountingService = $accountingService;
+    }
 
     /**
      * Display a listing of the resource.
@@ -211,5 +215,31 @@ class TransactionController extends Controller
 
         return redirect()->route('transactions.index')
             ->with('success', 'Transaction deleted successfully.');
+    }
+
+    /**
+     * Remove multiple transactions from storage.
+     */
+    public function bulkDestroy(BulkDeleteTransactionRequest $request): RedirectResponse
+    {
+        $transactionIds = array_values(array_unique($request->validated('transaction_ids')));
+
+        $transactions = Transaction::query()
+            ->where('user_id', $request->user()->id)
+            ->whereIn('id', $transactionIds)
+            ->get();
+
+        if ($transactions->count() !== count($transactionIds)) {
+            abort(403);
+        }
+
+        foreach ($transactions as $transaction) {
+            $this->authorize('delete', $transaction);
+        }
+
+        $deletedCount = $this->accountingService->deleteTransactions($transactions);
+
+        return redirect()->route('transactions.index')
+            ->with('success', sprintf('%d transactions deleted successfully.', $deletedCount));
     }
 }

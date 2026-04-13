@@ -9,6 +9,7 @@ use App\Models\Account;
 use App\Models\AccountBalance;
 use App\Models\Transaction;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -124,26 +125,67 @@ class AccountingService
      */
     public function deleteTransaction(Transaction $transaction): bool
     {
+        $this->deleteTransactions([$transaction]);
+
+        return true;
+    }
+
+    /**
+     * Delete multiple transactions and recalculate affected balances.
+     *
+     * @param  iterable<Transaction>  $transactions
+     */
+    public function deleteTransactions(iterable $transactions): int
+    {
+        $transactions = Collection::make($transactions)->values();
+
+        if ($transactions->isEmpty()) {
+            return 0;
+        }
+
         DB::beginTransaction();
 
         try {
-            // Lock account
-            $account = Account::query()
-                ->where('id', $transaction->account_id)
+            $accountIds = $transactions
+                ->pluck('account_id')
+                ->unique()
+                ->sort()
+                ->values();
+
+            $accounts = Account::query()
+                ->whereIn('id', $accountIds)
+                ->orderBy('id')
                 ->lockForUpdate()
-                ->firstOrFail();
+                ->get()
+                ->keyBy('id');
 
-            $transactionDate = Carbon::parse($transaction->transaction_date);
+            $affectedPeriods = [];
 
-            // Delete transaction (soft delete)
-            $transaction->delete();
+            foreach ($transactions as $transaction) {
+                $transaction->delete();
 
-            // Recalculate balance for this month
-            $this->recalculateMonthlyBalance($account, $transactionDate);
+                $affectedPeriods[$transaction->account_id][$transaction->transaction_date->format('Y-m')] = Carbon::create(
+                    $transaction->transaction_date->year,
+                    $transaction->transaction_date->month,
+                    1
+                );
+            }
+
+            foreach ($affectedPeriods as $accountId => $periods) {
+                $account = $accounts->get($accountId);
+
+                if (! $account instanceof Account) {
+                    continue;
+                }
+
+                foreach ($periods as $date) {
+                    $this->recalculateMonthlyBalance($account, $date);
+                }
+            }
 
             DB::commit();
 
-            return true;
+            return $transactions->count();
         } catch (\Exception $e) {
             DB::rollBack();
             throw $e;

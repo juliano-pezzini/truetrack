@@ -10,6 +10,14 @@ global.route = (name, params) => {
         'accounts.edit': (id) => `/accounts/${id}/edit`,
         'accounts.update': (id) => `/accounts/${id}`,
         'accounts.destroy': (id) => `/accounts/${id}`,
+        'transactions.index': '/transactions',
+        'transactions.create': '/transactions/create',
+        'transactions.store': '/transactions',
+        'transactions.show': (id) => `/transactions/${id}`,
+        'transactions.edit': (id) => `/transactions/${id}/edit`,
+        'transactions.update': (id) => `/transactions/${id}`,
+        'transactions.destroy': (id) => `/transactions/${id}`,
+        'transactions.bulk-destroy': '/transactions/bulk-delete',
     };
 
     if (typeof routes[name] === 'function') {
