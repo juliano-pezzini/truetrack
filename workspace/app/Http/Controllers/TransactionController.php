@@ -15,6 +15,7 @@ use App\Services\AccountingService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -230,7 +231,9 @@ class TransactionController extends Controller
             ->get();
 
         if ($transactions->count() !== count($transactionIds)) {
-            abort(403);
+            throw ValidationException::withMessages([
+                'transaction_ids' => ['One or more selected transactions are invalid.'],
+            ]);
         }
 
         foreach ($transactions as $transaction) {

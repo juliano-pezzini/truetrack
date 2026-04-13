@@ -338,4 +338,22 @@ class TransactionControllerTest extends TestCase
 
         $response->assertSessionHasErrors(['transaction_ids.0']);
     }
+
+    public function test_user_cannot_bulk_delete_soft_deleted_transactions(): void
+    {
+        $transaction = Transaction::factory()
+            ->for($this->user)
+            ->for($this->account)
+            ->for($this->category)
+            ->create();
+
+        $transaction->delete();
+
+        $response = $this->actingAs($this->user)
+            ->delete(route('transactions.bulk-destroy'), [
+                'transaction_ids' => [$transaction->id],
+            ]);
+
+        $response->assertSessionHasErrors(['transaction_ids.0']);
+    }
 }

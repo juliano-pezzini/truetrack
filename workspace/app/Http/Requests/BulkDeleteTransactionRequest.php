@@ -28,7 +28,9 @@ class BulkDeleteTransactionRequest extends FormRequest
             'transaction_ids' => ['required', 'array', 'min:1'],
             'transaction_ids.*' => [
                 'integer',
-                Rule::exists('transactions', 'id')->where('user_id', $this->user()->id),
+                Rule::exists('transactions', 'id')
+                    ->where('user_id', $this->user()->id)
+                    ->whereNull('deleted_at'),
             ],
         ];
     }
