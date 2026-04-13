@@ -186,8 +186,33 @@ class AccountingService
                     continue;
                 }
 
-                foreach ($periods as $date) {
-                    $this->recalculateMonthlyBalance($account, $date);
+                /** @var Carbon $firstAffectedMonth */
+                $firstAffectedMonth = Collection::make($periods)
+                    ->sortBy(fn (Carbon $date): int => $date->year * 100 + $date->month)
+                    ->first()
+                    ->startOfMonth();
+
+                $latestSnapshot = AccountBalance::query()
+                    ->where('account_id', $account->id)
+                    ->orderByDesc('year')
+                    ->orderByDesc('month')
+                    ->first();
+
+                $lastMonthToRecalculate = Carbon::now()->startOfMonth();
+
+                if ($latestSnapshot !== null) {
+                    $latestSnapshotMonth = Carbon::create($latestSnapshot->year, $latestSnapshot->month, 1)->startOfMonth();
+
+                    if ($latestSnapshotMonth->greaterThan($lastMonthToRecalculate)) {
+                        $lastMonthToRecalculate = $latestSnapshotMonth;
+                    }
+                }
+
+                $monthCursor = $firstAffectedMonth->copy();
+
+                while ($monthCursor->lessThanOrEqualTo($lastMonthToRecalculate)) {
+                    $this->recalculateMonthlyBalance($account, $monthCursor);
+                    $monthCursor->addMonth();
                 }
             }
 
