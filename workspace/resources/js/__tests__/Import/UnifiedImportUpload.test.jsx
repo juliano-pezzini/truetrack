@@ -1,5 +1,4 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import axios from 'axios';
 import UnifiedImportUpload from '@/Components/Import/UnifiedImportUpload';
 
@@ -45,6 +44,7 @@ describe('UnifiedImportUpload', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
+        axios.post.mockResolvedValue({ data: { data: {} } });
         // Mock window.alert
         global.alert = jest.fn();
     });
@@ -203,6 +203,29 @@ describe('UnifiedImportUpload', () => {
     });
 
     describe('Import Submission', () => {
+        test('triggers submission callback for OFX import', async () => {
+            render(<UnifiedImportUpload accounts={mockAccounts} onSuccess={mockOnSuccess} />);
+
+            const file = new File(['content'], 'statement.ofx', { type: 'application/x-ofx' });
+            const input = screen.getByTestId('file-input');
+
+            fireEvent.change(input, { target: { files: [file] } });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('ofx-options')).toBeInTheDocument();
+            });
+
+            const submitButton = screen.getByText('Submit OFX');
+            fireEvent.click(submitButton);
+
+            await waitFor(() => {
+                expect(axios.post).toHaveBeenCalledWith(
+                    '/api/v1/ofx-imports',
+                    expect.any(FormData)
+                );
+                expect(mockOnSuccess).toHaveBeenCalled();
+            });
+        });
         test('triggers completion callback for XLSX import', async () => {
             render(<UnifiedImportUpload accounts={mockAccounts} onSuccess={mockOnSuccess} />);
 
