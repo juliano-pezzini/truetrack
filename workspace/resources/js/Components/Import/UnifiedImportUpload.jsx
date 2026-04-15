@@ -69,7 +69,6 @@ export default function UnifiedImportUpload({ accounts, onSuccess }) {
         }
 
         setProcessing(true);
-        let shouldResetProcessingInFinally = true;
 
         try {
             const formData = new FormData();
@@ -82,23 +81,16 @@ export default function UnifiedImportUpload({ accounts, onSuccess }) {
                 withXSRFToken: true,
             });
 
-            if (!isMountedRef.current) {
-                shouldResetProcessingInFinally = false;
-                return;
-            }
-
             if (isMountedRef.current) {
-                setProcessing(false);
+                handleCancel();
+                if (onSuccess) onSuccess();
             }
-            shouldResetProcessingInFinally = false;
-            handleCancel();
-            if (onSuccess) onSuccess();
         } catch (error) {
             console.error('OFX import failed:', error);
             const message = error.response?.data?.message || 'Failed to import OFX file. Please try again.';
             alert(message);
         } finally {
-            if (shouldResetProcessingInFinally && isMountedRef.current) {
+            if (isMountedRef.current) {
                 setProcessing(false);
             }
         }

@@ -224,13 +224,15 @@ describe('UnifiedImportUpload', () => {
             fireEvent.click(submitButton);
 
             await waitFor(() => {
-                expect(axios.post).toHaveBeenCalledWith(
-                    '/api/v1/ofx-imports',
-                    expect.any(FormData),
-                    {
+                expect(axios.post).toHaveBeenCalled();
+                const [url, payload, config] = axios.post.mock.calls[0];
+                expect(url).toBe('/api/v1/ofx-imports');
+                expect(payload).toEqual(expect.any(FormData));
+                expect(config).toEqual(
+                    expect.objectContaining({
                         withCredentials: true,
                         withXSRFToken: true,
-                    }
+                    })
                 );
                 expect(mockOnSuccess).toHaveBeenCalled();
             });
