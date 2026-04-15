@@ -86,7 +86,7 @@ describe('Transactions Index', () => {
 
         expect(screen.getByText('Transaction List')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /Delete Selected \(0\)/i })).toBeDisabled();
-        expect(screen.getByLabelText('Select all transactions')).toBeInTheDocument();
+        expect(screen.getByLabelText('Select all visible transactions')).toBeInTheDocument();
     });
 
     test('enables bulk delete after selecting a row', () => {
@@ -118,7 +118,7 @@ describe('Transactions Index', () => {
             />
         );
 
-        fireEvent.click(screen.getByLabelText('Select all transactions'));
+        fireEvent.click(screen.getByLabelText('Select all visible transactions'));
 
         expect(screen.getByLabelText('Select transaction 1')).toBeChecked();
         expect(screen.getByLabelText('Select transaction 2')).toBeChecked();

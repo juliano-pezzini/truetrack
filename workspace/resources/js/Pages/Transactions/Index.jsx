@@ -371,7 +371,7 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
                                                             type="checkbox"
                                                             checked={allVisibleSelected}
                                                             onChange={toggleAllVisibleTransactions}
-                                                            aria-label="Select all transactions"
+                                                            aria-label="Select all visible transactions"
                                                             className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600"
                                                         />
                                                     </th>
