@@ -15,9 +15,10 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
     const selectAllRef = useRef(null);
 
     const visibleTransactionIds = transactions?.data?.map((transaction) => transaction.id) || [];
+    const selectedTransactionIdSet = new Set(selectedTransactionIds);
     const allVisibleSelected = visibleTransactionIds.length > 0
-        && visibleTransactionIds.every((transactionId) => selectedTransactionIds.includes(transactionId));
-    const someVisibleSelected = visibleTransactionIds.some((transactionId) => selectedTransactionIds.includes(transactionId));
+        && visibleTransactionIds.every((transactionId) => selectedTransactionIdSet.has(transactionId));
+    const someVisibleSelected = visibleTransactionIds.some((transactionId) => selectedTransactionIdSet.has(transactionId));
 
     useEffect(() => {
         if (selectAllRef.current) {
@@ -402,7 +403,7 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
                                             </thead>
                                             <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
                                                 {transactions?.data?.map((transaction) => {
-                                                    const isSelected = selectedTransactionIds.includes(transaction.id);
+                                                    const isSelected = selectedTransactionIdSet.has(transaction.id);
 
                                                     return (
                                                         <tr key={transaction.id} className={`hover:bg-gray-50 dark:hover:bg-gray-700/40 ${isSelected ? 'bg-indigo-50/60 dark:bg-indigo-900/20' : ''}`}>

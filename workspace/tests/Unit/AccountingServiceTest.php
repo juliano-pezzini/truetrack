@@ -343,6 +343,42 @@ class AccountingServiceTest extends TestCase
         }
     }
 
+    public function test_delete_transactions_deduplicates_duplicate_transaction_instances(): void
+    {
+        $testNow = Carbon::parse('2026-01-31 12:00:00');
+        Carbon::setTestNow($testNow);
+
+        try {
+            $user = User::factory()->create();
+            $account = Account::factory()->for($user)->create([
+                'type' => AccountType::BANK,
+                'initial_balance' => 1000.00,
+                'created_at' => $testNow->copy()->startOfMonth(),
+            ]);
+            $category = Category::factory()->for($user)->create();
+
+            $transaction = $this->service->recordTransaction([
+                'user_id' => $user->id,
+                'account_id' => $account->id,
+                'category_id' => $category->id,
+                'amount' => 100.00,
+                'transaction_date' => $testNow->copy()->startOfMonth()->addDays(9)->format('Y-m-d'),
+                'type' => TransactionType::CREDIT,
+            ]);
+
+            $deletedCount = $this->service->deleteTransactions([$transaction, $transaction]);
+
+            $this->assertSame(1, $deletedCount);
+            $this->assertSoftDeleted('transactions', ['id' => $transaction->id]);
+            $this->assertEquals(
+                1000.00,
+                $this->service->calculateBalance($account->fresh(), $testNow->copy()->endOfDay())
+            );
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
     public function test_delete_transactions_recalculates_snapshots_for_multiple_accounts_and_months(): void
     {
         $testNow = Carbon::parse('2026-03-31 12:00:00');

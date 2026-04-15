@@ -136,7 +136,15 @@ class AccountingService
      */
     public function deleteTransactions(iterable $transactions): int
     {
-        $transactions = Collection::make($transactions)->values();
+        $transactions = Collection::make($transactions)
+            ->unique(static function (Transaction $transaction): string {
+                $transactionKey = $transaction->getKey();
+
+                return $transactionKey !== null
+                    ? 'id:'.$transactionKey
+                    : 'object:'.spl_object_hash($transaction);
+            })
+            ->values();
 
         if ($transactions->isEmpty()) {
             return 0;
