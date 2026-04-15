@@ -47,6 +47,10 @@ export default function UnifiedImportUpload({ accounts, onSuccess }) {
     };
 
     const handleCancel = () => {
+        if (!isMountedRef.current) {
+            return;
+        }
+
         setSelectedFile(null);
         setFileType(null);
         setShowOptions(false);
@@ -77,6 +81,11 @@ export default function UnifiedImportUpload({ accounts, onSuccess }) {
                 withCredentials: true,
                 withXSRFToken: true,
             });
+
+            if (!isMountedRef.current) {
+                shouldResetProcessingInFinally = false;
+                return;
+            }
 
             if (isMountedRef.current) {
                 setProcessing(false);
