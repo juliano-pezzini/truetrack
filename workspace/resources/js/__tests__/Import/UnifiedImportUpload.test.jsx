@@ -16,9 +16,12 @@ global.route = (name) => {
 // Mock child components
 jest.mock('@/Components/Import/OfxImportOptions', () => ({
     __esModule: true,
-    default: ({ onSubmit, onCancel }) => (
+    default: ({ onSubmit, onCancel, onAccountChange }) => (
         <div data-testid="ofx-options">
-            <button onClick={onSubmit}>Submit OFX</button>
+            <button onClick={() => onAccountChange('1')}>Select Account</button>
+            <button onClick={onSubmit}>
+                Submit OFX
+            </button>
             <button onClick={onCancel}>Cancel</button>
         </div>
     ),
@@ -214,6 +217,8 @@ describe('UnifiedImportUpload', () => {
             await waitFor(() => {
                 expect(screen.getByTestId('ofx-options')).toBeInTheDocument();
             });
+
+            fireEvent.click(screen.getByText('Select Account'));
 
             const submitButton = screen.getByText('Submit OFX');
             fireEvent.click(submitButton);
