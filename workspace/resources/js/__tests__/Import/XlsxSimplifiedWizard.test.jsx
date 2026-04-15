@@ -21,7 +21,18 @@ jest.mock('@/Components/XlsxImport/XlsxColumnMapper', () => ({
     __esModule: true,
     default: ({ onMappingConfirmed, onBack }) => (
         <div data-testid="column-mapper">
-            <button onClick={() => onMappingConfirmed({ date: 'A', amount: 'B' })}>
+            <button
+                onClick={() =>
+                    onMappingConfirmed({
+                        date_column: 'A',
+                        description_column: 'B',
+                        amount_strategy: 'single_column',
+                        amount_column: 'C',
+                        debit_column: null,
+                        credit_column: null,
+                    })
+                }
+            >
                 Confirm Mapping
             </button>
             <button onClick={onBack}>Back</button>
@@ -295,7 +306,7 @@ describe('XlsxSimplifiedWizard', () => {
                         data: {
                             errors: {
                                 account_id: ['The account_id must be a valid account'],
-                                'mapping_config.date': ['Invalid date format'],
+                                'mapping_config.date_column': ['Invalid date format'],
                             },
                         },
                     },
@@ -333,7 +344,7 @@ describe('XlsxSimplifiedWizard', () => {
             await waitFor(() => {
                 const errorText = screen.getByText(/Validation failed/i).textContent;
                 expect(errorText).toContain('account_id');
-                expect(errorText).toContain('mapping_config.date');
+                expect(errorText).toContain('mapping_config.date_column');
             });
 
             expect(mockOnComplete).not.toHaveBeenCalled();
