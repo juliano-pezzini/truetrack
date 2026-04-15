@@ -65,13 +65,9 @@ export default function UnifiedImportUpload({ accounts, onSuccess }) {
             formData.append('account_id', data.account_id);
             formData.append('force_reimport', data.force_reimport ? '1' : '0');
 
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-
-            const response = await axios.post(route('api.ofx-imports.store'), formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                    ...(csrfToken && { 'X-CSRF-TOKEN': csrfToken }),
-                },
+            await axios.post(route('api.ofx-imports.store'), formData, {
+                withCredentials: true,
+                withXSRFToken: true,
             });
 
             handleCancel();

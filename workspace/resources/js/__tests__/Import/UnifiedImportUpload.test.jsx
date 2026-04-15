@@ -221,7 +221,11 @@ describe('UnifiedImportUpload', () => {
             await waitFor(() => {
                 expect(axios.post).toHaveBeenCalledWith(
                     '/api/v1/ofx-imports',
-                    expect.any(FormData)
+                    expect.any(FormData),
+                    {
+                        withCredentials: true,
+                        withXSRFToken: true,
+                    }
                 );
                 expect(mockOnSuccess).toHaveBeenCalled();
             });

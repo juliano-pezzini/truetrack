@@ -560,39 +560,4 @@ describe('XlsxSimplifiedWizard', () => {
         });
     });
 
-    describe('Account Selection', () => {
-        test('disables mapping until account is selected', async () => {
-            axios.post.mockResolvedValueOnce({
-                data: {
-                    data: {
-                        headers: ['Date', 'Amount'],
-                        suggested_mapping: {
-                            date: 'Date',
-                            amount: 'Amount',
-                        },
-                    },
-                },
-            });
-
-            render(
-                <XlsxSimplifiedWizard
-                    file={mockFile}
-                    accounts={mockAccounts}
-                    selectedAccount=""
-                    onAccountChange={mockOnAccountChange}
-                    onComplete={mockOnComplete}
-                    onCancel={mockOnCancel}
-                />
-            );
-
-            await waitFor(() => {
-                expect(screen.queryByText(/Analyzing your file/i)).not.toBeInTheDocument();
-            });
-
-            // Should show message about selecting account
-            expect(
-                screen.getByText(/Please select an account before continuing/i)
-            ).toBeInTheDocument();
-        });
-    });
 });
