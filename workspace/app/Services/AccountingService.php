@@ -238,12 +238,48 @@ class AccountingService
                 if ($lastMonthToRecalculate === null || $firstAffectedMonth->greaterThan($lastMonthToRecalculate)) {
                     $lastMonthToRecalculate = $firstAffectedMonth;
                 }
-                $monthCursor = $firstAffectedMonth->copy();
+                $monthsToRecalculate = Collection::make($periods)
+                    ->map(fn (Carbon $date): Carbon => $date->copy()->startOfMonth())
+                    ->keyBy(fn (Carbon $date): string => $date->format('Y-m'));
 
-                while ($monthCursor->lessThanOrEqualTo($lastMonthToRecalculate)) {
-                    $this->recalculateMonthlyBalance($account, $monthCursor);
-                    $monthCursor->addMonth();
+                $existingSnapshotMonths = AccountBalance::query()
+                    ->where('account_id', $account->id)
+                    ->where(function ($query) use ($firstAffectedMonth): void {
+                        $query
+                            ->where('year', '>', $firstAffectedMonth->year)
+                            ->orWhere(function ($nestedQuery) use ($firstAffectedMonth): void {
+                                $nestedQuery
+                                    ->where('year', $firstAffectedMonth->year)
+                                    ->where('month', '>=', $firstAffectedMonth->month);
+                            });
+                    })
+                    ->where(function ($query) use ($lastMonthToRecalculate): void {
+                        $query
+                            ->where('year', '<', $lastMonthToRecalculate->year)
+                            ->orWhere(function ($nestedQuery) use ($lastMonthToRecalculate): void {
+                                $nestedQuery
+                                    ->where('year', $lastMonthToRecalculate->year)
+                                    ->where('month', '<=', $lastMonthToRecalculate->month);
+                            });
+                    })
+                    ->orderBy('year')
+                    ->orderBy('month')
+                    ->get(['year', 'month'])
+                    ->map(function (AccountBalance $snapshot): Carbon {
+                        return Carbon::create($snapshot->year, $snapshot->month, 1)->startOfMonth();
+                    });
+
+                foreach ($existingSnapshotMonths as $snapshotMonth) {
+                    $monthsToRecalculate->put($snapshotMonth->format('Y-m'), $snapshotMonth);
                 }
+
+                $monthsToRecalculate->put($lastMonthToRecalculate->format('Y-m'), $lastMonthToRecalculate->copy()->startOfMonth());
+
+                $monthsToRecalculate
+                    ->sortBy(fn (Carbon $date): int => $date->year * 100 + $date->month)
+                    ->each(function (Carbon $month) use ($account): void {
+                        $this->recalculateMonthlyBalance($account, $month);
+                    });
             }
 
             DB::commit();
