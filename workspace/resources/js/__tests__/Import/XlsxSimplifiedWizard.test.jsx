@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import axios from 'axios';
 import XlsxSimplifiedWizard from '@/Components/Import/XlsxSimplifiedWizard';
@@ -60,13 +60,6 @@ describe('XlsxSimplifiedWizard', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         global.alert = jest.fn();
-        // Mock document.querySelector for CSRF token
-        document.querySelector = jest.fn((selector) => {
-            if (selector === 'meta[name="csrf-token"]') {
-                return { content: 'test-csrf-token' };
-            }
-            return null;
-        });
     });
 
     describe('Column Detection', () => {

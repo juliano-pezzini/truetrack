@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import FileDropZone from './FileDropZone';
 import OfxImportOptions from './OfxImportOptions';
 import XlsxSimplifiedWizard from './XlsxSimplifiedWizard';
 
 export default function UnifiedImportUpload({ accounts, onSuccess }) {
+    const isMountedRef = useRef(true);
     const [selectedFile, setSelectedFile] = useState(null);
     const [fileType, setFileType] = useState(null); // 'ofx' or 'xlsx'
     const [showOptions, setShowOptions] = useState(false);
@@ -14,6 +15,12 @@ export default function UnifiedImportUpload({ accounts, onSuccess }) {
         account_id: '',
         force_reimport: false,
     });
+
+    useEffect(() => {
+        return () => {
+            isMountedRef.current = false;
+        };
+    }, []);
 
     const detectFileType = (file) => {
         const extension = file.name.split('.').pop().toLowerCase();
@@ -58,6 +65,7 @@ export default function UnifiedImportUpload({ accounts, onSuccess }) {
         }
 
         setProcessing(true);
+        let shouldResetProcessingInFinally = true;
 
         try {
             const formData = new FormData();
@@ -70,6 +78,10 @@ export default function UnifiedImportUpload({ accounts, onSuccess }) {
                 withXSRFToken: true,
             });
 
+            if (isMountedRef.current) {
+                setProcessing(false);
+            }
+            shouldResetProcessingInFinally = false;
             handleCancel();
             if (onSuccess) onSuccess();
         } catch (error) {
@@ -77,7 +89,9 @@ export default function UnifiedImportUpload({ accounts, onSuccess }) {
             const message = error.response?.data?.message || 'Failed to import OFX file. Please try again.';
             alert(message);
         } finally {
-            setProcessing(false);
+            if (shouldResetProcessingInFinally && isMountedRef.current) {
+                setProcessing(false);
+            }
         }
     };
 
