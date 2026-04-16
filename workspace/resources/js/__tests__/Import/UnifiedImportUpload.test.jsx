@@ -1,35 +1,27 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import axios from 'axios';
 import UnifiedImportUpload from '@/Components/Import/UnifiedImportUpload';
-
-// Mock Inertia useForm hook
-const mockSetData = jest.fn();
-const mockPost = jest.fn();
-const mockReset = jest.fn();
-
-jest.mock('@inertiajs/react', () => ({
-    useForm: jest.fn(() => ({
-        data: {
-            file: null,
-            account_id: '',
-            force_reimport: false,
-        },
-        setData: mockSetData,
-        post: mockPost,
-        processing: false,
-        errors: {},
-        reset: mockReset,
-    })),
-}));
 
 // Mock axios
 jest.mock('axios');
 
+// Mock route helper
+global.route = (name) => {
+    const routes = {
+        'api.ofx-imports.store': '/api/v1/ofx-imports',
+    };
+    return routes[name] || '';
+};
+
 // Mock child components
 jest.mock('@/Components/Import/OfxImportOptions', () => ({
     __esModule: true,
-    default: ({ onSubmit, onCancel }) => (
+    default: ({ onSubmit, onCancel, onAccountChange }) => (
         <div data-testid="ofx-options">
-            <button onClick={onSubmit}>Submit OFX</button>
+            <button onClick={() => onAccountChange('1')}>Select Account</button>
+            <button onClick={onSubmit}>
+                Submit OFX
+            </button>
             <button onClick={onCancel}>Cancel</button>
         </div>
     ),
@@ -55,6 +47,7 @@ describe('UnifiedImportUpload', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
+        axios.post.mockResolvedValue({ data: { data: {} } });
         // Mock window.alert
         global.alert = jest.fn();
     });
@@ -76,7 +69,6 @@ describe('UnifiedImportUpload', () => {
             fireEvent.change(input, { target: { files: [file] } });
 
             await waitFor(() => {
-                expect(mockSetData).toHaveBeenCalledWith('file', file);
                 expect(screen.getByTestId('ofx-options')).toBeInTheDocument();
             });
         });
@@ -226,14 +218,24 @@ describe('UnifiedImportUpload', () => {
                 expect(screen.getByTestId('ofx-options')).toBeInTheDocument();
             });
 
+            fireEvent.click(screen.getByText('Select Account'));
+
             const submitButton = screen.getByText('Submit OFX');
             fireEvent.click(submitButton);
 
             await waitFor(() => {
-                expect(mockPost).toHaveBeenCalled();
+                expect(axios.post).toHaveBeenCalled();
+                const [url, payload] = axios.post.mock.calls[0];
+                expect(url).toBe('/api/v1/ofx-imports');
+                expect(payload).toEqual(expect.any(FormData));
+
+                const formDataEntries = Array.from(payload.entries());
+                const formDataValues = formDataEntries.map(([, value]) => value);
+                expect(formDataValues).toContain(file);
+                expect(formDataValues).toContain('1');
+                expect(mockOnSuccess).toHaveBeenCalled();
             });
         });
-
         test('triggers completion callback for XLSX import', async () => {
             render(<UnifiedImportUpload accounts={mockAccounts} onSuccess={mockOnSuccess} />);
 
