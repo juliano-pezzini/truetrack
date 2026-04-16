@@ -80,7 +80,13 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
 
     const toggleAllVisibleTransactions = () => {
         setSelectedTransactionIds((currentSelection) => {
-            if (allVisibleSelected) {
+            const currentSelectionSet = new Set(currentSelection);
+            const allCurrentlyVisibleSelected = visibleTransactionIds.length > 0
+                && visibleTransactionIds.every(
+                    (transactionId) => currentSelectionSet.has(transactionId)
+                );
+
+            if (allCurrentlyVisibleSelected) {
                 return currentSelection.filter(
                     (transactionId) => !visibleTransactionIds.includes(transactionId)
                 );
