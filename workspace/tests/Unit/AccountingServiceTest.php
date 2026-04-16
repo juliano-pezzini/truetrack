@@ -7,6 +7,7 @@ namespace Tests\Unit;
 use App\Enums\AccountType;
 use App\Enums\TransactionType;
 use App\Models\Account;
+use App\Models\AccountBalance;
 use App\Models\Category;
 use App\Models\Tag;
 use App\Models\Transaction;
@@ -294,6 +295,179 @@ class AccountingServiceTest extends TestCase
         $balance = $this->service->calculateBalance($account->fresh(), Carbon::now());
         $this->assertEquals(1000.00, $balance);
         $this->assertSoftDeleted($transaction);
+    }
+
+    public function test_delete_transactions_returns_deleted_count_and_soft_deletes_records(): void
+    {
+        $testNow = Carbon::parse('2026-01-31 12:00:00');
+        Carbon::setTestNow($testNow);
+
+        try {
+            $user = User::factory()->create();
+            $account = Account::factory()->for($user)->create([
+                'type' => AccountType::BANK,
+                'initial_balance' => 1000.00,
+                'created_at' => $testNow->copy()->startOfMonth(),
+            ]);
+            $category = Category::factory()->for($user)->create();
+
+            $transactionA = $this->service->recordTransaction([
+                'user_id' => $user->id,
+                'account_id' => $account->id,
+                'category_id' => $category->id,
+                'amount' => 100.00,
+                'transaction_date' => $testNow->copy()->startOfMonth()->addDays(9)->format('Y-m-d'),
+                'type' => TransactionType::CREDIT,
+            ]);
+
+            $transactionB = $this->service->recordTransaction([
+                'user_id' => $user->id,
+                'account_id' => $account->id,
+                'category_id' => $category->id,
+                'amount' => 40.00,
+                'transaction_date' => $testNow->copy()->startOfMonth()->addDays(10)->format('Y-m-d'),
+                'type' => TransactionType::DEBIT,
+            ]);
+
+            $deletedCount = $this->service->deleteTransactions([$transactionA, $transactionB]);
+
+            $this->assertSame(2, $deletedCount);
+            $this->assertSoftDeleted('transactions', ['id' => $transactionA->id]);
+            $this->assertSoftDeleted('transactions', ['id' => $transactionB->id]);
+            $this->assertEquals(
+                1000.00,
+                $this->service->calculateBalance($account->fresh(), $testNow->copy()->endOfDay())
+            );
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_delete_transactions_deduplicates_duplicate_transaction_instances(): void
+    {
+        $testNow = Carbon::parse('2026-01-31 12:00:00');
+        Carbon::setTestNow($testNow);
+
+        try {
+            $user = User::factory()->create();
+            $account = Account::factory()->for($user)->create([
+                'type' => AccountType::BANK,
+                'initial_balance' => 1000.00,
+                'created_at' => $testNow->copy()->startOfMonth(),
+            ]);
+            $category = Category::factory()->for($user)->create();
+
+            $transaction = $this->service->recordTransaction([
+                'user_id' => $user->id,
+                'account_id' => $account->id,
+                'category_id' => $category->id,
+                'amount' => 100.00,
+                'transaction_date' => $testNow->copy()->startOfMonth()->addDays(9)->format('Y-m-d'),
+                'type' => TransactionType::CREDIT,
+            ]);
+
+            $deletedCount = $this->service->deleteTransactions([$transaction, $transaction]);
+
+            $this->assertSame(1, $deletedCount);
+            $this->assertSoftDeleted('transactions', ['id' => $transaction->id]);
+            $this->assertEquals(
+                1000.00,
+                $this->service->calculateBalance($account->fresh(), $testNow->copy()->endOfDay())
+            );
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_delete_transactions_recalculates_snapshots_for_multiple_accounts_and_months(): void
+    {
+        $testNow = Carbon::parse('2026-03-31 12:00:00');
+        Carbon::setTestNow($testNow);
+
+        try {
+            $user = User::factory()->create();
+            $category = Category::factory()->for($user)->create();
+
+            $accountA = Account::factory()->for($user)->create([
+                'type' => AccountType::BANK,
+                'initial_balance' => 1000.00,
+                'created_at' => '2026-01-01',
+            ]);
+
+            $accountB = Account::factory()->for($user)->create([
+                'type' => AccountType::BANK,
+                'initial_balance' => 500.00,
+                'created_at' => '2026-01-01',
+            ]);
+
+            $accountAJanCredit = $this->service->recordTransaction([
+                'user_id' => $user->id,
+                'account_id' => $accountA->id,
+                'category_id' => $category->id,
+                'amount' => 100.00,
+                'transaction_date' => '2026-01-15',
+                'type' => TransactionType::CREDIT,
+            ]);
+
+            $this->service->recordTransaction([
+                'user_id' => $user->id,
+                'account_id' => $accountA->id,
+                'category_id' => $category->id,
+                'amount' => 50.00,
+                'transaction_date' => '2026-02-15',
+                'type' => TransactionType::DEBIT,
+            ]);
+
+            $accountBFebCredit = $this->service->recordTransaction([
+                'user_id' => $user->id,
+                'account_id' => $accountB->id,
+                'category_id' => $category->id,
+                'amount' => 200.00,
+                'transaction_date' => '2026-02-10',
+                'type' => TransactionType::CREDIT,
+            ]);
+
+            $this->service->recordTransaction([
+                'user_id' => $user->id,
+                'account_id' => $accountB->id,
+                'category_id' => $category->id,
+                'amount' => 30.00,
+                'transaction_date' => '2026-03-05',
+                'type' => TransactionType::DEBIT,
+            ]);
+
+            $deletedCount = $this->service->deleteTransactions([$accountAJanCredit, $accountBFebCredit]);
+
+            $this->assertSame(2, $deletedCount);
+
+            $updatedAccountAJanuarySnapshot = AccountBalance::query()
+                ->where('account_id', $accountA->id)
+                ->where('year', 2026)
+                ->where('month', 1)
+                ->first();
+
+            $updatedAccountBFebruarySnapshot = AccountBalance::query()
+                ->where('account_id', $accountB->id)
+                ->where('year', 2026)
+                ->where('month', 2)
+                ->first();
+
+            $this->assertNotNull($updatedAccountAJanuarySnapshot);
+            $this->assertNotNull($updatedAccountBFebruarySnapshot);
+            $this->assertEquals(1000.00, (float) $updatedAccountAJanuarySnapshot->closing_balance);
+            $this->assertEquals(500.00, (float) $updatedAccountBFebruarySnapshot->closing_balance);
+
+            $this->assertEquals(
+                950.00,
+                $this->service->calculateBalance($accountA->fresh(), Carbon::parse('2026-03-31'))
+            );
+            $this->assertEquals(
+                470.00,
+                $this->service->calculateBalance($accountB->fresh(), Carbon::parse('2026-03-31'))
+            );
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 
     public function test_validate_double_entry_passes_when_balanced(): void

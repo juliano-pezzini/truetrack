@@ -1,6 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import normalizeInertiaUrl from '@/Utils/normalizeInertiaUrl';
 
 export default function Index({ auth, transactions, accounts, categories, tags, filters }) {
@@ -11,6 +11,24 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
     const [filterDateFrom, setFilterDateFrom] = useState(filters?.filter?.date_from || '');
     const [filterDateTo, setFilterDateTo] = useState(filters?.filter?.date_to || '');
     const [filterTag, setFilterTag] = useState(filters?.filter?.tag || '');
+    const [selectedTransactionIds, setSelectedTransactionIds] = useState([]);
+    const selectAllRef = useRef(null);
+
+    const visibleTransactionIds = transactions?.data?.map((transaction) => transaction.id) || [];
+    const selectedTransactionIdSet = new Set(selectedTransactionIds);
+    const allVisibleSelected = visibleTransactionIds.length > 0
+        && visibleTransactionIds.every((transactionId) => selectedTransactionIdSet.has(transactionId));
+    const someVisibleSelected = visibleTransactionIds.some((transactionId) => selectedTransactionIdSet.has(transactionId));
+
+    useEffect(() => {
+        if (selectAllRef.current) {
+            selectAllRef.current.indeterminate = someVisibleSelected && !allVisibleSelected;
+        }
+    }, [allVisibleSelected, someVisibleSelected]);
+
+    useEffect(() => {
+        setSelectedTransactionIds([]);
+    }, [transactions?.data]);
 
     const transactionTypes = [
         { value: '', label: 'All Types' },
@@ -52,9 +70,48 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
         router.get(route('transactions.index'));
     };
 
-    const deleteTransaction = (transactionId) => {
-        if (confirm('Are you sure you want to delete this transaction? This will adjust the account balance.')) {
-            router.delete(route('transactions.destroy', transactionId));
+    const toggleTransactionSelection = (transactionId) => {
+        setSelectedTransactionIds((currentSelection) => (
+            currentSelection.includes(transactionId)
+                ? currentSelection.filter((selectedTransactionId) => selectedTransactionId !== transactionId)
+                : [...currentSelection, transactionId]
+        ));
+    };
+
+    const toggleAllVisibleTransactions = () => {
+        setSelectedTransactionIds((currentSelection) => {
+            const currentSelectionSet = new Set(currentSelection);
+            const allCurrentlyVisibleSelected = visibleTransactionIds.length > 0
+                && visibleTransactionIds.every(
+                    (transactionId) => currentSelectionSet.has(transactionId)
+                );
+
+            if (allCurrentlyVisibleSelected) {
+                return currentSelection.filter(
+                    (transactionId) => !visibleTransactionIds.includes(transactionId)
+                );
+            }
+
+            return Array.from(new Set([...currentSelection, ...visibleTransactionIds]));
+        });
+    };
+
+    const deleteSelectedTransactions = () => {
+        if (selectedTransactionIds.length === 0) {
+            return;
+        }
+
+        const transactionCount = selectedTransactionIds.length;
+        const transactionLabel = transactionCount === 1 ? 'transaction' : 'transactions';
+
+        if (confirm(`Are you sure you want to delete ${transactionCount} selected ${transactionLabel}? This will adjust the account balances.`)) {
+            router.delete(route('transactions.bulk-destroy'), {
+                data: {
+                    transaction_ids: selectedTransactionIds,
+                },
+                preserveScroll: true,
+                onSuccess: () => setSelectedTransactionIds([]),
+            });
         }
     };
 
@@ -288,78 +345,118 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
                                     </Link>
                                 </div>
                             ) : (
-                                <div className="overflow-x-auto">
-                                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                                        <thead className="bg-gray-50 dark:bg-gray-900/40">
-                                            <tr>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
-                                                    Date
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
-                                                    Account
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
-                                                    Category
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
-                                                    Description
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
-                                                    Type
-                                                </th>
-                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
-                                                    Amount
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
-                                                    Status
-                                                </th>
-                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
-                                                    Actions
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
-                                            {transactions?.data?.map((transaction) => (
-                                                <tr key={transaction.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/40">
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                                        {formatDate(transaction.transaction_date)}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                                        {transaction.account?.name || 'N/A'}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                                        {transaction.category?.name || 'N/A'}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
-                                                        {transaction.description || '—'}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        {getTypeBadge(transaction.type)}
-                                                    </td>
-                                                    <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-medium ${getTypeClass(transaction.type)}`}>
-                                                        {formatCurrency(transaction.amount)}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        {getSettledBadge(transaction.settled_date)}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                        <Link
-                                                            href={route('transactions.edit', transaction.id)}
-                                                            className="mr-3 text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
-                                                        >
-                                                            Edit
-                                                        </Link>
-                                                        <button
-                                                            onClick={() => deleteTransaction(transaction.id)}
-                                                            className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                                                        >
-                                                            Delete
-                                                        </button>
-                                                    </td>
+                                <div>
+                                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                                Transaction List
+                                            </h3>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                                {selectedTransactionIds.length > 0
+                                                    ? `${selectedTransactionIds.length} selected`
+                                                    : 'Select rows to delete them in bulk.'}
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={deleteSelectedTransactions}
+                                            disabled={selectedTransactionIds.length === 0}
+                                            className="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-red-300 dark:bg-red-500 dark:hover:bg-red-400 dark:disabled:bg-red-900/50"
+                                        >
+                                            Delete Selected ({selectedTransactionIds.length})
+                                        </button>
+                                    </div>
+
+                                    <div className="overflow-x-auto">
+                                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                            <thead className="bg-gray-50 dark:bg-gray-900/40">
+                                                <tr>
+                                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                                                        <input
+                                                            ref={selectAllRef}
+                                                            type="checkbox"
+                                                            checked={allVisibleSelected}
+                                                            onChange={toggleAllVisibleTransactions}
+                                                            aria-label="Select all visible transactions"
+                                                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600"
+                                                        />
+                                                    </th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
+                                                        Date
+                                                    </th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
+                                                        Account
+                                                    </th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
+                                                        Category
+                                                    </th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
+                                                        Description
+                                                    </th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
+                                                        Type
+                                                    </th>
+                                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
+                                                        Amount
+                                                    </th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
+                                                        Status
+                                                    </th>
+                                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
+                                                        Actions
+                                                    </th>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+                                                {transactions?.data?.map((transaction) => {
+                                                    const isSelected = selectedTransactionIdSet.has(transaction.id);
+
+                                                    return (
+                                                        <tr key={transaction.id} className={`hover:bg-gray-50 dark:hover:bg-gray-700/40 ${isSelected ? 'bg-indigo-50/60 dark:bg-indigo-900/20' : ''}`}>
+                                                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={isSelected}
+                                                                    onChange={() => toggleTransactionSelection(transaction.id)}
+                                                                    aria-label={`Select transaction ${transaction.id}`}
+                                                                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600"
+                                                                />
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                                                {formatDate(transaction.transaction_date)}
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                                                {transaction.account?.name || 'N/A'}
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                                                {transaction.category?.name || 'N/A'}
+                                                            </td>
+                                                            <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
+                                                                {transaction.description || '—'}
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                {getTypeBadge(transaction.type)}
+                                                            </td>
+                                                            <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-medium ${getTypeClass(transaction.type)}`}>
+                                                                {formatCurrency(transaction.amount)}
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                {getSettledBadge(transaction.settled_date)}
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                                <Link
+                                                                    href={route('transactions.edit', transaction.id)}
+                                                                    className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
+                                                                >
+                                                                    Edit
+                                                                </Link>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             )}
 

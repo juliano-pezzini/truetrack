@@ -24,6 +24,8 @@ Route::middleware('auth')->group(function () {
     Route::resource('tags', App\Http\Controllers\TagController::class);
 
     // Transaction management
+    Route::delete('/transactions/bulk-delete', [App\Http\Controllers\TransactionController::class, 'bulkDestroy'])
+        ->name('transactions.bulk-destroy');
     Route::resource('transactions', App\Http\Controllers\TransactionController::class);
 
     // Reconciliation management
