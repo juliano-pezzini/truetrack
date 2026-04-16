@@ -225,15 +225,14 @@ describe('UnifiedImportUpload', () => {
 
             await waitFor(() => {
                 expect(axios.post).toHaveBeenCalled();
-                const [url, payload, config] = axios.post.mock.calls[0];
+                const [url, payload] = axios.post.mock.calls[0];
                 expect(url).toBe('/api/v1/ofx-imports');
                 expect(payload).toEqual(expect.any(FormData));
-                expect(config).toEqual(
-                    expect.objectContaining({
-                        withCredentials: true,
-                        withXSRFToken: true,
-                    })
-                );
+
+                const formDataEntries = Array.from(payload.entries());
+                const formDataValues = formDataEntries.map(([, value]) => value);
+                expect(formDataValues).toContain(file);
+                expect(formDataValues).toContain('1');
                 expect(mockOnSuccess).toHaveBeenCalled();
             });
         });

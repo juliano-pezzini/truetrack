@@ -76,10 +76,7 @@ export default function UnifiedImportUpload({ accounts, onSuccess }) {
             formData.append('account_id', data.account_id);
             formData.append('force_reimport', data.force_reimport ? '1' : '0');
 
-            await axios.post(route('api.ofx-imports.store'), formData, {
-                withCredentials: true,
-                withXSRFToken: true,
-            });
+            await axios.post(route('api.ofx-imports.store'), formData);
 
             if (isMountedRef.current) {
                 handleCancel();
