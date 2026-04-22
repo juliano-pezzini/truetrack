@@ -195,7 +195,10 @@ class CategoryController extends Controller
             ]);
         }
 
-        if ($categories->contains(fn (Category $category) => $category->hasChildren())) {
+        if (Category::query()
+            ->whereIn('parent_id', $categoryIds)
+            ->where('user_id', $request->user()->id)
+            ->exists()) {
             return redirect()
                 ->route('categories.index')
                 ->with('error', 'Cannot delete categories with subcategories. Please delete subcategories first.');
