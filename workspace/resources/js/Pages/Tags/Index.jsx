@@ -1,10 +1,29 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import normalizeInertiaUrl from '@/Utils/normalizeInertiaUrl';
 
 export default function Index({ auth, tags, filters }) {
     const [filterName, setFilterName] = useState(filters?.filter?.name || '');
+    const [selectedTagIds, setSelectedTagIds] = useState([]);
+    const selectAllRef = useRef(null);
+
+    const visibleTagIds = tags?.data?.map((tag) => tag.id) || [];
+    const selectedTagIdSet = new Set(selectedTagIds);
+    const allVisibleSelected = visibleTagIds.length > 0
+        && visibleTagIds.every((tagId) => selectedTagIdSet.has(tagId));
+    const someVisibleSelected = visibleTagIds.some((tagId) => selectedTagIdSet.has(tagId));
+
+    useEffect(() => {
+        if (selectAllRef.current) {
+            selectAllRef.current.indeterminate = someVisibleSelected && !allVisibleSelected;
+        }
+    }, [allVisibleSelected, someVisibleSelected]);
+
+    useEffect(() => {
+        setSelectedTagIds([]);
+    }, [tags?.data]);
+
     const previousLinkUrl = tags.links?.length ? normalizeInertiaUrl(tags.links[0].url) : null;
     const nextLinkUrl = tags.links?.length
         ? normalizeInertiaUrl(tags.links[tags.links.length - 1].url)
@@ -31,6 +50,49 @@ export default function Index({ auth, tags, filters }) {
     const deleteTag = (tagId) => {
         if (confirm('Are you sure you want to delete this tag?')) {
             router.delete(route('tags.destroy', tagId));
+        }
+    };
+
+    const toggleTagSelection = (tagId) => {
+        setSelectedTagIds((currentSelection) => (
+            currentSelection.includes(tagId)
+                ? currentSelection.filter((selectedTagId) => selectedTagId !== tagId)
+                : [...currentSelection, tagId]
+        ));
+    };
+
+    const toggleAllVisibleTags = () => {
+        setSelectedTagIds((currentSelection) => {
+            const currentSelectionSet = new Set(currentSelection);
+            const allCurrentlyVisibleSelected = visibleTagIds.length > 0
+                && visibleTagIds.every((tagId) => currentSelectionSet.has(tagId));
+
+            if (allCurrentlyVisibleSelected) {
+                return currentSelection.filter(
+                    (tagId) => !visibleTagIds.includes(tagId)
+                );
+            }
+
+            return Array.from(new Set([...currentSelection, ...visibleTagIds]));
+        });
+    };
+
+    const deleteSelectedTags = () => {
+        if (selectedTagIds.length === 0) {
+            return;
+        }
+
+        const tagCount = selectedTagIds.length;
+        const tagLabel = tagCount === 1 ? 'tag' : 'tags';
+
+        if (confirm(`Are you sure you want to delete ${tagCount} selected ${tagLabel}?`)) {
+            router.delete(route('tags.bulk-destroy'), {
+                data: {
+                    tag_ids: selectedTagIds,
+                },
+                preserveScroll: true,
+                onSuccess: () => setSelectedTagIds([]),
+            });
         }
     };
 
@@ -94,10 +156,44 @@ export default function Index({ auth, tags, filters }) {
                     {/* Tags List */}
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg dark:bg-gray-800">
                         {tags.data.length > 0 ? (
-                            <div className="overflow-x-auto">
+                            <div>
+                                <div className="p-6 pb-0">
+                                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                                Tag List
+                                            </h3>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                                {selectedTagIds.length > 0
+                                                    ? `${selectedTagIds.length} selected`
+                                                    : 'Select rows to delete them in bulk.'}
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={deleteSelectedTags}
+                                            disabled={selectedTagIds.length === 0}
+                                            className="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-red-300 dark:bg-red-500 dark:hover:bg-red-400 dark:disabled:bg-red-900/50"
+                                        >
+                                            Delete Selected ({selectedTagIds.length})
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="overflow-x-auto">
                                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                     <thead className="bg-gray-50 dark:bg-gray-900/40">
                                         <tr>
+                                            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                                                <input
+                                                    ref={selectAllRef}
+                                                    type="checkbox"
+                                                    checked={allVisibleSelected}
+                                                    onChange={toggleAllVisibleTags}
+                                                    aria-label="Select all visible tags"
+                                                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600"
+                                                />
+                                            </th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
                                                 Tag
                                             </th>
@@ -113,8 +209,20 @@ export default function Index({ auth, tags, filters }) {
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
-                                        {tags.data.map((tag) => (
-                                            <tr key={tag.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                                        {tags.data.map((tag) => {
+                                            const isSelected = selectedTagIdSet.has(tag.id);
+
+                                            return (
+                                            <tr key={tag.id} className={`hover:bg-gray-50 dark:hover:bg-gray-700/40 ${isSelected ? 'bg-indigo-50/60 dark:bg-indigo-900/20' : ''}`}>
+                                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isSelected}
+                                                        onChange={() => toggleTagSelection(tag.id)}
+                                                        aria-label={`Select tag ${tag.id}`}
+                                                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600"
+                                                    />
+                                                </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="flex items-center">
                                                         <div
@@ -149,9 +257,11 @@ export default function Index({ auth, tags, filters }) {
                                                     </button>
                                                 </td>
                                             </tr>
-                                        ))}
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
+                            </div>
                             </div>
                         ) : (
                             <div className="p-6 text-center text-gray-500 dark:text-gray-400">

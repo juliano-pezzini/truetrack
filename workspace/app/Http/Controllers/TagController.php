@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\BulkDeleteTagRequest;
 use App\Http\Requests\StoreTagRequest;
 use App\Http\Requests\UpdateTagRequest;
 use App\Models\Tag;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -114,5 +116,37 @@ class TagController extends Controller
 
         return redirect()->route('tags.index')
             ->with('success', 'Tag deleted successfully.');
+    }
+
+    /**
+     * Remove multiple tags from storage.
+     */
+    public function bulkDestroy(BulkDeleteTagRequest $request): RedirectResponse
+    {
+        $tagIds = array_values(array_unique($request->validated('tag_ids')));
+
+        $tags = Tag::query()
+            ->where('user_id', $request->user()->id)
+            ->whereIn('id', $tagIds)
+            ->get();
+
+        if ($tags->count() !== count($tagIds)) {
+            throw ValidationException::withMessages([
+                'tag_ids' => ['One or more selected tags are invalid.'],
+            ]);
+        }
+
+        foreach ($tags as $tag) {
+            $tag->delete();
+        }
+
+        $deletedCount = $tags->count();
+
+        return redirect()->route('tags.index')
+            ->with('success', trans_choice(
+                ':count tag deleted successfully.|:count tags deleted successfully.',
+                $deletedCount,
+                ['count' => $deletedCount]
+            ));
     }
 }

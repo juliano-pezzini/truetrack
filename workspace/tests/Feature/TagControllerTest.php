@@ -176,6 +176,51 @@ class TagControllerTest extends TestCase
         ]);
     }
 
+    public function test_can_bulk_delete_tags(): void
+    {
+        $tags = Tag::factory()->for($this->user)->count(3)->create();
+
+        $response = $this->actingAs($this->user)
+            ->delete(route('tags.bulk-destroy'), [
+                'tag_ids' => $tags->pluck('id')->all(),
+            ]);
+
+        $response->assertRedirect(route('tags.index'));
+        $response->assertSessionHas('success', '3 tags deleted successfully.');
+
+        foreach ($tags as $tag) {
+            $this->assertSoftDeleted('tags', [
+                'id' => $tag->id,
+            ]);
+        }
+    }
+
+    public function test_user_cannot_bulk_delete_other_users_tags(): void
+    {
+        $otherUser = User::factory()->create();
+        $otherTag = Tag::factory()->for($otherUser)->create();
+
+        $response = $this->actingAs($this->user)
+            ->delete(route('tags.bulk-destroy'), [
+                'tag_ids' => [$otherTag->id],
+            ]);
+
+        $response->assertSessionHasErrors(['tag_ids.0']);
+    }
+
+    public function test_user_cannot_bulk_delete_soft_deleted_tags(): void
+    {
+        $tag = Tag::factory()->for($this->user)->create();
+        $tag->delete();
+
+        $response = $this->actingAs($this->user)
+            ->delete(route('tags.bulk-destroy'), [
+                'tag_ids' => [$tag->id],
+            ]);
+
+        $response->assertSessionHasErrors(['tag_ids.0']);
+    }
+
     public function test_guest_cannot_access_tags_index(): void
     {
         $response = $this->get(route('tags.index'));

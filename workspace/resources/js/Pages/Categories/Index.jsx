@@ -1,7 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Modal from '@/Components/Modal';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import AutoRuleForm from '@/Pages/AutoCategoryRules/AutoRuleForm';
 import AutoRuleTable from '@/Pages/AutoCategoryRules/AutoRuleTable';
@@ -22,6 +22,26 @@ export default function Index({ auth, categories, filters, categoryTypes }) {
     const [editingRule, setEditingRule] = useState(null);
     const [error, setError] = useState(null);
     const [showTestCoverageModal, setShowTestCoverageModal] = useState(false);
+    const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
+    const selectAllRef = useRef(null);
+
+    const visibleDeletableCategoryIds = categories?.data
+        ?.filter((category) => !category.has_children)
+        .map((category) => category.id) || [];
+    const selectedCategoryIdSet = new Set(selectedCategoryIds);
+    const allVisibleSelected = visibleDeletableCategoryIds.length > 0
+        && visibleDeletableCategoryIds.every((categoryId) => selectedCategoryIdSet.has(categoryId));
+    const someVisibleSelected = visibleDeletableCategoryIds.some((categoryId) => selectedCategoryIdSet.has(categoryId));
+
+    useEffect(() => {
+        if (selectAllRef.current) {
+            selectAllRef.current.indeterminate = someVisibleSelected && !allVisibleSelected;
+        }
+    }, [allVisibleSelected, someVisibleSelected]);
+
+    useEffect(() => {
+        setSelectedCategoryIds([]);
+    }, [categories?.data]);
 
     const typeOptions = [
         { value: '', label: 'All Types' },
@@ -65,6 +85,49 @@ export default function Index({ auth, categories, filters, categoryTypes }) {
     const deleteCategory = (categoryId) => {
         if (confirm('Are you sure you want to delete this category? This action cannot be undone.')) {
             router.delete(route('categories.destroy', categoryId));
+        }
+    };
+
+    const toggleCategorySelection = (categoryId) => {
+        setSelectedCategoryIds((currentSelection) => (
+            currentSelection.includes(categoryId)
+                ? currentSelection.filter((selectedCategoryId) => selectedCategoryId !== categoryId)
+                : [...currentSelection, categoryId]
+        ));
+    };
+
+    const toggleAllVisibleCategories = () => {
+        setSelectedCategoryIds((currentSelection) => {
+            const currentSelectionSet = new Set(currentSelection);
+            const allCurrentlyVisibleSelected = visibleDeletableCategoryIds.length > 0
+                && visibleDeletableCategoryIds.every((categoryId) => currentSelectionSet.has(categoryId));
+
+            if (allCurrentlyVisibleSelected) {
+                return currentSelection.filter(
+                    (categoryId) => !visibleDeletableCategoryIds.includes(categoryId)
+                );
+            }
+
+            return Array.from(new Set([...currentSelection, ...visibleDeletableCategoryIds]));
+        });
+    };
+
+    const deleteSelectedCategories = () => {
+        if (selectedCategoryIds.length === 0) {
+            return;
+        }
+
+        const categoryCount = selectedCategoryIds.length;
+        const categoryLabel = categoryCount === 1 ? 'category' : 'categories';
+
+        if (confirm(`Are you sure you want to delete ${categoryCount} selected ${categoryLabel}? This action cannot be undone.`)) {
+            router.delete(route('categories.bulk-destroy'), {
+                data: {
+                    category_ids: selectedCategoryIds,
+                },
+                preserveScroll: true,
+                onSuccess: () => setSelectedCategoryIds([]),
+            });
         }
     };
 
@@ -298,10 +361,42 @@ export default function Index({ auth, categories, filters, categoryTypes }) {
                                     </Link>
                                 </div>
                             ) : (
-                                <div className="overflow-x-auto">
+                                <div>
+                                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                                Category List
+                                            </h3>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                                {selectedCategoryIds.length > 0
+                                                    ? `${selectedCategoryIds.length} selected`
+                                                    : 'Select rows to delete them in bulk.'}
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={deleteSelectedCategories}
+                                            disabled={selectedCategoryIds.length === 0}
+                                            className="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-red-300 dark:bg-red-500 dark:hover:bg-red-400 dark:disabled:bg-red-900/50"
+                                        >
+                                            Delete Selected ({selectedCategoryIds.length})
+                                        </button>
+                                    </div>
+
+                                    <div className="overflow-x-auto">
                                     <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                         <thead className="bg-gray-50 dark:bg-gray-900/40">
                                             <tr>
+                                                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                                                    <input
+                                                        ref={selectAllRef}
+                                                        type="checkbox"
+                                                        checked={allVisibleSelected}
+                                                        onChange={toggleAllVisibleCategories}
+                                                        aria-label="Select all visible categories"
+                                                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600"
+                                                    />
+                                                </th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
                                                     Name
                                                 </th>
@@ -323,8 +418,21 @@ export default function Index({ auth, categories, filters, categoryTypes }) {
                                             </tr>
                                         </thead>
                                         <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
-                                            {categories.data.map((category) => (
-                                                <tr key={category.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                                            {categories.data.map((category) => {
+                                                const isSelected = selectedCategoryIdSet.has(category.id);
+
+                                                return (
+                                                <tr key={category.id} className={`hover:bg-gray-50 dark:hover:bg-gray-700/40 ${isSelected ? 'bg-indigo-50/60 dark:bg-indigo-900/20' : ''}`}>
+                                                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isSelected}
+                                                            onChange={() => toggleCategorySelection(category.id)}
+                                                            disabled={category.has_children}
+                                                            aria-label={`Select category ${category.id}`}
+                                                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600"
+                                                        />
+                                                    </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <div className="flex items-center">
                                                             {!category.is_parent && (
@@ -375,9 +483,11 @@ export default function Index({ auth, categories, filters, categoryTypes }) {
                                                         </button>
                                                     </td>
                                                 </tr>
-                                            ))}
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
+                                </div>
                                 </div>
                             )}
 
