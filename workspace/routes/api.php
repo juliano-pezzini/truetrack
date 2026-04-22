@@ -133,6 +133,17 @@ Route::prefix('v1')->group(function () {
                 'destroy' => 'api.xlsx-column-mappings.destroy',
             ]);
 
+        // Unified Import History (OFX + XLSX)
+        Route::get('/imports/stats', [App\Http\Controllers\Api\V1\ImportController::class, 'stats'])
+            ->name('api.imports.stats');
+        Route::get('/imports/active-count', [App\Http\Controllers\Api\V1\ImportController::class, 'activeCount'])
+            ->name('api.imports.active-count');
+        Route::get('/imports', [App\Http\Controllers\Api\V1\ImportController::class, 'index'])
+            ->name('api.imports.index');
+        Route::get('/imports/{type}/{id}', [App\Http\Controllers\Api\V1\ImportController::class, 'show'])
+            ->name('api.imports.show')
+            ->whereIn('type', ['ofx', 'xlsx']);
+
         // Reports and Analytics
         Route::prefix('reports')->name('api.reports.')->group(function () {
             Route::get('/period-summary', [App\Http\Controllers\Api\V1\ReportController::class, 'periodSummary'])

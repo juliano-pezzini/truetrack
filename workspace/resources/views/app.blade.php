@@ -13,6 +13,53 @@
 
         <!-- Scripts -->
         @routes
+        <script>
+            // If the host header is rewritten (e.g. Codespaces preview), the URL
+            // baked into the Ziggy payload will be incorrect.  Override it on the
+            // client using the actual origin so `route()` calls resolve properly.
+            if (typeof Ziggy !== 'undefined' && window.location) {
+                Ziggy.url = window.location.origin;
+            }
+
+            (function () {
+                const themeConfig = window.__TRUETRACK_THEME_CONFIG ?? {
+                    storageKey: 'truetrack:theme_preference',
+                    allowedPreferences: ['light', 'dark', 'system'],
+                };
+                window.__TRUETRACK_THEME_CONFIG = themeConfig;
+
+                const { storageKey, allowedPreferences } = themeConfig;
+                const userPreference = @json(data_get($page, 'props.auth.user.theme_preference', 'system'));
+
+                const resolvePreference = (value) =>
+                    allowedPreferences.includes(value) ? value : 'system';
+
+                const prefersDark =
+                    typeof window.matchMedia === 'function' &&
+                    window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+                let preference = resolvePreference(userPreference);
+
+                try {
+                    const localPreference = window.localStorage.getItem(storageKey);
+
+                    if (localPreference) {
+                        preference = resolvePreference(localPreference);
+                    }
+                } catch (e) {
+                    // Ignore blocked storage.
+                }
+
+                const effectiveTheme =
+                    preference === 'system'
+                        ? (prefersDark ? 'dark' : 'light')
+                        : preference;
+
+                document.documentElement.classList.toggle('dark', effectiveTheme === 'dark');
+                document.documentElement.dataset.themePreference = preference;
+                document.documentElement.dataset.themeEffective = effectiveTheme;
+            })();
+        </script>
         @viteReactRefresh
         @vite(['resources/js/app.jsx', "resources/js/Pages/{$page['component']}.jsx"])
         @inertiaHead

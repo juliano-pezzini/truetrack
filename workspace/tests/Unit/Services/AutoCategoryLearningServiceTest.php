@@ -320,6 +320,7 @@ class AutoCategoryLearningServiceTest extends TestCase
         $pattern1 = LearnedCategoryPattern::factory()->create([
             'user_id' => $user->id,
             'category_id' => $category->id,
+            'keyword' => 'confidence_low',
             'occurrence_count' => 1,
             'confidence_score' => 55, // Manual override to match formula: 50 + (1 * 5)
         ]);
@@ -327,6 +328,7 @@ class AutoCategoryLearningServiceTest extends TestCase
         $pattern5 = LearnedCategoryPattern::factory()->create([
             'user_id' => $user->id,
             'category_id' => $category->id,
+            'keyword' => 'confidence_high',
             'occurrence_count' => 5,
             'confidence_score' => 75, // Manual override to match formula: 50 + (5 * 5)
         ]);

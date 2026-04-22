@@ -1,40 +1,61 @@
-import { Head, usePage, router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import OfxImportUpload from '@/Components/OfxImport/OfxImportUpload';
-import XlsxImportUpload from '@/Components/XlsxImport/XlsxImportUpload';
-import { useState, useEffect } from 'react';
+import UnifiedImportUpload from '@/Components/Import/UnifiedImportUpload';
+import ImportHistoryCard from '@/Components/Import/ImportHistoryCard';
+import { buildPaginationItems } from './pagination';
+import { useEffect } from 'react';
 
-export default function Index({ auth, accounts, imports }) {
-    const [fileType, setFileType] = useState(null);
-    const [activeTab, setActiveTab] = useState('all');
+export default function Index({ auth, accounts, imports, filters }) {
+    const { data: importList, meta } = imports;
+    const paginationItems = buildPaginationItems(meta.current_page, meta.last_page);
+
+    const hasActiveImports = importList.some(
+        (imp) => imp.status === 'processing' || imp.status === 'pending'
+    );
+
+    // Auto-refresh if there are active imports
+    useEffect(() => {
+        if (!hasActiveImports) return;
+
+        const interval = setInterval(() => {
+            router.reload({ preserveScroll: true, only: ['imports'] });
+        }, 5000); // Refresh every 5 seconds
+
+        return () => clearInterval(interval);
+    }, [hasActiveImports]);
+
+    const buildParams = (overrides = {}) => {
+        const merged = { ...filters, ...overrides };
+        const params = {};
+        if (merged.type) params['filter[type]'] = merged.type;
+        if (merged.account_id) params['filter[account_id]'] = merged.account_id;
+        if (merged.status) params['filter[status]'] = merged.status;
+        return params;
+    };
+
+    const handleFilterChange = (key, value) => {
+        router.get(route('imports.index'), buildParams({ [key]: value }), {
+            preserveState: true,
+            preserveScroll: true,
+        });
+    };
 
     const handleUploadSuccess = () => {
-        // Refresh the data while preserving the SPA experience
         router.reload({ preserveScroll: true });
     };
 
-    // Filter imports based on active tab
-    const filteredImports = imports.filter((imp) => {
-        if (activeTab === 'all') return true;
-        if (activeTab === 'ofx') return imp.type === 'ofx';
-        if (activeTab === 'xlsx') return imp.type === 'xlsx';
-        return true;
-    });
-
-    // Count imports by type
-    const ofxCount = imports.filter((imp) => imp.type === 'ofx').length;
-    const xlsxCount = imports.filter((imp) => imp.type === 'xlsx').length;
-
-    // Check for active imports
-    const hasActiveImports = imports.some(
-        (imp) => imp.status === 'processing' || imp.status === 'pending'
-    );
+    const goToPage = (page) => {
+        router.get(route('imports.index'), { ...buildParams(), page }, {
+            preserveState: true,
+            preserveScroll: true,
+        });
+    };
 
     return (
         <AuthenticatedLayout
             user={auth.user}
             header={
-                <h2 className="text-xl font-semibold leading-tight text-gray-800">
+                <h2 className="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-100">
                     Statement Import
                 </h2>
             }
@@ -43,33 +64,19 @@ export default function Index({ auth, accounts, imports }) {
 
             <div className="py-12">
                 <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
-                    {/* OFX/QFX Upload Section */}
-                    <OfxImportUpload
+                    {/* Unified Upload Section */}
+                    <UnifiedImportUpload
                         accounts={accounts}
                         onSuccess={handleUploadSuccess}
                     />
 
-                    {/* XLSX/CSV Upload Section */}
-                    <div className="rounded-lg bg-white p-6 shadow-sm">
-                        <XlsxImportUpload
-                            accounts={accounts}
-                            activeImportsCount={imports.filter(
-                                (imp) =>
-                                    imp.status === 'processing' ||
-                                    imp.status === 'pending'
-                            ).length}
-                            maxImports={5}
-                            onImportStarted={handleUploadSuccess}
-                        />
-                    </div>
-
                     {/* Active Imports Alert */}
                     {hasActiveImports && (
-                        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
                             <div className="flex">
                                 <div className="flex-shrink-0">
                                     <svg
-                                        className="h-5 w-5 text-blue-400"
+                                        className="h-5 w-5 text-blue-400 dark:text-blue-300"
                                         viewBox="0 0 20 20"
                                         fill="currentColor"
                                     >
@@ -81,7 +88,7 @@ export default function Index({ auth, accounts, imports }) {
                                     </svg>
                                 </div>
                                 <div className="ml-3">
-                                    <p className="text-sm text-blue-700">
+                                    <p className="text-sm text-blue-700 dark:text-blue-200">
                                         Imports are being processed in the
                                         background. This page will auto-refresh
                                         every 5 seconds.
@@ -91,166 +98,132 @@ export default function Index({ auth, accounts, imports }) {
                         </div>
                     )}
 
-                    {/* Import History with Tabs */}
-                    <div className="rounded-lg bg-white p-6 shadow-sm">
+                    {/* Import History */}
+                    <div className="rounded-lg bg-white p-6 shadow-sm dark:bg-gray-800 dark:shadow-none">
                         <div className="mb-4 flex items-center justify-between">
-                            <h3 className="text-lg font-semibold text-gray-900">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                                 Import History
                             </h3>
+                            {meta.total > 0 && (
+                                <span className="text-sm text-gray-500 dark:text-gray-400">
+                                    {meta.from}–{meta.to} of {meta.total}
+                                </span>
+                            )}
                         </div>
 
-                        {/* Tabs */}
-                        <div className="mb-4 border-b border-gray-200">
-                            <nav className="-mb-px flex space-x-8">
-                                <button
-                                    onClick={() => setActiveTab('all')}
-                                    className={`${
-                                        activeTab === 'all'
-                                            ? 'border-indigo-500 text-indigo-600'
-                                            : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                                    } whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium`}
+                        {/* Filters */}
+                        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1 dark:text-gray-300">
+                                    Type
+                                </label>
+                                <select
+                                    className="block w-full rounded-md border-gray-300 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+                                    value={filters.type}
+                                    onChange={(e) => handleFilterChange('type', e.target.value)}
                                 >
-                                    All Imports ({imports.length})
-                                </button>
-                                <button
-                                    onClick={() => setActiveTab('ofx')}
-                                    className={`${
-                                        activeTab === 'ofx'
-                                            ? 'border-indigo-500 text-indigo-600'
-                                            : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                                    } whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium`}
+                                    <option value="">All Types</option>
+                                    <option value="ofx">OFX / QFX</option>
+                                    <option value="xlsx">XLSX / CSV</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1 dark:text-gray-300">
+                                    Account
+                                </label>
+                                <select
+                                    className="block w-full rounded-md border-gray-300 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+                                    value={filters.account_id}
+                                    onChange={(e) => handleFilterChange('account_id', e.target.value)}
                                 >
-                                    OFX Imports ({ofxCount})
-                                </button>
-                                <button
-                                    onClick={() => setActiveTab('xlsx')}
-                                    className={`${
-                                        activeTab === 'xlsx'
-                                            ? 'border-indigo-500 text-indigo-600'
-                                            : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                                    } whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium`}
+                                    <option value="">All Accounts</option>
+                                    {accounts.map((acc) => (
+                                        <option key={acc.id} value={acc.id}>
+                                            {acc.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1 dark:text-gray-300">
+                                    Status
+                                </label>
+                                <select
+                                    className="block w-full rounded-md border-gray-300 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+                                    value={filters.status}
+                                    onChange={(e) => handleFilterChange('status', e.target.value)}
                                 >
-                                    XLSX/CSV Imports ({xlsxCount})
-                                </button>
-                            </nav>
+                                    <option value="">All Statuses</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="processing">Processing</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="failed">Failed</option>
+                                </select>
+                            </div>
                         </div>
 
                         {/* Import List */}
                         <div className="space-y-4">
-                            {filteredImports.length === 0 ? (
-                                <p className="py-8 text-center text-sm text-gray-500">
+                            {importList.length === 0 ? (
+                                <p className="py-8 text-center text-sm text-gray-500 dark:text-gray-400">
                                     No imports found.
                                 </p>
                             ) : (
-                                filteredImports.map((importData) => (
-                                    <div
+                                importList.map((importData) => (
+                                    <ImportHistoryCard
                                         key={`${importData.type}-${importData.id}`}
-                                        className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
-                                    >
-                                        <div className="space-y-2">
-                                            {/* Header with type badge */}
-                                            <div className="flex items-start justify-between">
-                                                <div className="flex-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <h4 className="font-semibold text-gray-900">
-                                                            {importData.filename}
-                                                        </h4>
-                                                        <span
-                                                            className={`rounded px-2 py-0.5 text-xs font-medium ${
-                                                                importData.type === 'ofx'
-                                                                    ? 'bg-blue-100 text-blue-800'
-                                                                    : 'bg-green-100 text-green-800'
-                                                            }`}
-                                                        >
-                                                            {importData.type === 'ofx' ? 'OFX' : 'XLSX/CSV'}
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-sm text-gray-600">
-                                                        {importData.account?.name || 'Unknown Account'}
-                                                    </p>
-                                                    <p className="text-xs text-gray-500">
-                                                        {new Date(importData.created_at).toLocaleString()}
-                                                    </p>
-                                                </div>
-                                                {/* Status badge */}
-                                                <span
-                                                    className={`rounded px-3 py-1 text-xs font-semibold ${
-                                                        importData.status === 'completed'
-                                                            ? 'bg-green-100 text-green-800'
-                                                            : importData.status === 'processing'
-                                                            ? 'bg-blue-100 text-blue-800'
-                                                            : importData.status === 'failed'
-                                                            ? 'bg-red-100 text-red-800'
-                                                            : 'bg-gray-100 text-gray-800'
-                                                    }`}
-                                                >
-                                                    {importData.status}
-                                                </span>
-                                            </div>
-
-                                            {/* Progress/Stats */}
-                                            {importData.status === 'processing' && (
-                                                <div className="mt-2">
-                                                    <div className="mb-1 flex justify-between text-xs text-gray-600">
-                                                        <span>Processing...</span>
-                                                        <span>{importData.progress}%</span>
-                                                    </div>
-                                                    <div className="h-2 overflow-hidden rounded-full bg-gray-200">
-                                                        <div
-                                                            className="h-full bg-blue-600 transition-all"
-                                                            style={{ width: `${importData.progress}%` }}
-                                                        ></div>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {importData.status === 'completed' && (
-                                                <div className="text-sm text-gray-600">
-                                                    <span>Processed: {importData.processed_count || 0}</span>
-                                                    {importData.type === 'ofx' && importData.matched_count !== undefined && (
-                                                        <span className="ml-4">
-                                                            Matched: {importData.matched_count}
-                                                        </span>
-                                                    )}
-                                                    {importData.type === 'xlsx' && (
-                                                        <>
-                                                            {importData.skipped_count > 0 && (
-                                                                <span className="ml-4 text-yellow-600">
-                                                                    Skipped: {importData.skipped_count}
-                                                                </span>
-                                                            )}
-                                                            {importData.duplicate_count > 0 && (
-                                                                <span className="ml-4 text-orange-600">
-                                                                    Duplicates: {importData.duplicate_count}
-                                                                </span>
-                                                            )}
-                                                        </>
-                                                    )}
-                                                </div>
-                                            )}
-
-                                            {importData.status === 'failed' && importData.error_message && (
-                                                <div className="rounded bg-red-50 p-2 text-sm text-red-700">
-                                                    {importData.error_message}
-                                                </div>
-                                            )}
-
-                                            {/* Actions */}
-                                            {importData.reconciliation_id && (
-                                                <div className="mt-2">
-                                                    <a
-                                                        href={route('reconciliations.show', importData.reconciliation_id)}
-                                                        className="text-sm text-indigo-600 hover:text-indigo-800"
-                                                    >
-                                                        View Reconciliation →
-                                                    </a>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
+                                        importData={importData}
+                                        onDelete={handleUploadSuccess}
+                                    />
                                 ))
                             )}
                         </div>
+
+                        {/* Pagination */}
+                        {meta.last_page > 1 && (
+                            <div className="mt-6 flex items-center justify-between border-t pt-4 dark:border-gray-700">
+                                <button
+                                    onClick={() => goToPage(meta.current_page - 1)}
+                                    disabled={meta.current_page <= 1}
+                                    className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                                >
+                                    Previous
+                                </button>
+
+                                <div className="flex gap-1">
+                                    {paginationItems.map((item) =>
+                                        item.type === 'ellipsis' ? (
+                                            <span
+                                                key={item.key}
+                                                className="min-w-[2rem] px-2 py-1.5 text-center text-sm font-medium text-gray-400 dark:text-gray-500"
+                                            >
+                                                ...
+                                            </span>
+                                        ) : (
+                                            <button
+                                                key={item.value}
+                                                onClick={() => goToPage(item.value)}
+                                                className={`min-w-[2rem] rounded-md px-2 py-1.5 text-sm font-medium ${
+                                                    item.value === meta.current_page
+                                                        ? 'bg-indigo-600 text-white'
+                                                        : 'border border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+                                                }`}
+                                            >
+                                                {item.value}
+                                            </button>
+                                        )
+                                    )}
+                                </div>
+
+                                <button
+                                    onClick={() => goToPage(meta.current_page + 1)}
+                                    disabled={meta.current_page >= meta.last_page}
+                                    className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
