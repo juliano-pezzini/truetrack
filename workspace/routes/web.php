@@ -15,12 +15,18 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // Account management
+    Route::delete('/accounts/bulk-delete', [App\Http\Controllers\AccountController::class, 'bulkDestroy'])
+        ->name('accounts.bulk-destroy');
     Route::resource('accounts', App\Http\Controllers\AccountController::class);
 
     // Category management
+    Route::delete('/categories/bulk-delete', [App\Http\Controllers\CategoryController::class, 'bulkDestroy'])
+        ->name('categories.bulk-destroy');
     Route::resource('categories', App\Http\Controllers\CategoryController::class);
 
     // Tag management
+    Route::delete('/tags/bulk-delete', [App\Http\Controllers\TagController::class, 'bulkDestroy'])
+        ->name('tags.bulk-destroy');
     Route::resource('tags', App\Http\Controllers\TagController::class);
 
     // Transaction management

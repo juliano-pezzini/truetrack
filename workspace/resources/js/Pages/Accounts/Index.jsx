@@ -1,11 +1,29 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import normalizeInertiaUrl from '@/Utils/normalizeInertiaUrl';
 
 export default function Index({ auth, accounts, filters }) {
     const [filterType, setFilterType] = useState(filters?.filter?.type || '');
     const [filterActive, setFilterActive] = useState(filters?.filter?.is_active ?? '');
+    const [selectedAccountIds, setSelectedAccountIds] = useState([]);
+    const selectAllRef = useRef(null);
+
+    const visibleAccountIds = accounts?.data?.map((account) => account.id) || [];
+    const selectedAccountIdSet = new Set(selectedAccountIds);
+    const allVisibleSelected = visibleAccountIds.length > 0
+        && visibleAccountIds.every((accountId) => selectedAccountIdSet.has(accountId));
+    const someVisibleSelected = visibleAccountIds.some((accountId) => selectedAccountIdSet.has(accountId));
+
+    useEffect(() => {
+        if (selectAllRef.current) {
+            selectAllRef.current.indeterminate = someVisibleSelected && !allVisibleSelected;
+        }
+    }, [allVisibleSelected, someVisibleSelected]);
+
+    useEffect(() => {
+        setSelectedAccountIds([]);
+    }, [accounts?.data]);
 
     const accountTypes = [
         { value: '', label: 'All Types' },
@@ -47,6 +65,51 @@ export default function Index({ auth, accounts, filters }) {
     const deleteAccount = (accountId) => {
         if (confirm('Are you sure you want to delete this account?')) {
             router.delete(route('accounts.destroy', accountId));
+        }
+    };
+
+    const toggleAccountSelection = (accountId) => {
+        setSelectedAccountIds((currentSelection) => (
+            currentSelection.includes(accountId)
+                ? currentSelection.filter((selectedAccountId) => selectedAccountId !== accountId)
+                : [...currentSelection, accountId]
+        ));
+    };
+
+    const toggleAllVisibleAccounts = () => {
+        setSelectedAccountIds((currentSelection) => {
+            const currentSelectionSet = new Set(currentSelection);
+            const allCurrentlyVisibleSelected = visibleAccountIds.length > 0
+                && visibleAccountIds.every(
+                    (accountId) => currentSelectionSet.has(accountId)
+                );
+
+            if (allCurrentlyVisibleSelected) {
+                return currentSelection.filter(
+                    (accountId) => !visibleAccountIds.includes(accountId)
+                );
+            }
+
+            return Array.from(new Set([...currentSelection, ...visibleAccountIds]));
+        });
+    };
+
+    const deleteSelectedAccounts = () => {
+        if (selectedAccountIds.length === 0) {
+            return;
+        }
+
+        const accountCount = selectedAccountIds.length;
+        const accountLabel = accountCount === 1 ? 'account' : 'accounts';
+
+        if (confirm(`Are you sure you want to delete ${accountCount} selected ${accountLabel}?`)) {
+            router.delete(route('accounts.bulk-destroy'), {
+                data: {
+                    account_ids: selectedAccountIds,
+                },
+                preserveScroll: true,
+                onSuccess: () => setSelectedAccountIds([]),
+            });
         }
     };
 
@@ -151,10 +214,42 @@ export default function Index({ auth, accounts, filters }) {
                                     No accounts found. Create your first account to get started.
                                 </div>
                             ) : (
-                                <div className="overflow-x-auto">
+                                <div>
+                                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                                Account List
+                                            </h3>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                                {selectedAccountIds.length > 0
+                                                    ? `${selectedAccountIds.length} selected`
+                                                    : 'Select rows to delete them in bulk.'}
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={deleteSelectedAccounts}
+                                            disabled={selectedAccountIds.length === 0}
+                                            className="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-red-300 dark:bg-red-500 dark:hover:bg-red-400 dark:disabled:bg-red-900/50"
+                                        >
+                                            Delete Selected ({selectedAccountIds.length})
+                                        </button>
+                                    </div>
+
+                                    <div className="overflow-x-auto">
                                     <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                         <thead className="bg-gray-50 dark:bg-gray-900/40">
                                             <tr>
+                                                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                                                    <input
+                                                        ref={selectAllRef}
+                                                        type="checkbox"
+                                                        checked={allVisibleSelected}
+                                                        onChange={toggleAllVisibleAccounts}
+                                                        aria-label="Select all visible accounts"
+                                                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600"
+                                                    />
+                                                </th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
                                                     Name
                                                 </th>
@@ -173,8 +268,20 @@ export default function Index({ auth, accounts, filters }) {
                                             </tr>
                                         </thead>
                                         <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
-                                            {accounts.data.map((account) => (
-                                                <tr key={account.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                                            {accounts.data.map((account) => {
+                                                const isSelected = selectedAccountIdSet.has(account.id);
+
+                                                return (
+                                                <tr key={account.id} className={`hover:bg-gray-50 dark:hover:bg-gray-700/40 ${isSelected ? 'bg-indigo-50/60 dark:bg-indigo-900/20' : ''}`}>
+                                                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isSelected}
+                                                            onChange={() => toggleAccountSelection(account.id)}
+                                                            aria-label={`Select account ${account.id}`}
+                                                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600"
+                                                        />
+                                                    </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                                             {account.name}
@@ -219,9 +326,11 @@ export default function Index({ auth, accounts, filters }) {
                                                         </button>
                                                     </td>
                                                 </tr>
-                                            ))}
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
+                                </div>
                                 </div>
                             )}
 

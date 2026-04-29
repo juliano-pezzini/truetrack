@@ -245,4 +245,74 @@ class CategoryControllerTest extends TestCase
 
         $response->assertStatus(403);
     }
+
+    public function test_can_bulk_delete_categories(): void
+    {
+        $categories = Category::factory()->for($this->user)->count(3)->create();
+
+        $response = $this->actingAs($this->user)
+            ->delete(route('categories.bulk-destroy'), [
+                'category_ids' => $categories->pluck('id')->all(),
+            ]);
+
+        $response->assertRedirect(route('categories.index'));
+        $response->assertSessionHas('success', '3 categories deleted successfully.');
+
+        foreach ($categories as $category) {
+            $this->assertSoftDeleted('categories', [
+                'id' => $category->id,
+            ]);
+        }
+    }
+
+    public function test_cannot_bulk_delete_categories_with_children(): void
+    {
+        $parent = Category::factory()->for($this->user)->create();
+        Category::factory()->for($this->user)->create(['parent_id' => $parent->id]);
+        $single = Category::factory()->for($this->user)->create();
+
+        $response = $this->actingAs($this->user)
+            ->delete(route('categories.bulk-destroy'), [
+                'category_ids' => [$parent->id, $single->id],
+            ]);
+
+        $response->assertRedirect(route('categories.index'));
+        $response->assertSessionHas('error', 'Cannot delete categories with subcategories. Please delete subcategories first.');
+
+        $this->assertDatabaseHas('categories', [
+            'id' => $parent->id,
+            'deleted_at' => null,
+        ]);
+
+        $this->assertDatabaseHas('categories', [
+            'id' => $single->id,
+            'deleted_at' => null,
+        ]);
+    }
+
+    public function test_user_cannot_bulk_delete_other_users_categories(): void
+    {
+        $otherUser = User::factory()->create();
+        $otherCategory = Category::factory()->for($otherUser)->create();
+
+        $response = $this->actingAs($this->user)
+            ->delete(route('categories.bulk-destroy'), [
+                'category_ids' => [$otherCategory->id],
+            ]);
+
+        $response->assertSessionHasErrors(['category_ids.0']);
+    }
+
+    public function test_user_cannot_bulk_delete_soft_deleted_categories(): void
+    {
+        $category = Category::factory()->for($this->user)->create();
+        $category->delete();
+
+        $response = $this->actingAs($this->user)
+            ->delete(route('categories.bulk-destroy'), [
+                'category_ids' => [$category->id],
+            ]);
+
+        $response->assertSessionHasErrors(['category_ids.0']);
+    }
 }
