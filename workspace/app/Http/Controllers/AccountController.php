@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\BulkDeleteAccountRequest;
 use App\Http\Requests\StoreAccountRequest;
 use App\Http\Requests\UpdateAccountRequest;
 use App\Models\Account;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -137,5 +139,38 @@ class AccountController extends Controller
 
         return redirect()->route('accounts.index')
             ->with('success', 'Account deleted successfully.');
+    }
+
+    /**
+     * Remove multiple accounts from storage.
+     */
+    public function bulkDestroy(BulkDeleteAccountRequest $request): RedirectResponse
+    {
+        $accountIds = array_values(array_unique($request->validated('account_ids')));
+
+        $accounts = Account::query()
+            ->where('user_id', $request->user()->id)
+            ->whereIn('id', $accountIds)
+            ->get();
+
+        if ($accounts->count() !== count($accountIds)) {
+            throw ValidationException::withMessages([
+                'account_ids' => ['One or more selected accounts are invalid.'],
+            ]);
+        }
+
+        foreach ($accounts as $account) {
+            $this->authorize('delete', $account);
+            $account->delete();
+        }
+
+        $deletedCount = $accounts->count();
+
+        return redirect()->route('accounts.index')
+            ->with('success', trans_choice(
+                ':count account deleted successfully.|:count accounts deleted successfully.',
+                $deletedCount,
+                ['count' => $deletedCount]
+            ));
     }
 }

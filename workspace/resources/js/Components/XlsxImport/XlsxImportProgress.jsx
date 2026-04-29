@@ -52,7 +52,7 @@ export default function XlsxImportProgress({ importId, onComplete }) {
     }
 
     if (!importData) {
-        return <div className="text-center py-8 text-red-600">Import not found</div>;
+        return <div className="text-center py-8 text-red-600 dark:text-red-300">Import not found</div>;
     }
 
     const getStatusColor = (status) => {
@@ -71,12 +71,12 @@ export default function XlsxImportProgress({ importId, onComplete }) {
     };
 
     return (
-        <div className="bg-white rounded-lg shadow-md p-6 space-y-4">
+        <div className="bg-white rounded-lg shadow-md p-6 space-y-4 dark:bg-gray-800 dark:shadow-none">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h3 className="text-lg font-semibold">{importData.filename}</h3>
-                    <p className="text-sm text-gray-600">{new Date(importData.created_at).toLocaleString()}</p>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{importData.filename}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{new Date(importData.created_at).toLocaleString()}</p>
                 </div>
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(importData.status)}`}>
                     {importData.status.charAt(0).toUpperCase() + importData.status.slice(1)}
@@ -102,27 +102,27 @@ export default function XlsxImportProgress({ importId, onComplete }) {
             {/* Statistics */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">{importData.total_count}</div>
-                    <div className="text-sm text-gray-600">Total Rows</div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{importData.total_count}</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Total Rows</div>
                 </div>
                 <div className="text-center">
                     <div className="text-2xl font-bold text-green-600">{importData.processed_count}</div>
-                    <div className="text-sm text-gray-600">Processed</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Processed</div>
                 </div>
                 <div className="text-center">
                     <div className="text-2xl font-bold text-yellow-600">{importData.skipped_count}</div>
-                    <div className="text-sm text-gray-600">Skipped</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Skipped</div>
                 </div>
                 <div className="text-center">
                     <div className="text-2xl font-bold text-orange-600">{importData.duplicate_count}</div>
-                    <div className="text-sm text-gray-600">Duplicates</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Duplicates</div>
                 </div>
             </div>
 
             {/* Error Message */}
             {importData.error_message && (
-                <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                    <p className="text-sm text-red-800">
+                <div className="bg-red-50 border border-red-200 rounded-md p-4 dark:bg-red-900/20 dark:border-red-800">
+                    <p className="text-sm text-red-800 dark:text-red-200">
                         <span className="font-medium">Error:</span> {importData.error_message}
                     </p>
                 </div>
@@ -130,14 +130,14 @@ export default function XlsxImportProgress({ importId, onComplete }) {
 
             {/* Success Message */}
             {importData.status === 'completed' && (
-                <div className="bg-green-50 border border-green-200 rounded-md p-4">
-                    <p className="text-sm text-green-800">
+                <div className="bg-green-50 border border-green-200 rounded-md p-4 dark:bg-green-900/20 dark:border-green-800">
+                    <p className="text-sm text-green-800 dark:text-green-200">
                         <span className="font-medium">Import completed successfully!</span>
                         {importData.reconciliation_id && (
                             <span className="ml-2">
                                 <a
                                     href={`/reconciliations/${importData.reconciliation_id}`}
-                                    className="underline hover:text-green-900"
+                                    className="underline hover:text-green-900 dark:hover:text-green-100"
                                 >
                                     View Reconciliation
                                 </a>

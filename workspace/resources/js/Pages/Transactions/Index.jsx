@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import normalizeInertiaUrl from '@/Utils/normalizeInertiaUrl';
 
 export default function Index({ auth, transactions, accounts, categories, tags, filters }) {
     const [filterAccount, setFilterAccount] = useState(filters?.filter?.account_id || '');
@@ -10,6 +11,24 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
     const [filterDateFrom, setFilterDateFrom] = useState(filters?.filter?.date_from || '');
     const [filterDateTo, setFilterDateTo] = useState(filters?.filter?.date_to || '');
     const [filterTag, setFilterTag] = useState(filters?.filter?.tag || '');
+    const [selectedTransactionIds, setSelectedTransactionIds] = useState([]);
+    const selectAllRef = useRef(null);
+
+    const visibleTransactionIds = transactions?.data?.map((transaction) => transaction.id) || [];
+    const selectedTransactionIdSet = new Set(selectedTransactionIds);
+    const allVisibleSelected = visibleTransactionIds.length > 0
+        && visibleTransactionIds.every((transactionId) => selectedTransactionIdSet.has(transactionId));
+    const someVisibleSelected = visibleTransactionIds.some((transactionId) => selectedTransactionIdSet.has(transactionId));
+
+    useEffect(() => {
+        if (selectAllRef.current) {
+            selectAllRef.current.indeterminate = someVisibleSelected && !allVisibleSelected;
+        }
+    }, [allVisibleSelected, someVisibleSelected]);
+
+    useEffect(() => {
+        setSelectedTransactionIds([]);
+    }, [transactions?.data]);
 
     const transactionTypes = [
         { value: '', label: 'All Types' },
@@ -51,9 +70,48 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
         router.get(route('transactions.index'));
     };
 
-    const deleteTransaction = (transactionId) => {
-        if (confirm('Are you sure you want to delete this transaction? This will adjust the account balance.')) {
-            router.delete(route('transactions.destroy', transactionId));
+    const toggleTransactionSelection = (transactionId) => {
+        setSelectedTransactionIds((currentSelection) => (
+            currentSelection.includes(transactionId)
+                ? currentSelection.filter((selectedTransactionId) => selectedTransactionId !== transactionId)
+                : [...currentSelection, transactionId]
+        ));
+    };
+
+    const toggleAllVisibleTransactions = () => {
+        setSelectedTransactionIds((currentSelection) => {
+            const currentSelectionSet = new Set(currentSelection);
+            const allCurrentlyVisibleSelected = visibleTransactionIds.length > 0
+                && visibleTransactionIds.every(
+                    (transactionId) => currentSelectionSet.has(transactionId)
+                );
+
+            if (allCurrentlyVisibleSelected) {
+                return currentSelection.filter(
+                    (transactionId) => !visibleTransactionIds.includes(transactionId)
+                );
+            }
+
+            return Array.from(new Set([...currentSelection, ...visibleTransactionIds]));
+        });
+    };
+
+    const deleteSelectedTransactions = () => {
+        if (selectedTransactionIds.length === 0) {
+            return;
+        }
+
+        const transactionCount = selectedTransactionIds.length;
+        const transactionLabel = transactionCount === 1 ? 'transaction' : 'transactions';
+
+        if (confirm(`Are you sure you want to delete ${transactionCount} selected ${transactionLabel}? This will adjust the account balances.`)) {
+            router.delete(route('transactions.bulk-destroy'), {
+                data: {
+                    transaction_ids: selectedTransactionIds,
+                },
+                preserveScroll: true,
+                onSuccess: () => setSelectedTransactionIds([]),
+            });
         }
     };
 
@@ -74,11 +132,11 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
     };
 
     const getTypeClass = (type) => {
-        return type === 'debit' ? 'text-green-600' : 'text-red-600';
+        return type === 'credit' ? 'text-green-600' : 'text-red-600';
     };
 
     const getTypeBadge = (type) => {
-        const bgClass = type === 'debit' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+        const bgClass = type === 'credit' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
         return (
             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${bgClass}`}>
                 {type.toUpperCase()}
@@ -106,7 +164,7 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
             user={auth.user}
             header={
                 <div className="flex justify-between items-center">
-                    <h2 className="font-semibold text-xl text-gray-800 leading-tight">
+                    <h2 className="font-semibold text-xl text-gray-800 leading-tight dark:text-gray-100">
                         Transactions
                     </h2>
                     <Link
@@ -123,20 +181,20 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
             <div className="py-12">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                     {/* Filters */}
-                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
+                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6 dark:bg-gray-800">
                         <div className="p-6">
-                            <h3 className="text-lg font-semibold mb-4">Filters</h3>
+                            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Filters</h3>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 {/* Account Filter */}
                                 <div>
-                                    <label htmlFor="filterAccount" className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label htmlFor="filterAccount" className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
                                         Account
                                     </label>
                                     <select
                                         id="filterAccount"
                                         value={filterAccount}
                                         onChange={(e) => setFilterAccount(e.target.value)}
-                                        className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                        className="w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                                     >
                                         <option value="">All Accounts</option>
                                         {accounts?.data?.map((account) => (
@@ -149,14 +207,14 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
 
                                 {/* Category Filter */}
                                 <div>
-                                    <label htmlFor="filterCategory" className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label htmlFor="filterCategory" className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
                                         Category
                                     </label>
                                     <select
                                         id="filterCategory"
                                         value={filterCategory}
                                         onChange={(e) => setFilterCategory(e.target.value)}
-                                        className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                        className="w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                                     >
                                         <option value="">All Categories</option>
                                         {categories?.data?.map((category) => (
@@ -169,14 +227,14 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
 
                                 {/* Type Filter */}
                                 <div>
-                                    <label htmlFor="filterType" className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label htmlFor="filterType" className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
                                         Type
                                     </label>
                                     <select
                                         id="filterType"
                                         value={filterType}
                                         onChange={(e) => setFilterType(e.target.value)}
-                                        className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                        className="w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                                     >
                                         {transactionTypes.map((type) => (
                                             <option key={type.value} value={type.value}>
@@ -188,14 +246,14 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
 
                                 {/* Settled Filter */}
                                 <div>
-                                    <label htmlFor="filterSettled" className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label htmlFor="filterSettled" className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
                                         Status
                                     </label>
                                     <select
                                         id="filterSettled"
                                         value={filterSettled}
                                         onChange={(e) => setFilterSettled(e.target.value)}
-                                        className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                        className="w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                                     >
                                         {settledOptions.map((option) => (
                                             <option key={option.value} value={option.value}>
@@ -207,7 +265,7 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
 
                                 {/* Date From */}
                                 <div>
-                                    <label htmlFor="filterDateFrom" className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label htmlFor="filterDateFrom" className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
                                         From Date
                                     </label>
                                     <input
@@ -215,13 +273,13 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
                                         id="filterDateFrom"
                                         value={filterDateFrom}
                                         onChange={(e) => setFilterDateFrom(e.target.value)}
-                                        className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                        className="w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                                     />
                                 </div>
 
                                 {/* Date To */}
                                 <div>
-                                    <label htmlFor="filterDateTo" className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label htmlFor="filterDateTo" className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
                                         To Date
                                     </label>
                                     <input
@@ -229,20 +287,20 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
                                         id="filterDateTo"
                                         value={filterDateTo}
                                         onChange={(e) => setFilterDateTo(e.target.value)}
-                                        className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                        className="w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                                     />
                                 </div>
 
                                 {/* Tag Filter */}
                                 <div>
-                                    <label htmlFor="filterTag" className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label htmlFor="filterTag" className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">
                                         Tag
                                     </label>
                                     <select
                                         id="filterTag"
                                         value={filterTag}
                                         onChange={(e) => setFilterTag(e.target.value)}
-                                        className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                        className="w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                                     >
                                         <option value="">All Tags</option>
                                         {tags?.data?.map((tag) => (
@@ -258,14 +316,14 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
                                 <button
                                     type="button"
                                     onClick={applyFilters}
-                                    className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                                    className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400"
                                 >
                                     Apply Filters
                                 </button>
                                 <button
                                     type="button"
                                     onClick={clearFilters}
-                                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+                                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
                                 >
                                     Clear Filters
                                 </button>
@@ -274,91 +332,131 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
                     </div>
 
                     {/* Transactions List */}
-                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg dark:bg-gray-800">
                         <div className="p-6">
                             {transactions?.data?.length === 0 ? (
                                 <div className="text-center py-8">
-                                    <p className="text-gray-500">No transactions found.</p>
+                                    <p className="text-gray-500 dark:text-gray-400">No transactions found.</p>
                                     <Link
                                         href={route('transactions.create')}
-                                        className="mt-4 inline-block px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                                        className="mt-4 inline-block px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400"
                                     >
                                         Create your first transaction
                                     </Link>
                                 </div>
                             ) : (
-                                <div className="overflow-x-auto">
-                                    <table className="min-w-full divide-y divide-gray-200">
-                                        <thead className="bg-gray-50">
-                                            <tr>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Date
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Account
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Category
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Description
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Type
-                                                </th>
-                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Amount
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Status
-                                                </th>
-                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Actions
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="bg-white divide-y divide-gray-200">
-                                            {transactions?.data?.map((transaction) => (
-                                                <tr key={transaction.id} className="hover:bg-gray-50">
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                        {formatDate(transaction.transaction_date)}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                        {transaction.account?.name || 'N/A'}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                        {transaction.category?.name || 'N/A'}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-sm text-gray-900">
-                                                        {transaction.description || '—'}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        {getTypeBadge(transaction.type)}
-                                                    </td>
-                                                    <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-medium ${getTypeClass(transaction.type)}`}>
-                                                        {formatCurrency(transaction.amount)}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        {getSettledBadge(transaction.settled_date)}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                        <Link
-                                                            href={route('transactions.edit', transaction.id)}
-                                                            className="text-indigo-600 hover:text-indigo-900 mr-3"
-                                                        >
-                                                            Edit
-                                                        </Link>
-                                                        <button
-                                                            onClick={() => deleteTransaction(transaction.id)}
-                                                            className="text-red-600 hover:text-red-900"
-                                                        >
-                                                            Delete
-                                                        </button>
-                                                    </td>
+                                <div>
+                                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                                Transaction List
+                                            </h3>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                                {selectedTransactionIds.length > 0
+                                                    ? `${selectedTransactionIds.length} selected`
+                                                    : 'Select rows to delete them in bulk.'}
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={deleteSelectedTransactions}
+                                            disabled={selectedTransactionIds.length === 0}
+                                            className="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-red-300 dark:bg-red-500 dark:hover:bg-red-400 dark:disabled:bg-red-900/50"
+                                        >
+                                            Delete Selected ({selectedTransactionIds.length})
+                                        </button>
+                                    </div>
+
+                                    <div className="overflow-x-auto">
+                                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                            <thead className="bg-gray-50 dark:bg-gray-900/40">
+                                                <tr>
+                                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                                                        <input
+                                                            ref={selectAllRef}
+                                                            type="checkbox"
+                                                            checked={allVisibleSelected}
+                                                            onChange={toggleAllVisibleTransactions}
+                                                            aria-label="Select all visible transactions"
+                                                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600"
+                                                        />
+                                                    </th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
+                                                        Date
+                                                    </th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
+                                                        Account
+                                                    </th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
+                                                        Category
+                                                    </th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
+                                                        Description
+                                                    </th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
+                                                        Type
+                                                    </th>
+                                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
+                                                        Amount
+                                                    </th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
+                                                        Status
+                                                    </th>
+                                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
+                                                        Actions
+                                                    </th>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+                                                {transactions?.data?.map((transaction) => {
+                                                    const isSelected = selectedTransactionIdSet.has(transaction.id);
+
+                                                    return (
+                                                        <tr key={transaction.id} className={`hover:bg-gray-50 dark:hover:bg-gray-700/40 ${isSelected ? 'bg-indigo-50/60 dark:bg-indigo-900/20' : ''}`}>
+                                                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={isSelected}
+                                                                    onChange={() => toggleTransactionSelection(transaction.id)}
+                                                                    aria-label={`Select transaction ${transaction.id}`}
+                                                                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600"
+                                                                />
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                                                {formatDate(transaction.transaction_date)}
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                                                {transaction.account?.name || 'N/A'}
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                                                {transaction.category?.name || 'N/A'}
+                                                            </td>
+                                                            <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
+                                                                {transaction.description || '—'}
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                {getTypeBadge(transaction.type)}
+                                                            </td>
+                                                            <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-medium ${getTypeClass(transaction.type)}`}>
+                                                                {formatCurrency(transaction.amount)}
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                {getSettledBadge(transaction.settled_date)}
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                                <Link
+                                                                    href={route('transactions.edit', transaction.id)}
+                                                                    className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
+                                                                >
+                                                                    Edit
+                                                                </Link>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             )}
 
@@ -366,26 +464,28 @@ export default function Index({ auth, transactions, accounts, categories, tags, 
                             {transactions?.links && transactions.links.length > 3 && (
                                 <div className="mt-6 flex justify-center">
                                     <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                                        {transactions.links.map((link, index) =>
-                                            link.url ? (
+                                        {transactions.links.map((link, index) => {
+                                            const href = normalizeInertiaUrl(link.url);
+
+                                            return href ? (
                                                 <Link
                                                     key={index}
-                                                    href={link.url}
+                                                    href={href}
                                                     className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                                                         link.active
-                                                            ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
-                                                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                                                            ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600 dark:bg-indigo-900/30 dark:border-indigo-400 dark:text-indigo-300'
+                                                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'
                                                     }`}
                                                     dangerouslySetInnerHTML={{ __html: link.label }}
                                                 />
                                             ) : (
                                                 <span
                                                     key={index}
-                                                    className="relative inline-flex items-center px-4 py-2 border text-sm font-medium bg-white border-gray-300 text-gray-500 cursor-not-allowed opacity-50"
+                                                    className="relative inline-flex items-center px-4 py-2 border text-sm font-medium bg-white border-gray-300 text-gray-500 cursor-not-allowed opacity-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400"
                                                     dangerouslySetInnerHTML={{ __html: link.label }}
                                                 />
-                                            ),
-                                        )}
+                                            );
+                                        })}
                                     </nav>
                                 </div>
                             )}

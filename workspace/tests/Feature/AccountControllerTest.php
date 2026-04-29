@@ -151,6 +151,51 @@ class AccountControllerTest extends TestCase
         $response->assertStatus(403);
     }
 
+    public function test_can_bulk_delete_accounts(): void
+    {
+        $accounts = Account::factory()->for($this->user)->count(3)->create();
+
+        $response = $this->actingAs($this->user)
+            ->delete(route('accounts.bulk-destroy'), [
+                'account_ids' => $accounts->pluck('id')->all(),
+            ]);
+
+        $response->assertRedirect(route('accounts.index'));
+        $response->assertSessionHas('success', '3 accounts deleted successfully.');
+
+        foreach ($accounts as $account) {
+            $this->assertSoftDeleted('accounts', [
+                'id' => $account->id,
+            ]);
+        }
+    }
+
+    public function test_user_cannot_bulk_delete_other_users_accounts(): void
+    {
+        $otherUser = User::factory()->create();
+        $otherAccount = Account::factory()->for($otherUser)->create();
+
+        $response = $this->actingAs($this->user)
+            ->delete(route('accounts.bulk-destroy'), [
+                'account_ids' => [$otherAccount->id],
+            ]);
+
+        $response->assertSessionHasErrors(['account_ids.0']);
+    }
+
+    public function test_user_cannot_bulk_delete_soft_deleted_accounts(): void
+    {
+        $account = Account::factory()->for($this->user)->create();
+        $account->delete();
+
+        $response = $this->actingAs($this->user)
+            ->delete(route('accounts.bulk-destroy'), [
+                'account_ids' => [$account->id],
+            ]);
+
+        $response->assertSessionHasErrors(['account_ids.0']);
+    }
+
     public function test_filters_work_correctly(): void
     {
         Account::factory()->bank()->for($this->user)->create();

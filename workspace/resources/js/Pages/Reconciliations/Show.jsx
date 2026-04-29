@@ -117,7 +117,7 @@ export default function Show({ auth, reconciliation, suggestedTransactions }) {
             <div className="py-12">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
                     {/* Summary Card */}
-                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg dark:bg-gray-800">
                         <div className="p-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                 <div>
@@ -184,7 +184,7 @@ export default function Show({ auth, reconciliation, suggestedTransactions }) {
                     {/* Two Column Layout */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Matched Transactions */}
-                        <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                        <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg dark:bg-gray-800">
                             <div className="p-6">
                                 <h3 className="text-lg font-semibold mb-4">
                                     Matched Transactions ({reconciliation.transactions.length})
@@ -235,7 +235,7 @@ export default function Show({ auth, reconciliation, suggestedTransactions }) {
 
                         {/* Suggested Transactions */}
                         {isPending && (
-                            <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                            <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg dark:bg-gray-800">
                                 <div className="p-6">
                                     <h3 className="text-lg font-semibold mb-4">
                                         Suggested Transactions ({availableTransactions.length})

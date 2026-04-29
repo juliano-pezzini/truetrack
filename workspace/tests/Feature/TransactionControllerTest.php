@@ -295,4 +295,65 @@ class TransactionControllerTest extends TestCase
 
         $response->assertStatus(403);
     }
+
+    public function test_can_bulk_delete_transactions(): void
+    {
+        $transactions = Transaction::factory()
+            ->for($this->user)
+            ->for($this->account)
+            ->for($this->category)
+            ->count(3)
+            ->create();
+
+        $response = $this->actingAs($this->user)
+            ->delete(route('transactions.bulk-destroy'), [
+                'transaction_ids' => $transactions->pluck('id')->all(),
+            ]);
+
+        $response->assertRedirect(route('transactions.index'));
+        $response->assertSessionHas('success', '3 transactions deleted successfully.');
+
+        foreach ($transactions as $transaction) {
+            $this->assertSoftDeleted('transactions', [
+                'id' => $transaction->id,
+            ]);
+        }
+    }
+
+    public function test_user_cannot_bulk_delete_other_users_transactions(): void
+    {
+        $otherUser = User::factory()->create();
+        $otherAccount = Account::factory()->for($otherUser)->create();
+        $otherCategory = Category::factory()->for($otherUser)->create();
+        $transaction = Transaction::factory()
+            ->for($otherUser)
+            ->for($otherAccount, 'account')
+            ->for($otherCategory, 'category')
+            ->create();
+
+        $response = $this->actingAs($this->user)
+            ->delete(route('transactions.bulk-destroy'), [
+                'transaction_ids' => [$transaction->id],
+            ]);
+
+        $response->assertSessionHasErrors(['transaction_ids.0']);
+    }
+
+    public function test_user_cannot_bulk_delete_soft_deleted_transactions(): void
+    {
+        $transaction = Transaction::factory()
+            ->for($this->user)
+            ->for($this->account)
+            ->for($this->category)
+            ->create();
+
+        $transaction->delete();
+
+        $response = $this->actingAs($this->user)
+            ->delete(route('transactions.bulk-destroy'), [
+                'transaction_ids' => [$transaction->id],
+            ]);
+
+        $response->assertSessionHasErrors(['transaction_ids.0']);
+    }
 }

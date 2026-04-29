@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Enums\CategoryType;
+use App\Http\Requests\BulkDeleteCategoryRequest;
 use App\Http\Requests\StoreCategoryRequest;
 use App\Http\Requests\UpdateCategoryRequest;
 use App\Models\Category;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -173,5 +175,47 @@ class CategoryController extends Controller
         return redirect()
             ->route('categories.index')
             ->with('success', 'Category deleted successfully.');
+    }
+
+    /**
+     * Remove multiple categories from storage.
+     */
+    public function bulkDestroy(BulkDeleteCategoryRequest $request): RedirectResponse
+    {
+        $categoryIds = array_values(array_unique($request->validated('category_ids')));
+
+        $categories = Category::query()
+            ->where('user_id', $request->user()->id)
+            ->whereIn('id', $categoryIds)
+            ->get();
+
+        if ($categories->count() !== count($categoryIds)) {
+            throw ValidationException::withMessages([
+                'category_ids' => ['One or more selected categories are invalid.'],
+            ]);
+        }
+
+        if (Category::query()
+            ->whereIn('parent_id', $categoryIds)
+            ->where('user_id', $request->user()->id)
+            ->exists()) {
+            return redirect()
+                ->route('categories.index')
+                ->with('error', 'Cannot delete categories with subcategories. Please delete subcategories first.');
+        }
+
+        foreach ($categories as $category) {
+            $category->delete();
+        }
+
+        $deletedCount = $categories->count();
+
+        return redirect()
+            ->route('categories.index')
+            ->with('success', trans_choice(
+                ':count category deleted successfully.|:count categories deleted successfully.',
+                $deletedCount,
+                ['count' => $deletedCount]
+            ));
     }
 }

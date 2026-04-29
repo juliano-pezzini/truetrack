@@ -4,22 +4,28 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\BulkDeleteTagRequest;
 use App\Http\Requests\StoreTagRequest;
 use App\Http\Requests\UpdateTagRequest;
 use App\Models\Tag;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class TagController extends Controller
 {
+    use AuthorizesRequests;
+
     /**
      * Display a listing of tags.
      */
     public function index(Request $request): Response
     {
-        $query = Tag::query();
+        $query = Tag::query()
+            ->where('user_id', $request->user()->id);
 
         // Apply search filter
         if ($request->has('filter')) {
@@ -79,6 +85,8 @@ class TagController extends Controller
      */
     public function show(Tag $tag): Response
     {
+        $this->authorize('view', $tag);
+
         return Inertia::render('Tags/Show', [
             'tag' => $tag,
         ]);
@@ -89,6 +97,8 @@ class TagController extends Controller
      */
     public function edit(Tag $tag): Response
     {
+        $this->authorize('update', $tag);
+
         return Inertia::render('Tags/Edit', [
             'tag' => $tag,
         ]);
@@ -99,6 +109,8 @@ class TagController extends Controller
      */
     public function update(UpdateTagRequest $request, Tag $tag): RedirectResponse
     {
+        $this->authorize('update', $tag);
+
         $tag->update($request->validated());
 
         return redirect()->route('tags.index')
@@ -110,9 +122,47 @@ class TagController extends Controller
      */
     public function destroy(Tag $tag): RedirectResponse
     {
+        $this->authorize('delete', $tag);
+
         $tag->delete();
 
         return redirect()->route('tags.index')
             ->with('success', 'Tag deleted successfully.');
+    }
+
+    /**
+     * Remove multiple tags from storage.
+     */
+    public function bulkDestroy(BulkDeleteTagRequest $request): RedirectResponse
+    {
+        $tagIds = array_values(array_unique($request->validated('tag_ids')));
+
+        $tags = Tag::query()
+            ->where('user_id', $request->user()->id)
+            ->whereIn('id', $tagIds)
+            ->get();
+
+        if ($tags->count() !== count($tagIds)) {
+            throw ValidationException::withMessages([
+                'tag_ids' => ['One or more selected tags are invalid.'],
+            ]);
+        }
+
+        foreach ($tags as $tag) {
+            $this->authorize('delete', $tag);
+        }
+
+        foreach ($tags as $tag) {
+            $tag->delete();
+        }
+
+        $deletedCount = $tags->count();
+
+        return redirect()->route('tags.index')
+            ->with('success', trans_choice(
+                ':count tag deleted successfully.|:count tags deleted successfully.',
+                $deletedCount,
+                ['count' => $deletedCount]
+            ));
     }
 }

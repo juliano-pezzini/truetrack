@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\BulkDeleteTransactionRequest;
 use App\Http\Requests\StoreTransactionRequest;
 use App\Http\Requests\UpdateTransactionRequest;
 use App\Models\Account;
@@ -14,6 +15,7 @@ use App\Services\AccountingService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -211,5 +213,37 @@ class TransactionController extends Controller
 
         return redirect()->route('transactions.index')
             ->with('success', 'Transaction deleted successfully.');
+    }
+
+    /**
+     * Remove multiple transactions from storage.
+     */
+    public function bulkDestroy(BulkDeleteTransactionRequest $request): RedirectResponse
+    {
+        $transactionIds = array_values(array_unique($request->validated('transaction_ids')));
+
+        $transactions = Transaction::query()
+            ->where('user_id', $request->user()->id)
+            ->whereIn('id', $transactionIds)
+            ->get();
+
+        if ($transactions->count() !== count($transactionIds)) {
+            throw ValidationException::withMessages([
+                'transaction_ids' => ['One or more selected transactions are invalid.'],
+            ]);
+        }
+
+        foreach ($transactions as $transaction) {
+            $this->authorize('delete', $transaction);
+        }
+
+        $deletedCount = $this->accountingService->deleteTransactions($transactions);
+
+        return redirect()->route('transactions.index')
+            ->with('success', trans_choice(
+                ':count transaction deleted successfully.|:count transactions deleted successfully.',
+                $deletedCount,
+                ['count' => $deletedCount]
+            ));
     }
 }
