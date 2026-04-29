@@ -31,6 +31,14 @@ class AccountTest extends TestCase
         $this->assertEquals(AccountType::BANK, $account->type);
     }
 
+    public function test_account_exposes_human_readable_type_label(): void
+    {
+        $account = Account::factory()->create(['type' => 'credit_card']);
+
+        $this->assertSame('Credit Card', $account->type_label);
+        $this->assertArrayHasKey('type_label', $account->toArray());
+    }
+
     public function test_initial_balance_is_cast_to_decimal(): void
     {
         $account = Account::factory()->create(['initial_balance' => 1000.50]);

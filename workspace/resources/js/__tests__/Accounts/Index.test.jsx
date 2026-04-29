@@ -41,6 +41,7 @@ describe('AccountList Index', () => {
                 type: 'bank',
                 type_label: 'Bank Account',
                 description: 'Primary account',
+                initial_balance: 4500.00,
                 balance: 5000.00,
                 is_active: true,
             },
@@ -50,6 +51,7 @@ describe('AccountList Index', () => {
                 type: 'credit_card',
                 type_label: 'Credit Card',
                 description: null,
+                initial_balance: -1500.00,
                 balance: -1250.50,
                 is_active: true,
             },
@@ -87,7 +89,9 @@ describe('AccountList Index', () => {
     test('formats currency correctly', () => {
         render(<Index auth={mockAuth} accounts={mockAccounts} filters={{}} />);
 
+        expect(screen.getByText('$4,500.00')).toBeInTheDocument();
         expect(screen.getByText('$5,000.00')).toBeInTheDocument();
+        expect(screen.getByText('-$1,500.00')).toBeInTheDocument();
         expect(screen.getByText('-$1,250.50')).toBeInTheDocument();
     });
 
@@ -132,6 +136,13 @@ describe('AccountList Index', () => {
 
         expect(editLinks).toHaveLength(2);
         expect(deleteButtons).toHaveLength(2);
+    });
+
+    test('shows initial and current balance columns', () => {
+        render(<Index auth={mockAuth} accounts={mockAccounts} filters={{}} />);
+
+        expect(screen.getByText('Initial Balance')).toBeInTheDocument();
+        expect(screen.getByText('Current Balance')).toBeInTheDocument();
     });
 
     test('shows pagination info when available', () => {

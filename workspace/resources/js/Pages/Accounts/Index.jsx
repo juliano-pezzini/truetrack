@@ -161,7 +161,10 @@ export default function Index({ auth, accounts, filters }) {
                                                     Type
                                                 </th>
                                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Balance
+                                                    Initial Balance
+                                                </th>
+                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Current Balance
                                                 </th>
                                                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                     Status
@@ -188,6 +191,9 @@ export default function Index({ auth, accounts, filters }) {
                                                         <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
                                                             {account.type_label}
                                                         </span>
+                                                    </td>
+                                                    <td className={`px-6 py-4 whitespace-nowrap text-right text-sm font-medium ${getBalanceClass(account.initial_balance)}`}>
+                                                        {formatCurrency(account.initial_balance)}
                                                     </td>
                                                     <td className={`px-6 py-4 whitespace-nowrap text-right text-sm font-medium ${getBalanceClass(account.balance)}`}>
                                                         {formatCurrency(account.balance)}

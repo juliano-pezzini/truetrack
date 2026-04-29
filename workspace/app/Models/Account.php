@@ -17,6 +17,15 @@ class Account extends Model
     use SoftDeletes;
 
     /**
+     * The accessors to append to the model's array form.
+     *
+     * @var list<string>
+     */
+    protected $appends = [
+        'type_label',
+    ];
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
@@ -97,5 +106,13 @@ class Account extends Model
     public function scopeForUser($query, int $userId)
     {
         return $query->where('user_id', $userId);
+    }
+
+    /**
+     * Get the human-readable label for the account type.
+     */
+    public function getTypeLabelAttribute(): string
+    {
+        return $this->type->label();
     }
 }
