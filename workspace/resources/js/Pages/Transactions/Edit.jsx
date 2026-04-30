@@ -4,7 +4,7 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 export default function Edit({ auth, transaction, accounts, categories, tags }) {
     const { data, setData, put, processing, errors } = useForm({
