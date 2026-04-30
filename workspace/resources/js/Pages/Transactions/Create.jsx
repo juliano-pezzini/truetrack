@@ -6,11 +6,8 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import { useState } from 'react';
 
-const getCsrfToken = () => document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-
 export default function Create({ auth, accounts, categories, tags }) {
     const { data, setData, post, processing, errors } = useForm({
-        _token: getCsrfToken(),
         account_id: '',
         category_id: '',
         amount: '',
