@@ -192,6 +192,10 @@ class XlsxImportService
         } elseif ($mapping['amount_column']) {
             $mapping['amount_strategy'] = 'single';
             $confidenceScores['amount_strategy'] = 100;
+        } else {
+            // Default to single if no amount strategy detected
+            $mapping['amount_strategy'] = 'single';
+            $confidenceScores['amount_strategy'] = 0;
         }
 
         return [
