@@ -23,7 +23,7 @@ class TagControllerTest extends TestCase
 
     public function test_index_page_displays_tags(): void
     {
-        Tag::factory()->count(3)->create();
+        Tag::factory()->for($this->user)->count(3)->create();
 
         $response = $this->actingAs($this->user)->get(route('tags.index'));
 
@@ -92,7 +92,7 @@ class TagControllerTest extends TestCase
 
     public function test_edit_page_displays_tag_form(): void
     {
-        $tag = Tag::factory()->create();
+        $tag = Tag::factory()->for($this->user)->create();
 
         $response = $this->actingAs($this->user)
             ->get(route('tags.edit', $tag));
@@ -102,7 +102,7 @@ class TagControllerTest extends TestCase
 
     public function test_can_update_tag(): void
     {
-        $tag = Tag::factory()->create([
+        $tag = Tag::factory()->for($this->user)->create([
             'name' => 'Old Name',
             'color' => '#EF4444',
         ]);
@@ -127,8 +127,8 @@ class TagControllerTest extends TestCase
 
     public function test_update_validates_unique_name_except_self(): void
     {
-        Tag::factory()->create(['name' => 'Existing Tag']);
-        $tag = Tag::factory()->create(['name' => 'My Tag']);
+        Tag::factory()->for($this->user)->create(['name' => 'Existing Tag']);
+        $tag = Tag::factory()->for($this->user)->create(['name' => 'My Tag']);
 
         $response = $this->actingAs($this->user)
             ->put(route('tags.update', $tag), [
@@ -141,7 +141,7 @@ class TagControllerTest extends TestCase
 
     public function test_can_update_tag_without_changing_name(): void
     {
-        $tag = Tag::factory()->create([
+        $tag = Tag::factory()->for($this->user)->create([
             'name' => 'Same Name',
             'color' => '#EF4444',
         ]);
@@ -163,7 +163,7 @@ class TagControllerTest extends TestCase
 
     public function test_can_delete_tag(): void
     {
-        $tag = Tag::factory()->create();
+        $tag = Tag::factory()->for($this->user)->create();
 
         $response = $this->actingAs($this->user)
             ->delete(route('tags.destroy', $tag));
@@ -174,6 +174,87 @@ class TagControllerTest extends TestCase
         $this->assertSoftDeleted('tags', [
             'id' => $tag->id,
         ]);
+    }
+
+    public function test_user_cannot_edit_other_users_tag(): void
+    {
+        $otherUser = User::factory()->create();
+        $tag = Tag::factory()->for($otherUser)->create();
+
+        $response = $this->actingAs($this->user)
+            ->get(route('tags.edit', $tag));
+
+        $response->assertStatus(403);
+    }
+
+    public function test_user_cannot_update_other_users_tag(): void
+    {
+        $otherUser = User::factory()->create();
+        $tag = Tag::factory()->for($otherUser)->create();
+
+        $response = $this->actingAs($this->user)
+            ->put(route('tags.update', $tag), [
+                'name' => 'Updated Name',
+                'color' => '#10B981',
+            ]);
+
+        $response->assertStatus(403);
+    }
+
+    public function test_user_cannot_delete_other_users_tag(): void
+    {
+        $otherUser = User::factory()->create();
+        $tag = Tag::factory()->for($otherUser)->create();
+
+        $response = $this->actingAs($this->user)
+            ->delete(route('tags.destroy', $tag));
+
+        $response->assertStatus(403);
+    }
+
+    public function test_can_bulk_delete_tags(): void
+    {
+        $tags = Tag::factory()->for($this->user)->count(3)->create();
+
+        $response = $this->actingAs($this->user)
+            ->delete(route('tags.bulk-destroy'), [
+                'tag_ids' => $tags->pluck('id')->all(),
+            ]);
+
+        $response->assertRedirect(route('tags.index'));
+        $response->assertSessionHas('success', '3 tags deleted successfully.');
+
+        foreach ($tags as $tag) {
+            $this->assertSoftDeleted('tags', [
+                'id' => $tag->id,
+            ]);
+        }
+    }
+
+    public function test_user_cannot_bulk_delete_other_users_tags(): void
+    {
+        $otherUser = User::factory()->create();
+        $otherTag = Tag::factory()->for($otherUser)->create();
+
+        $response = $this->actingAs($this->user)
+            ->delete(route('tags.bulk-destroy'), [
+                'tag_ids' => [$otherTag->id],
+            ]);
+
+        $response->assertSessionHasErrors(['tag_ids.0']);
+    }
+
+    public function test_user_cannot_bulk_delete_soft_deleted_tags(): void
+    {
+        $tag = Tag::factory()->for($this->user)->create();
+        $tag->delete();
+
+        $response = $this->actingAs($this->user)
+            ->delete(route('tags.bulk-destroy'), [
+                'tag_ids' => [$tag->id],
+            ]);
+
+        $response->assertSessionHasErrors(['tag_ids.0']);
     }
 
     public function test_guest_cannot_access_tags_index(): void

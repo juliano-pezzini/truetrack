@@ -5,6 +5,7 @@ import CashFlowChart from '@/Components/Dashboard/CashFlowChart';
 import SpendingByCategoryChart from '@/Components/Dashboard/SpendingByCategoryChart';
 import InvestmentSummary from '@/Components/Dashboard/InvestmentSummary';
 import AlertsPanel from '@/Components/Dashboard/AlertsPanel';
+import BrandPanel from '@/Components/Dashboard/BrandPanel';
 
 export default function Dashboard({
     period,
@@ -47,22 +48,24 @@ export default function Dashboard({
                     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 mb-6">
                         {/* Cash Flow Projection */}
                         {cashFlowProjection && cashFlowProjection.length > 0 && (
-                            <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+                            <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg dark:bg-gray-800">
                                 <div className="p-6">
-                                    <h3 className="text-lg font-semibold mb-4">Cash Flow Projection</h3>
+                                    <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">Cash Flow Projection</h3>
                                     <CashFlowChart data={cashFlowProjection} />
                                 </div>
                             </div>
                         )}
 
                         {/* Spending by Category */}
-                        {spendingByCategory && spendingByCategory.length > 0 && (
-                            <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+                        {spendingByCategory && spendingByCategory.length > 0 ? (
+                            <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg dark:bg-gray-800">
                                 <div className="p-6">
-                                    <h3 className="text-lg font-semibold mb-4">Spending by Category</h3>
+                                    <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">Spending by Category</h3>
                                     <SpendingByCategoryChart data={spendingByCategory} />
                                 </div>
                             </div>
+                        ) : (
+                            <BrandPanel />
                         )}
                     </div>
 

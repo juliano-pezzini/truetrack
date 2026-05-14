@@ -9,8 +9,10 @@ use App\Models\Account;
 use App\Models\AccountBalance;
 use App\Models\Transaction;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
+use RuntimeException;
 
 class AccountingService
 {
@@ -124,26 +126,165 @@ class AccountingService
      */
     public function deleteTransaction(Transaction $transaction): bool
     {
+        return $this->deleteTransactions([$transaction]) === 1;
+    }
+
+    /**
+     * Delete multiple transactions and recalculate affected balances.
+     *
+     * @param  iterable<Transaction>  $transactions
+     */
+    public function deleteTransactions(iterable $transactions): int
+    {
+        $transactions = Collection::make($transactions)
+            ->unique(static function (Transaction $transaction): string {
+                $transactionKey = $transaction->getKey();
+
+                return $transactionKey !== null
+                    ? 'id:'.$transactionKey
+                    : 'object:'.spl_object_hash($transaction);
+            })
+            ->values();
+
+        if ($transactions->isEmpty()) {
+            return 0;
+        }
+
         DB::beginTransaction();
 
         try {
-            // Lock account
-            $account = Account::query()
-                ->where('id', $transaction->account_id)
+            $accountIds = $transactions
+                ->pluck('account_id')
+                ->unique()
+                ->sort()
+                ->values();
+
+            // Fetch all accounts including soft-deleted (transactions may reference trashed accounts)
+            $accounts = Account::query()
+                ->withTrashed()
+                ->whereIn('id', $accountIds)
+                ->orderBy('id')
                 ->lockForUpdate()
-                ->firstOrFail();
+                ->get()
+                ->keyBy('id');
 
-            $transactionDate = Carbon::parse($transaction->transaction_date);
+            $affectedPeriods = [];
+            $deletedCount = 0;
 
-            // Delete transaction (soft delete)
-            $transaction->delete();
+            foreach ($transactions as $transaction) {
+                $deleted = $transaction->delete();
 
-            // Recalculate balance for this month
-            $this->recalculateMonthlyBalance($account, $transactionDate);
+                if ($deleted === false) {
+                    throw new RuntimeException(sprintf('Failed to delete transaction %d.', $transaction->id));
+                }
+
+                $deletedCount++;
+
+                $transactionDate = Carbon::parse((string) $transaction->transaction_date);
+
+                $affectedPeriods[$transaction->account_id][$transactionDate->format('Y-m')] = Carbon::create(
+                    $transactionDate->year,
+                    $transactionDate->month,
+                    1
+                );
+            }
+
+            foreach ($affectedPeriods as $accountId => $periods) {
+                $account = $accounts->get($accountId);
+
+                if (! $account instanceof Account) {
+                    throw new RuntimeException(sprintf('Account %d not found or not locked properly.', $accountId));
+                }
+
+                /** @var Carbon $firstAffectedMonth */
+                $firstAffectedMonth = Collection::make($periods)
+                    ->sortBy(fn (Carbon $date): int => $date->year * 100 + $date->month)
+                    ->first()
+                    ->startOfMonth();
+
+                $latestSnapshot = AccountBalance::query()
+                    ->where('account_id', $account->id)
+                    ->orderByDesc('year')
+                    ->orderByDesc('month')
+                    ->first();
+
+                // Limit recalculation to necessary months:
+                // Use the latest existing snapshot month as baseline,
+                // but extend through the latest remaining transaction month
+                // to avoid creating unnecessary snapshots for months with no activity.
+                $lastMonthToRecalculate = null;
+
+                if ($latestSnapshot !== null) {
+                    $lastMonthToRecalculate = Carbon::create($latestSnapshot->year, $latestSnapshot->month, 1)->startOfMonth();
+                }
+
+                $latestTransactionMonth = Transaction::query()
+                    ->where('account_id', $account->id)
+                    ->whereNull('deleted_at')
+                    ->orderByDesc('transaction_date')
+                    ->value('transaction_date');
+
+                if ($latestTransactionMonth !== null) {
+                    $latestTransactionMonthStart = Carbon::parse((string) $latestTransactionMonth)->startOfMonth();
+
+                    if ($lastMonthToRecalculate === null || $latestTransactionMonthStart->greaterThan($lastMonthToRecalculate)) {
+                        $lastMonthToRecalculate = $latestTransactionMonthStart;
+                    }
+                }
+
+                // Even if no existing snapshots or remaining transactions,
+                // always recalculate at least the affected month to ensure
+                // its balance snapshot reflects the deletion(s).
+                if ($lastMonthToRecalculate === null || $firstAffectedMonth->greaterThan($lastMonthToRecalculate)) {
+                    $lastMonthToRecalculate = $firstAffectedMonth;
+                }
+                $monthsToRecalculate = Collection::make($periods)
+                    ->map(fn (Carbon $date): Carbon => $date->copy()->startOfMonth())
+                    ->keyBy(fn (Carbon $date): string => $date->format('Y-m'));
+
+                $existingSnapshotMonths = AccountBalance::query()
+                    ->where('account_id', $account->id)
+                    ->where(function ($query) use ($firstAffectedMonth): void {
+                        $query
+                            ->where('year', '>', $firstAffectedMonth->year)
+                            ->orWhere(function ($nestedQuery) use ($firstAffectedMonth): void {
+                                $nestedQuery
+                                    ->where('year', $firstAffectedMonth->year)
+                                    ->where('month', '>=', $firstAffectedMonth->month);
+                            });
+                    })
+                    ->where(function ($query) use ($lastMonthToRecalculate): void {
+                        $query
+                            ->where('year', '<', $lastMonthToRecalculate->year)
+                            ->orWhere(function ($nestedQuery) use ($lastMonthToRecalculate): void {
+                                $nestedQuery
+                                    ->where('year', $lastMonthToRecalculate->year)
+                                    ->where('month', '<=', $lastMonthToRecalculate->month);
+                            });
+                    })
+                    ->orderBy('year')
+                    ->orderBy('month')
+                    ->get(['year', 'month'])
+                    ->map(function (AccountBalance $snapshot): Carbon {
+                        return Carbon::create($snapshot->year, $snapshot->month, 1)->startOfMonth();
+                    });
+
+                foreach ($existingSnapshotMonths as $snapshotMonth) {
+                    $monthsToRecalculate->put($snapshotMonth->format('Y-m'), $snapshotMonth);
+                }
+
+                $monthsToRecalculate->put($lastMonthToRecalculate->format('Y-m'), $lastMonthToRecalculate->copy()->startOfMonth());
+
+                $monthsToRecalculate
+                    ->sortBy(fn (Carbon $date): int => $date->year * 100 + $date->month)
+                    ->each(function (Carbon $month) use ($account): void {
+                        $this->recalculateMonthlyBalance($account, $month);
+                    });
+            }
 
             DB::commit();
 
-            return true;
+            return $deletedCount;
         } catch (\Exception $e) {
             DB::rollBack();
             throw $e;

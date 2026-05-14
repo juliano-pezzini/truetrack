@@ -1,3 +1,26 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+	html {
+		color-scheme: light;
+	}
+
+	html.dark {
+		color-scheme: dark;
+	}
+
+	body {
+		@apply bg-gray-100 text-gray-900 antialiased dark:bg-gray-900 dark:text-gray-100;
+	}
+}
+
+@layer base {
+	/* Base fallback for native form controls not covered by component-level dark variants. */
+	html.dark input:not([type='checkbox']):not([type='radio']),
+	html.dark select,
+	html.dark textarea {
+		@apply border-gray-600 bg-gray-800 text-gray-100;
+	}
+}

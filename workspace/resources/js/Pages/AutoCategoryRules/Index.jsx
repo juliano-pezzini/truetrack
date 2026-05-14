@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { usePage, useForm, router } from '@inertiajs/react';
+import axios from 'axios';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import Modal from '@/Components/Modal';
@@ -18,10 +19,6 @@ export default function AutoCategoryRules() {
     const [page, setPage] = useState(1);
     const [error, setError] = useState(null);
 
-    const getCsrfToken = () => {
-        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    };
-
     useEffect(() => {
         fetchRules();
     }, [filter, page]);
@@ -35,19 +32,11 @@ export default function AutoCategoryRules() {
                 page,
             });
 
-            const response = await fetch(`/api/v1/auto-category-rules?${params}`, {
+            const { data } = await axios.get(`/api/v1/auto-category-rules?${params}`, {
                 headers: {
                     'Accept': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
                 },
-                credentials: 'same-origin',
             });
-
-            if (!response.ok) {
-                throw new Error(`Failed to fetch rules: ${response.status}`);
-            }
-
-            const data = await response.json();
             setRules(data.data);
         } catch (error) {
             console.error('Failed to fetch rules:', error);
@@ -60,63 +49,39 @@ export default function AutoCategoryRules() {
     const handleCreateRule = async (formData) => {
         setError(null);
         try {
-            const response = await fetch('/api/v1/auto-category-rules', {
-                method: 'POST',
+            await axios.post('/api/v1/auto-category-rules', formData, {
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
                 },
-                credentials: 'same-origin',
-                body: JSON.stringify(formData),
             });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                const errorMessage = errorData.message || `Failed to create rule (${response.status})`;
-                setError(errorMessage);
-                throw new Error(errorMessage);
-            }
 
             setShowForm(false);
             fetchRules();
         } catch (error) {
             console.error('Error creating rule:', error);
-            if (!error.message.includes('Failed to create rule')) {
-                setError('An error occurred while creating the rule. Please try again.');
-            }
+            const errorMessage = error.response?.data?.message || `Failed to create rule (${error.response?.status ?? 'unknown'})`;
+            setError(errorMessage);
         }
     };
 
     const handleUpdateRule = async (ruleId, formData) => {
         setError(null);
         try {
-            const response = await fetch(`/api/v1/auto-category-rules/${ruleId}`, {
-                method: 'PUT',
+            await axios.put(`/api/v1/auto-category-rules/${ruleId}`, formData, {
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
                 },
-                credentials: 'same-origin',
-                body: JSON.stringify(formData),
             });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                const errorMessage = errorData.message || `Failed to update rule (${response.status})`;
-                setError(errorMessage);
-                throw new Error(errorMessage);
-            }
 
             setEditingRule(null);
             setShowForm(false);
             fetchRules();
         } catch (error) {
             console.error('Error updating rule:', error);
-            if (!error.message.includes('Failed to update rule')) {
-                setError('An error occurred while updating the rule. Please try again.');
-            }
+            const errorMessage = error.response?.data?.message || `Failed to update rule (${error.response?.status ?? 'unknown'})`;
+            setError(errorMessage);
         }
     };
 
@@ -125,53 +90,34 @@ export default function AutoCategoryRules() {
 
         setError(null);
         try {
-            const response = await fetch(`/api/v1/auto-category-rules/${ruleId}`, {
-                method: 'DELETE',
+            await axios.delete(`/api/v1/auto-category-rules/${ruleId}`, {
                 headers: {
                     'Accept': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
                 },
-                credentials: 'same-origin',
             });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                const errorMessage = errorData.message || `Failed to delete rule (${response.status})`;
-                setError(errorMessage);
-                throw new Error(errorMessage);
-            }
 
             fetchRules();
         } catch (error) {
             console.error('Error deleting rule:', error);
-            if (!error.message.includes('Failed to delete rule')) {
-                setError('An error occurred while deleting the rule. Please try again.');
-            }
+            const errorMessage = error.response?.data?.message || `Failed to delete rule (${error.response?.status ?? 'unknown'})`;
+            setError(errorMessage);
         }
     };
 
     const handleArchiveRule = async (ruleId) => {
         setError(null);
         try {
-            const response = await fetch(`/api/v1/auto-category-rules/${ruleId}/archive`, {
-                method: 'POST',
+            await axios.post(`/api/v1/auto-category-rules/${ruleId}/archive`, {}, {
                 headers: {
                     'Accept': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
                 },
-                credentials: 'same-origin',
             });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                const errorMessage = errorData.message || `Failed to archive rule (${response.status})`;
-                setError(errorMessage);
-                throw new Error(errorMessage);
-            }
 
             fetchRules();
         } catch (error) {
             console.error('Error:', error);
+            const errorMessage = error.response?.data?.message || `Failed to archive rule (${error.response?.status ?? 'unknown'})`;
+            setError(errorMessage);
         }
     };
 

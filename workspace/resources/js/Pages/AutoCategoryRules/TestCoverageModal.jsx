@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { usePage } from '@inertiajs/react';
+import axios from 'axios';
 import Modal from '@/Components/Modal';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
@@ -12,10 +13,6 @@ export default function TestCoverageModal({ show, onClose }) {
     const [coverage, setCoverage] = useState(null);
     const [error, setError] = useState('');
 
-    const getCsrfToken = () => {
-        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    };
-
     const handleTest = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -23,29 +20,19 @@ export default function TestCoverageModal({ show, onClose }) {
         setCoverage(null);
 
         try {
-            const response = await fetch('/api/v1/auto-category-rules/test-coverage', {
-                method: 'POST',
+            const response = await axios.post('/api/v1/auto-category-rules/test-coverage', {
+                from_date: fromDate,
+                to_date: toDate,
+            }, {
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
                 },
-                credentials: 'same-origin',
-                body: JSON.stringify({
-                    from_date: fromDate,
-                    to_date: toDate,
-                }),
             });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                setCoverage(data.data);
-            } else {
-                setError(data.message || 'Failed to test coverage');
-            }
+            setCoverage(response.data.data);
         } catch (err) {
-            setError('Error testing coverage: ' + err.message);
+            const errorMessage = err.response?.data?.message || err.message;
+            setError('Error testing coverage: ' + errorMessage);
         } finally {
             setLoading(false);
         }
