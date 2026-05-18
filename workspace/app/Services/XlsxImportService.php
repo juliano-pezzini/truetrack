@@ -188,12 +188,16 @@ class XlsxImportService
         if ($mapping['debit_column'] && $mapping['credit_column']) {
             $mapping['amount_strategy'] = 'separate';
             $confidenceScores['amount_strategy'] = 100;
+        } elseif ($mapping['amount_column']) {
+            // Prefer a signed single amount column by default, even when a
+            // type column is also present. This avoids trusting a separate
+            // type value when the amount already encodes transaction direction.
+            $mapping['amount_strategy'] = 'single';
+            $confidenceScores['amount_strategy'] = $mapping['type_column'] ? 95 : 100;
         } elseif ($mapping['amount_column'] && $mapping['type_column']) {
+            // Fallback: type column strategy when amount detection didn't run
             $mapping['amount_strategy'] = 'type_column';
             $confidenceScores['amount_strategy'] = 90;
-        } elseif ($mapping['amount_column']) {
-            $mapping['amount_strategy'] = 'single';
-            $confidenceScores['amount_strategy'] = 100;
         } else {
             // Default to single if no amount strategy detected
             $mapping['amount_strategy'] = 'single';
@@ -395,6 +399,17 @@ class XlsxImportService
     {
         // Check which strategy was explicitly selected
         $strategy = $mappingConfig['amount_strategy'] ?? null;
+
+        // If strategy not explicitly set, try to infer from mapping (legacy support)
+        if (! $strategy) {
+            if (! empty($mappingConfig['debit_column']) && ! empty($mappingConfig['credit_column'])) {
+                $strategy = 'separate';
+            } elseif (! empty($mappingConfig['amount_column'])) {
+                $strategy = 'single';
+            } elseif (! empty($mappingConfig['type_column']) && ! empty($mappingConfig['amount_column'])) {
+                $strategy = 'type_column';
+            }
+        }
 
         // Strategy A: Single amount column (negative = debit) - Only when explicitly selected
         if ($strategy === 'single') {
