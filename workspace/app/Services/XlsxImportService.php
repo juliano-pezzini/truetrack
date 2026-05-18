@@ -211,7 +211,7 @@ class XlsxImportService
      *
      * @return array<string> Validation errors (empty if valid)
      */
-    public function validateMapping(array $mappingConfig, array $headers): array
+    public function validateMapping(array &$mappingConfig, array $headers): array
     {
         $errors = [];
 
@@ -224,9 +224,19 @@ class XlsxImportService
             $errors[] = 'Description column is required';
         }
 
-        // Check amount strategy is defined
+        // Normalize legacy amount strategy values for backwards compatibility
         $strategy = $mappingConfig['amount_strategy'] ?? null;
-        if (! $strategy || ! in_array($strategy, ['single', 'separate', 'type_column'])) {
+        if ($strategy) {
+            $strategy = match ($strategy) {
+                'single_column' => 'single',
+                'debit_credit_columns' => 'separate',
+                default => $strategy,
+            };
+            $mappingConfig['amount_strategy'] = $strategy;
+        }
+
+        // Check amount strategy is defined and valid
+        if (! $strategy || ! in_array($strategy, ['single', 'separate', 'type_column'], true)) {
             $errors[] = 'Amount strategy must be specified as: single, separate, or type_column';
         }
 
