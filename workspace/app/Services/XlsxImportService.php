@@ -194,10 +194,6 @@ class XlsxImportService
             // type value when the amount already encodes transaction direction.
             $mapping['amount_strategy'] = 'single';
             $confidenceScores['amount_strategy'] = $mapping['type_column'] ? 95 : 100;
-        } elseif ($mapping['amount_column'] && $mapping['type_column']) {
-            // Fallback: type column strategy when amount detection didn't run
-            $mapping['amount_strategy'] = 'type_column';
-            $confidenceScores['amount_strategy'] = 90;
         } else {
             // Default to single if no amount strategy detected
             $mapping['amount_strategy'] = 'single';
