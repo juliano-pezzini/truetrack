@@ -279,4 +279,41 @@ class XlsxImportServiceTest extends TestCase
 
         $this->service->extractTransactionFromRow($row, $mappingConfig);
     }
+
+    public function test_normalizes_legacy_single_column_strategy(): void
+    {
+        // Test that legacy 'single_column' value is normalized to 'single'
+        $mappingConfig = [
+            'date_column' => 'Date',
+            'description_column' => 'Description',
+            'amount_column' => 'Amount',
+            'amount_strategy' => 'single_column', // Legacy value
+        ];
+        $headers = ['Date', 'Description', 'Amount'];
+
+        // validateMapping modifies the mapping by reference to normalize
+        $errors = $this->service->validateMapping($mappingConfig, $headers);
+
+        $this->assertEmpty($errors, 'Legacy single_column strategy should be normalized and pass validation');
+        $this->assertEquals('single', $mappingConfig['amount_strategy'], 'amount_strategy should be normalized to single');
+    }
+
+    public function test_normalizes_legacy_debit_credit_columns_strategy(): void
+    {
+        // Test that legacy 'debit_credit_columns' value is normalized to 'separate'
+        $mappingConfig = [
+            'date_column' => 'Date',
+            'description_column' => 'Description',
+            'debit_column' => 'Debit',
+            'credit_column' => 'Credit',
+            'amount_strategy' => 'debit_credit_columns', // Legacy value
+        ];
+        $headers = ['Date', 'Description', 'Debit', 'Credit'];
+
+        // validateMapping modifies the mapping by reference to normalize
+        $errors = $this->service->validateMapping($mappingConfig, $headers);
+
+        $this->assertEmpty($errors, 'Legacy debit_credit_columns strategy should be normalized and pass validation');
+        $this->assertEquals('separate', $mappingConfig['amount_strategy'], 'amount_strategy should be normalized to separate');
+    }
 }
