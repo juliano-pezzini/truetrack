@@ -209,6 +209,8 @@ class XlsxImportService
     /**
      * Validate mapping configuration.
      *
+     * @param  array<string, mixed>  &$mappingConfig  Mapping configuration to validate; this array is normalized in place for backwards compatibility, including converting legacy `amount_strategy` values such as `single_column` to `single` and `debit_credit_columns` to `separate`.
+     * @param  array<int, string>  $headers  Spreadsheet header names available for column mapping validation.
      * @return array<string> Validation errors (empty if valid)
      */
     public function validateMapping(array &$mappingConfig, array $headers): array
@@ -233,6 +235,20 @@ class XlsxImportService
                 default => $strategy,
             };
             $mappingConfig['amount_strategy'] = $strategy;
+        }
+
+        // Infer strategy if not explicitly set but columns are present (legacy support)
+        if (! $strategy) {
+            if (! empty($mappingConfig['debit_column']) && ! empty($mappingConfig['credit_column'])) {
+                $strategy = 'separate';
+                $mappingConfig['amount_strategy'] = 'separate';
+            } elseif (! empty($mappingConfig['amount_column'])) {
+                $strategy = 'single';
+                $mappingConfig['amount_strategy'] = 'single';
+            } elseif (! empty($mappingConfig['type_column'])) {
+                $strategy = 'type_column';
+                $mappingConfig['amount_strategy'] = 'type_column';
+            }
         }
 
         // Check amount strategy is defined and valid
@@ -402,7 +418,7 @@ class XlsxImportService
                 $strategy = 'separate';
             } elseif (! empty($mappingConfig['amount_column'])) {
                 $strategy = 'single';
-            } elseif (! empty($mappingConfig['type_column']) && ! empty($mappingConfig['amount_column'])) {
+            } elseif (! empty($mappingConfig['type_column'])) {
                 $strategy = 'type_column';
             }
         }
