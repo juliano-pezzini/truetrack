@@ -9,11 +9,15 @@ export async function ensureCsrfCookie() {
         return csrfPromise;
     }
 
-    csrfPromise = axios.get('/sanctum/csrf-cookie').catch(() => {
-        // Reset on error so retry is attempted
-        csrfPromise = null;
-        throw new Error('Failed to fetch CSRF cookie');
-    });
+    csrfPromise = (async () => {
+        try {
+            await axios.get('/sanctum/csrf-cookie');
+        } catch (error) {
+            // Reset on error so retry is attempted
+            csrfPromise = null;
+            throw error;
+        }
+    })();
 
     return csrfPromise;
 }
