@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
+import { ensureCsrfCookie } from '@/lib/ensureCsrfCookie';
 import FileDropZone from './FileDropZone';
 import OfxImportOptions from './OfxImportOptions';
 import XlsxSimplifiedWizard from './XlsxSimplifiedWizard';
@@ -71,6 +72,8 @@ export default function UnifiedImportUpload({ accounts, onSuccess }) {
         setProcessing(true);
 
         try {
+            await ensureCsrfCookie();
+
             const formData = new FormData();
             formData.append('file', data.file);
             formData.append('account_id', data.account_id);

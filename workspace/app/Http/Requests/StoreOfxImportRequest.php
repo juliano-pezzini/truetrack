@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Models\Account;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
 
 class StoreOfxImportRequest extends FormRequest
 {
@@ -14,8 +14,26 @@ class StoreOfxImportRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        // User must be authenticated and have permission to manage reconciliations
-        return Auth::check() && Auth::user()->hasPermission('manage-reconciliations');
+        // User must be authenticated
+        if (! $this->user()) {
+            return false;
+        }
+
+        // Check if user owns the account
+        $accountId = $this->input('account_id');
+
+        if (! $accountId) {
+            // If no account_id provided yet, let validation handle it
+            return true;
+        }
+
+        $account = Account::find($accountId);
+
+        if (! $account) {
+            return false;
+        }
+
+        return $account->user_id === $this->user()->id;
     }
 
     /**
