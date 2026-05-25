@@ -423,7 +423,8 @@ class XlsxImportService
             }
         }
 
-        // Strategy A: Single amount column (negative = debit) - Only when explicitly selected
+        // Strategy A: Single amount column (negative = debit)
+        // Used when explicitly selected or inferred from amount_column only
         if ($strategy === 'single') {
             if (empty($mappingConfig['amount_column'])) {
                 throw new InvalidRowDataException('Amount column is required for single amount strategy');
@@ -434,7 +435,8 @@ class XlsxImportService
             return $amount < 0 ? 'debit' : 'credit';
         }
 
-        // Strategy B: Separate debit/credit columns - Only when explicitly selected
+        // Strategy B: Separate debit/credit columns
+        // Used when explicitly selected or inferred from both debit_column and credit_column
         if ($strategy === 'separate') {
             if (empty($mappingConfig['debit_column']) || empty($mappingConfig['credit_column'])) {
                 throw new InvalidRowDataException('Both debit and credit columns are required for separate columns strategy');

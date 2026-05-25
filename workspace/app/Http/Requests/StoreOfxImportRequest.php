@@ -27,13 +27,14 @@ class StoreOfxImportRequest extends FormRequest
             return true;
         }
 
-        $account = Account::find($accountId);
-
-        if (! $account) {
+        // Guard against non-scalar or non-numeric input (e.g., account_id[]=1)
+        if (! is_scalar($accountId) || ! ctype_digit((string) $accountId)) {
             return false;
         }
 
-        return $account->user_id === $this->user()->id;
+        return Account::whereKey((int) $accountId)
+            ->where('user_id', $this->user()->id)
+            ->exists();
     }
 
     /**
