@@ -56,7 +56,8 @@ class OfxImportController extends Controller
     {
         try {
             $validated = $request->validated();
-            $userId = Auth::id();
+            $userId = (int) Auth::id();
+            $accountId = (int) $validated['account_id'];
 
             // Check concurrency limit
             if ($this->ofxImportService->checkConcurrencyLimit($userId)) {
@@ -72,7 +73,7 @@ class OfxImportController extends Controller
             // Compress and store the file
             $fileData = $this->ofxImportService->compressAndStoreFile(
                 Storage::path($tempPath),
-                $validated['account_id'],
+                $accountId,
                 $userId
             );
 
@@ -80,7 +81,7 @@ class OfxImportController extends Controller
             if (! ($validated['force_reimport'] ?? false)) {
                 $duplicate = $this->ofxImportService->checkDuplicateImport(
                     $fileData['hash'],
-                    $validated['account_id']
+                    $accountId
                 );
 
                 if ($duplicate) {
@@ -99,7 +100,7 @@ class OfxImportController extends Controller
             $import = $this->ofxImportService->createImport([
                 'filename' => $uploadedFile->getClientOriginalName(),
                 'file_hash' => $fileData['hash'],
-                'account_id' => $validated['account_id'],
+                'account_id' => $accountId,
                 'file_path' => $fileData['path'],
                 'user_id' => $userId,
             ]);
