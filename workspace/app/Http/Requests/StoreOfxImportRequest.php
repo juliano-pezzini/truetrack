@@ -32,9 +32,15 @@ class StoreOfxImportRequest extends FormRequest
             return false;
         }
 
-        return Account::whereKey((int) $accountId)
-            ->where('user_id', $this->user()->id)
-            ->exists();
+        $account = Account::find((int) $accountId);
+
+        if (! $account) {
+            // Let validation handle nonexistent account IDs
+            return true;
+        }
+
+        // Account exists: only authorized if user owns it
+        return $account->user_id === $this->user()->id;
     }
 
     /**
