@@ -242,12 +242,12 @@ class XlsxImportService
             if (! empty($mappingConfig['debit_column']) && ! empty($mappingConfig['credit_column'])) {
                 $strategy = 'separate';
                 $mappingConfig['amount_strategy'] = 'separate';
-            } elseif (! empty($mappingConfig['amount_column'])) {
-                $strategy = 'single';
-                $mappingConfig['amount_strategy'] = 'single';
             } elseif (! empty($mappingConfig['type_column'])) {
                 $strategy = 'type_column';
                 $mappingConfig['amount_strategy'] = 'type_column';
+            } elseif (! empty($mappingConfig['amount_column'])) {
+                $strategy = 'single';
+                $mappingConfig['amount_strategy'] = 'single';
             }
         }
 
@@ -416,10 +416,10 @@ class XlsxImportService
         if (! $strategy) {
             if (! empty($mappingConfig['debit_column']) && ! empty($mappingConfig['credit_column'])) {
                 $strategy = 'separate';
-            } elseif (! empty($mappingConfig['amount_column'])) {
-                $strategy = 'single';
             } elseif (! empty($mappingConfig['type_column'])) {
                 $strategy = 'type_column';
+            } elseif (! empty($mappingConfig['amount_column'])) {
+                $strategy = 'single';
             }
         }
 
