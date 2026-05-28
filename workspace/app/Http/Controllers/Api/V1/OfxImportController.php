@@ -151,9 +151,9 @@ class OfxImportController extends Controller
             ], 422);
         }
 
-        // Update status to failed to stop processing
+        // Update status to cancelled to stop processing
         $import->update([
-            'status' => 'failed',
+            'status' => 'cancelled',
             'error_message' => 'Cancelled by user',
         ]);
 
