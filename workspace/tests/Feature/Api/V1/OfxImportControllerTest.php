@@ -135,16 +135,17 @@ class OfxImportControllerTest extends TestCase
         $response->assertStatus(401);
     }
 
-    public function test_upload_requires_permission(): void
+    public function test_upload_forbidden_for_account_not_owned_by_user(): void
     {
-        $userWithoutPermission = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $otherUserAccount = Account::factory()->for($otherUser)->create();
 
         $file = UploadedFile::fake()->create('statement.ofx', 100);
 
-        $response = $this->actingAs($userWithoutPermission, 'sanctum')
+        $response = $this->actingAs($this->user, 'sanctum')
             ->postJson('/api/v1/ofx-imports', [
                 'file' => $file,
-                'account_id' => $this->account->id,
+                'account_id' => $otherUserAccount->id,
             ]);
 
         $response->assertStatus(403);

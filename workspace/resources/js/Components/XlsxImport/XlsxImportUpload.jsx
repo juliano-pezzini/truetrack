@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useForm } from '@inertiajs/react';
 import axios from 'axios';
+import { ensureCsrfCookie } from '@/lib/ensureCsrfCookie';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import InputLabel from '@/Components/InputLabel';
@@ -46,6 +47,8 @@ export default function XlsxImportUpload({ accounts, activeImportsCount, maxImpo
         formData.append('file', file);
 
         try {
+            await ensureCsrfCookie();
+
             const response = await axios.post('/api/v1/xlsx-imports/detect-columns', formData);
             setDetectedHeaders(response.data.data.headers);
             setSuggestedMapping(response.data.data.suggested_mapping);
@@ -81,6 +84,8 @@ export default function XlsxImportUpload({ accounts, activeImportsCount, maxImpo
         });
 
         try {
+            await ensureCsrfCookie();
+
             const response = await axios.post('/api/v1/xlsx-imports/preview', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
@@ -151,6 +156,8 @@ export default function XlsxImportUpload({ accounts, activeImportsCount, maxImpo
         }
 
         try {
+            await ensureCsrfCookie();
+
             const response = await axios.post('/api/v1/xlsx-imports', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',

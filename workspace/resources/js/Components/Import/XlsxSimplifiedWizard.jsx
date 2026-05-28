@@ -3,6 +3,7 @@ import axios from 'axios';
 import InputLabel from '@/Components/InputLabel';
 import XlsxColumnMapper from '@/Components/XlsxImport/XlsxColumnMapper';
 import XlsxPreviewTable from '@/Components/XlsxImport/XlsxPreviewTable';
+import { ensureCsrfCookie } from '@/lib/ensureCsrfCookie';
 
 export default function XlsxSimplifiedWizard({
     file,
@@ -39,6 +40,8 @@ export default function XlsxSimplifiedWizard({
         formData.append('file', file);
 
         try {
+            await ensureCsrfCookie();
+
             const response = await axios.post(route('api.xlsx-imports.detect-columns'), formData);
             setDetectedHeaders(response.data.data.headers);
             setSuggestedMapping(response.data.data.suggested_mapping);
@@ -76,6 +79,8 @@ export default function XlsxSimplifiedWizard({
         });
 
         try {
+            await ensureCsrfCookie();
+
             const response = await axios.post(route('api.xlsx-imports.preview'), formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
@@ -126,6 +131,8 @@ export default function XlsxSimplifiedWizard({
         }
 
         try {
+            await ensureCsrfCookie();
+
             const response = await axios.post(route('api.xlsx-imports.store'), formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',

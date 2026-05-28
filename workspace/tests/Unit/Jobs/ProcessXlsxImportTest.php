@@ -39,7 +39,7 @@ class ProcessXlsxImportTest extends TestCase
             'date_column' => 'Date',
             'description_column' => 'Description',
             'amount_column' => 'Amount',
-            'amount_strategy' => 'single_column',
+            'amount_strategy' => 'single',
         ];
     }
 

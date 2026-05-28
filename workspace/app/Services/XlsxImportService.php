@@ -95,6 +95,7 @@ class XlsxImportService
             'category_column' => null,
             'settled_date_column' => null,
             'tags_column' => null,
+            'amount_strategy' => null,
         ];
 
         $confidenceScores = [];
@@ -183,6 +184,22 @@ class XlsxImportService
             }
         }
 
+        // Determine amount strategy based on detected columns
+        if ($mapping['debit_column'] && $mapping['credit_column']) {
+            $mapping['amount_strategy'] = 'separate';
+            $confidenceScores['amount_strategy'] = 100;
+        } elseif ($mapping['amount_column']) {
+            // Prefer a signed single amount column by default, even when a
+            // type column is also present. This avoids trusting a separate
+            // type value when the amount already encodes transaction direction.
+            $mapping['amount_strategy'] = 'single';
+            $confidenceScores['amount_strategy'] = $mapping['type_column'] ? 95 : 100;
+        } else {
+            // Default to single if no amount strategy detected
+            $mapping['amount_strategy'] = 'single';
+            $confidenceScores['amount_strategy'] = 0;
+        }
+
         return [
             'mapping_config' => $mapping,
             'confidence_scores' => $confidenceScores,
@@ -192,9 +209,11 @@ class XlsxImportService
     /**
      * Validate mapping configuration.
      *
+     * @param  array<string, mixed>  &$mappingConfig  Mapping configuration to validate; this array is normalized in place for backwards compatibility, including converting legacy `amount_strategy` values such as `single_column` to `single` and `debit_credit_columns` to `separate`.
+     * @param  array<int, string>  $headers  Spreadsheet header names available for column mapping validation.
      * @return array<string> Validation errors (empty if valid)
      */
-    public function validateMapping(array $mappingConfig, array $headers): array
+    public function validateMapping(array &$mappingConfig, array $headers): array
     {
         $errors = [];
 
@@ -207,17 +226,55 @@ class XlsxImportService
             $errors[] = 'Description column is required';
         }
 
-        // Determine amount strategy
-        $hasAmount = ! empty($mappingConfig['amount_column']);
-        $hasDebitCredit = ! empty($mappingConfig['debit_column']) && ! empty($mappingConfig['credit_column']);
-        $hasType = ! empty($mappingConfig['type_column']);
-
-        if (! $hasAmount && ! $hasDebitCredit) {
-            $errors[] = 'Either amount column or both debit/credit columns are required';
+        // Normalize legacy amount strategy values for backwards compatibility
+        $strategy = $mappingConfig['amount_strategy'] ?? null;
+        if ($strategy) {
+            $strategy = match ($strategy) {
+                'single_column' => 'single',
+                'debit_credit_columns' => 'separate',
+                default => $strategy,
+            };
+            $mappingConfig['amount_strategy'] = $strategy;
         }
 
-        if ($hasType && ! $hasAmount) {
-            $errors[] = 'Type column requires amount column';
+        // Infer strategy if not explicitly set but columns are present (legacy support)
+        if (! $strategy) {
+            if (! empty($mappingConfig['debit_column']) && ! empty($mappingConfig['credit_column'])) {
+                $strategy = 'separate';
+                $mappingConfig['amount_strategy'] = 'separate';
+            } elseif (! empty($mappingConfig['type_column'])) {
+                $strategy = 'type_column';
+                $mappingConfig['amount_strategy'] = 'type_column';
+            } elseif (! empty($mappingConfig['amount_column'])) {
+                $strategy = 'single';
+                $mappingConfig['amount_strategy'] = 'single';
+            }
+        }
+
+        // Check amount strategy is defined and valid
+        if (! $strategy || ! in_array($strategy, ['single', 'separate', 'type_column'], true)) {
+            $errors[] = 'Amount strategy must be specified as: single, separate, or type_column';
+        }
+
+        // Validate based on strategy
+        if ($strategy === 'single') {
+            if (empty($mappingConfig['amount_column'])) {
+                $errors[] = 'Amount column is required for single column strategy';
+            }
+        } elseif ($strategy === 'separate') {
+            if (empty($mappingConfig['debit_column'])) {
+                $errors[] = 'Debit column is required for separate columns strategy';
+            }
+            if (empty($mappingConfig['credit_column'])) {
+                $errors[] = 'Credit column is required for separate columns strategy';
+            }
+        } elseif ($strategy === 'type_column') {
+            if (empty($mappingConfig['amount_column'])) {
+                $errors[] = 'Amount column is required for type column strategy';
+            }
+            if (empty($mappingConfig['type_column'])) {
+                $errors[] = 'Type column is required for type column strategy';
+            }
         }
 
         // Verify mapped columns exist in headers (skip strategy keys)
@@ -352,23 +409,39 @@ class XlsxImportService
      */
     public function detectType(array $row, array $mappingConfig): string
     {
-        // Strategy C: Type column
-        if (! empty($mappingConfig['type_column'])) {
-            $typeValue = strtolower(trim($row[$mappingConfig['type_column']] ?? ''));
+        // Check which strategy was explicitly selected
+        $strategy = $mappingConfig['amount_strategy'] ?? null;
 
-            if (in_array($typeValue, ['debit', 'expense', 'withdrawal'])) {
-                return 'debit';
+        // If strategy not explicitly set, try to infer from mapping (legacy support)
+        if (! $strategy) {
+            if (! empty($mappingConfig['debit_column']) && ! empty($mappingConfig['credit_column'])) {
+                $strategy = 'separate';
+            } elseif (! empty($mappingConfig['type_column'])) {
+                $strategy = 'type_column';
+            } elseif (! empty($mappingConfig['amount_column'])) {
+                $strategy = 'single';
+            }
+        }
+
+        // Strategy A: Single amount column (negative = debit)
+        // Used when explicitly selected or inferred from amount_column only
+        if ($strategy === 'single') {
+            if (empty($mappingConfig['amount_column'])) {
+                throw new InvalidRowDataException('Amount column is required for single amount strategy');
             }
 
-            if (in_array($typeValue, ['credit', 'income', 'deposit'])) {
-                return 'credit';
-            }
+            $amount = (float) ($row[$mappingConfig['amount_column']] ?? 0);
 
-            throw new InvalidRowDataException("Cannot determine transaction type from value: {$typeValue}");
+            return $amount < 0 ? 'debit' : 'credit';
         }
 
         // Strategy B: Separate debit/credit columns
-        if (! empty($mappingConfig['debit_column']) && ! empty($mappingConfig['credit_column'])) {
+        // Used when explicitly selected or inferred from both debit_column and credit_column
+        if ($strategy === 'separate') {
+            if (empty($mappingConfig['debit_column']) || empty($mappingConfig['credit_column'])) {
+                throw new InvalidRowDataException('Both debit and credit columns are required for separate columns strategy');
+            }
+
             $debit = $row[$mappingConfig['debit_column']] ?? '';
             $credit = $row[$mappingConfig['credit_column']] ?? '';
 
@@ -389,14 +462,26 @@ class XlsxImportService
             throw new InvalidRowDataException('Both debit and credit columns have values or both are empty');
         }
 
-        // Strategy A: Single amount column (negative = debit)
-        if (! empty($mappingConfig['amount_column'])) {
-            $amount = (float) ($row[$mappingConfig['amount_column']] ?? 0);
+        // Strategy C: Type column - Only when explicitly selected
+        if ($strategy === 'type_column') {
+            if (empty($mappingConfig['type_column'])) {
+                throw new InvalidRowDataException('Type column is required for type column strategy');
+            }
 
-            return $amount < 0 ? 'debit' : 'credit';
+            $typeValue = strtolower(trim($row[$mappingConfig['type_column']] ?? ''));
+
+            if (in_array($typeValue, ['debit', 'expense', 'withdrawal'])) {
+                return 'debit';
+            }
+
+            if (in_array($typeValue, ['credit', 'income', 'deposit'])) {
+                return 'credit';
+            }
+
+            throw new InvalidRowDataException("Cannot determine transaction type from value: {$typeValue}");
         }
 
-        throw new InvalidRowDataException('Cannot determine transaction type - no valid strategy configured');
+        throw new InvalidRowDataException('No valid amount strategy configured. Must be: single, separate, or type_column');
     }
 
     /**
@@ -404,7 +489,30 @@ class XlsxImportService
      */
     private function extractAmount(array $row, array $mappingConfig): float
     {
-        // Separate columns
+        $strategy = $mappingConfig['amount_strategy'] ?? null;
+
+        // Strategy B: Separate debit/credit columns
+        if ($strategy === 'separate') {
+            if (empty($mappingConfig['debit_column']) || empty($mappingConfig['credit_column'])) {
+                throw new InvalidRowDataException('Both debit and credit columns are required for separate columns strategy');
+            }
+
+            $debit = (float) ($row[$mappingConfig['debit_column']] ?? 0);
+            $credit = (float) ($row[$mappingConfig['credit_column']] ?? 0);
+
+            return $debit ?: $credit;
+        }
+
+        // Strategy A & C: Single or Type column (both use amount_column)
+        if ($strategy === 'single' || $strategy === 'type_column') {
+            if (empty($mappingConfig['amount_column'])) {
+                throw new InvalidRowDataException('Amount column is required');
+            }
+
+            return (float) ($row[$mappingConfig['amount_column']] ?? 0);
+        }
+
+        // Fallback for old code without strategy (shouldn't happen after validation)
         if (! empty($mappingConfig['debit_column']) && ! empty($mappingConfig['credit_column'])) {
             $debit = (float) ($row[$mappingConfig['debit_column']] ?? 0);
             $credit = (float) ($row[$mappingConfig['credit_column']] ?? 0);
@@ -412,7 +520,6 @@ class XlsxImportService
             return $debit ?: $credit;
         }
 
-        // Single column
         if (! empty($mappingConfig['amount_column'])) {
             return (float) ($row[$mappingConfig['amount_column']] ?? 0);
         }

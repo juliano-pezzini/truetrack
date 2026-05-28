@@ -72,13 +72,16 @@ class XlsxImportServiceTest extends TestCase
         $errors = $this->service->validateMapping($mappingConfig, $headers);
 
         $this->assertNotEmpty($errors);
-        $this->assertStringContainsString('amount column or both debit/credit columns are required', implode(', ', $errors));
+        $this->assertStringContainsString('Amount strategy must be specified', implode(', ', $errors));
     }
 
     public function test_detects_type_from_negative_amount_single_column(): void
     {
         $row = ['Amount' => '-50.00'];
-        $mappingConfig = ['amount_column' => 'Amount'];
+        $mappingConfig = [
+            'amount_strategy' => 'single',
+            'amount_column' => 'Amount',
+        ];
 
         $type = $this->service->detectType($row, $mappingConfig);
 
@@ -88,7 +91,10 @@ class XlsxImportServiceTest extends TestCase
     public function test_detects_type_from_positive_amount_single_column(): void
     {
         $row = ['Amount' => '100.00'];
-        $mappingConfig = ['amount_column' => 'Amount'];
+        $mappingConfig = [
+            'amount_strategy' => 'single',
+            'amount_column' => 'Amount',
+        ];
 
         $type = $this->service->detectType($row, $mappingConfig);
 
@@ -98,7 +104,11 @@ class XlsxImportServiceTest extends TestCase
     public function test_detects_type_from_debit_credit_columns(): void
     {
         $row = ['Debit' => '50.00', 'Credit' => ''];
-        $mappingConfig = ['debit_column' => 'Debit', 'credit_column' => 'Credit'];
+        $mappingConfig = [
+            'amount_strategy' => 'separate',
+            'debit_column' => 'Debit',
+            'credit_column' => 'Credit',
+        ];
 
         $type = $this->service->detectType($row, $mappingConfig);
 
@@ -108,10 +118,31 @@ class XlsxImportServiceTest extends TestCase
     public function test_detects_type_from_type_column(): void
     {
         $row = ['Amount' => '50.00', 'Type' => 'expense'];
-        $mappingConfig = ['amount_column' => 'Amount', 'type_column' => 'Type'];
+        $mappingConfig = [
+            'amount_strategy' => 'type_column',
+            'amount_column' => 'Amount',
+            'type_column' => 'Type',
+        ];
 
         $type = $this->service->detectType($row, $mappingConfig);
 
+        $this->assertEquals('debit', $type);
+    }
+
+    public function test_ignores_type_column_when_using_single_amount_strategy(): void
+    {
+        // This is the issue #54 - when using single amount strategy,
+        // the type_column should be ignored even if present
+        $row = ['Amount' => '-50.00', 'Type' => 'credit'];
+        $mappingConfig = [
+            'amount_strategy' => 'single',
+            'amount_column' => 'Amount',
+            'type_column' => 'Type',
+        ];
+
+        $type = $this->service->detectType($row, $mappingConfig);
+
+        // Should be 'debit' because amount is negative, not 'credit' from the Type column
         $this->assertEquals('debit', $type);
     }
 
@@ -140,6 +171,7 @@ class XlsxImportServiceTest extends TestCase
         $mappingConfig = [
             'date_column' => 'Date',
             'description_column' => 'Description',
+            'amount_strategy' => 'single',
             'amount_column' => 'Amount',
             'category_column' => 'Category',
             'tags_column' => 'Tags',
@@ -246,5 +278,42 @@ class XlsxImportServiceTest extends TestCase
         ];
 
         $this->service->extractTransactionFromRow($row, $mappingConfig);
+    }
+
+    public function test_normalizes_legacy_single_column_strategy(): void
+    {
+        // Test that legacy 'single_column' value is normalized to 'single'
+        $mappingConfig = [
+            'date_column' => 'Date',
+            'description_column' => 'Description',
+            'amount_column' => 'Amount',
+            'amount_strategy' => 'single_column', // Legacy value
+        ];
+        $headers = ['Date', 'Description', 'Amount'];
+
+        // validateMapping modifies the mapping by reference to normalize
+        $errors = $this->service->validateMapping($mappingConfig, $headers);
+
+        $this->assertEmpty($errors, 'Legacy single_column strategy should be normalized and pass validation');
+        $this->assertEquals('single', $mappingConfig['amount_strategy'], 'amount_strategy should be normalized to single');
+    }
+
+    public function test_normalizes_legacy_debit_credit_columns_strategy(): void
+    {
+        // Test that legacy 'debit_credit_columns' value is normalized to 'separate'
+        $mappingConfig = [
+            'date_column' => 'Date',
+            'description_column' => 'Description',
+            'debit_column' => 'Debit',
+            'credit_column' => 'Credit',
+            'amount_strategy' => 'debit_credit_columns', // Legacy value
+        ];
+        $headers = ['Date', 'Description', 'Debit', 'Credit'];
+
+        // validateMapping modifies the mapping by reference to normalize
+        $errors = $this->service->validateMapping($mappingConfig, $headers);
+
+        $this->assertEmpty($errors, 'Legacy debit_credit_columns strategy should be normalized and pass validation');
+        $this->assertEquals('separate', $mappingConfig['amount_strategy'], 'amount_strategy should be normalized to separate');
     }
 }
